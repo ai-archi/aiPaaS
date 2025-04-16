@@ -1,0 +1,25 @@
+{
+  "name": "ai-platform",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "scripts": {
+    "dev:web": "yarn workspace @ai-platform/web dev",
+    "dev:mobile": "yarn workspace @ai-platform/mobile start",
+    "build:web": "yarn workspace @ai-platform/web build",
+    "build:mobile": "yarn workspace @ai-platform/mobile build",
+    "test": "lerna run test",
+    "lint": "lerna run lint",
+    "clean": "lerna clean",
+    "bootstrap": "lerna bootstrap"
+  },
+  "devDependencies": {
+    "lerna": "^7.1.4",
+    "typescript": "^5.0.0",
+    "prettier": "^3.0.0",
+    "eslint": "^8.45.0"
+  }
+} 

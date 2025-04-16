@@ -1,0 +1,57 @@
+# 服务端口配置
+ports:
+  nacos: 8848
+  api_gateway: 8080
+  auth_service: 8081
+  user_service: 8082
+  java_agent: 8083
+  python_agent: 8084
+  frontend: 3000
+
+# Nacos配置
+nacos:
+  version: 2.5.1
+  mode: standalone
+  auth:
+    enabled: true
+    token: SecretKey012345678901234567890123456789012345678901234567890123456789
+    identity_key: serverIdentity
+    identity_value: security
+  jvm:
+    options: >-
+      -Xms512m
+      -Xmx512m
+      -Xmn256m
+      -XX:+UseG1GC
+      -XX:+HeapDumpOnOutOfMemoryError
+      -XX:HeapDumpPath=../logs/java_heapdump.hprof
+      -XX:+UseContainerSupport
+      -Dnacos.standalone=true
+    java_home: ${JAVA_HOME}
+
+# 服务配置
+services:
+  api_gateway:
+    context_path: /api
+    spring_profile: dev
+  
+  auth_service:
+    context_path: /auth
+    spring_profile: dev
+  
+  user_service:
+    context_path: /user
+    spring_profile: dev
+  
+  java_agent:
+    context_path: /java-agent
+    spring_profile: dev
+  
+  python_agent:
+    context_path: /python-agent
+    env: development
+
+# 日志配置
+logging:
+  dir: logs
+  level: INFO 

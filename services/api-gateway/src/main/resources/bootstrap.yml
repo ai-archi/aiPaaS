@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: api-gateway
+  config:
+    import: nacos:
+  cloud:
+    nacos:
+      config:
+        server-addr: localhost:8848
+        file-extension: yaml
+        namespace: public
+        group: DEFAULT_GROUP
+  profiles:
+    active: dev 
