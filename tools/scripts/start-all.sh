@@ -69,16 +69,6 @@ check_java() {
     print_info "检测到Java版本: $java_version"
 }
 
-# 检查Maven环境
-check_maven() {
-    if ! command -v mvn &> /dev/null; then
-        print_error "Maven未安装，请安装Maven"
-        exit 1
-    fi
-    
-    mvn_version=$(mvn --version | awk 'NR==1{print $3}')
-    print_info "检测到Maven版本: $mvn_version"
-}
 
 # 检查Python环境
 check_python() {
@@ -102,21 +92,29 @@ check_node() {
     print_info "检测到Node.js版本: $node_version"
 }
 
-# 启动服务的通用函数
-start_service() {
+# 通用下载函数
+download_file() {
+    local url=$1
+    local output_file=$2
+    local description=$3
+    
+    print_info "正在下载 ${description}..."
+    if ! curl -L "${url}" -o "${output_file}"; then
+        print_error "${description} 下载失败！"
+        return 1
+    fi
+    return 0
+}
+
+# 通用服务等待函数
+wait_for_service() {
     local service_name=$1
-    local command=$2
-    local log_file=$3
-    local port=$4
-    local context_path=$5
+    local port=$2
+    local pid=$3
+    local max_attempts=${4:-30}
     
-    print_info "正在启动 ${service_name}..."
-    eval "nohup ${command} > ${log_file} 2>&1 &"
-    local pid=$!
-    
-    # 等待服务启动
+    print_info "等待 ${service_name} 启动..."
     local count=0
-    local max_attempts=30
     while ! nc -z localhost ${port} && [ $count -lt $max_attempts ]; do
         sleep 2
         ((count++))
@@ -126,11 +124,6 @@ start_service() {
     
     if nc -z localhost ${port}; then
         print_info "${service_name} 启动成功！(PID: ${pid})"
-        if [ -n "${context_path}" ]; then
-            echo "访问地址: http://localhost:${port}${context_path}"
-        else
-            echo "访问地址: http://localhost:${port}"
-        fi
         return 0
     else
         print_error "${service_name} 启动失败！"
@@ -138,9 +131,55 @@ start_service() {
     fi
 }
 
-# 构建并启动Java服务
+# 通用服务启动函数
+start_service() {
+    local service_name=$1
+    local command=$2
+    local log_file=$3
+    local port=$4
+    local context_path=$5
+    
+    print_info "正在启动 ${service_name}..."
+    print_info "命令: ${command}"
+    print_info "日志文件: ${log_file}"
+    print_info "端口: ${port}"
+    if [ -n "${context_path}" ]; then
+        print_info "上下文路径: ${context_path}"
+    fi
+    
+    # 检查端口是否已被占用
+    if nc -z localhost ${port}; then
+        print_error "端口 ${port} 已被占用！"
+        return 1
+    fi
+    
+    # 使用nohup在后台执行命令
+    nohup bash -c "${command}" > "${log_file}" 2>&1 &
+    
+    local pid=$!
+    print_info "进程ID: ${pid}"
+    
+    if [ -z "$pid" ]; then
+        print_error "服务启动失败，无法获取PID！"
+        return 1
+    fi
+    
+    # 等待服务启动
+    if ! wait_for_service "${service_name}" "${port}" "${pid}"; then
+        return 1
+    fi
+    
+    if [ -n "${context_path}" ]; then
+        echo "访问地址: http://localhost:${port}${context_path}"
+    else
+        echo "访问地址: http://localhost:${port}"
+    fi
+    return 0
+}
+
+# 启动Java服务
 build_and_start_java_services() {
-    print_info "正在构建Java服务..."
+    print_info "正在启动Java服务..."
     cd "${PROJECT_ROOT}"
     
     # 读取服务配置
@@ -159,47 +198,57 @@ build_and_start_java_services() {
     local user_service_path=$(get_config '.services.user_service.context_path' '/user')
     local java_agent_path=$(get_config '.services.java_agent.context_path' '/java-agent')
     
-    # 构建父项目
-    mvn clean install -DskipTests
-    
     # 创建日志目录
     local log_dir=$(get_config '.logging.dir' 'logs')
     mkdir -p ${log_dir}
     echo "日志目录: ${log_dir}"
+
+    local dist_dir="${PROJECT_ROOT}/dist/services"
+    
     # 启动认证服务
-    cd services/auth-service
-    start_service "认证服务" \
-        "SPRING_PROFILES_ACTIVE=${auth_service_profile} SERVER_PORT=${auth_service_port} mvn spring-boot:run" \
-        "${PROJECT_ROOT}/${log_dir}/auth-service.log" \
-        ${auth_service_port} \
-        ${auth_service_path}
-    cd "${PROJECT_ROOT}"
+    if [ -f "${dist_dir}/auth-service-1.0.0.jar" ]; then
+        start_service "认证服务" \
+            "java -jar ${dist_dir}/auth-service-1.0.0.jar --spring.profiles.active=${auth_service_profile} --server.port=${auth_service_port}" \
+            "${PROJECT_ROOT}/${log_dir}/auth-service.log" \
+            ${auth_service_port} \
+            ${auth_service_path}
+    else
+        print_warn "认证服务jar包不存在，跳过启动"
+    fi
     
     # 启动用户服务
-    cd services/user-service
-    start_service "用户服务" \
-        "SPRING_PROFILES_ACTIVE=${user_service_profile} SERVER_PORT=${user_service_port} mvn spring-boot:run" \
-        "${PROJECT_ROOT}/${log_dir}/user-service.log" \
-        ${user_service_port} \
-        ${user_service_path}
-    cd "${PROJECT_ROOT}"
+    if [ -f "${dist_dir}/user-service-1.0.0.jar" ]; then
+        start_service "用户服务" \
+            "java -jar ${dist_dir}/user-service-1.0.0.jar --spring.profiles.active=${user_service_profile} --server.port=${user_service_port}" \
+            "${PROJECT_ROOT}/${log_dir}/user-service.log" \
+            ${user_service_port} \
+            ${user_service_path}
+    else
+        print_warn "用户服务jar包不存在，跳过启动"
+    fi
     
     # 启动Java智能体服务
-    cd agents/java-agent
-    start_service "Java智能体" \
-        "SPRING_PROFILES_ACTIVE=${java_agent_profile} SERVER_PORT=${java_agent_port} mvn spring-boot:run" \
-        "${PROJECT_ROOT}/${log_dir}/java-agent.log" \
-        ${java_agent_port} \
-        ${java_agent_path}
-    cd "${PROJECT_ROOT}"
+    if [ -f "${dist_dir}/java-agent-1.0.0.jar" ]; then
+        start_service "Java智能体" \
+            "java -jar ${dist_dir}/java-agent-1.0.0.jar --spring.profiles.active=${java_agent_profile} --server.port=${java_agent_port}" \
+            "${PROJECT_ROOT}/${log_dir}/java-agent.log" \
+            ${java_agent_port} \
+            ${java_agent_path}
+    else
+        print_warn "Java智能体jar包不存在，跳过启动"
+    fi
     
-    # 最后启动API网关
-    cd services/api-gateway
-    start_service "API网关" \
-        "SPRING_PROFILES_ACTIVE=${api_gateway_profile} SERVER_PORT=${api_gateway_port} mvn spring-boot:run" \
-        "${PROJECT_ROOT}/${log_dir}/api-gateway.log" \
-        ${api_gateway_port} \
-        ${api_gateway_path}
+    # 启动API网关
+    if [ -f "${dist_dir}/api-gateway-1.0.0.jar" ]; then
+        start_service "API网关" \
+            "java -jar ${dist_dir}/api-gateway-1.0.0.jar --spring.profiles.active=${api_gateway_profile} --server.port=${api_gateway_port}" \
+            "${PROJECT_ROOT}/${log_dir}/api-gateway.log" \
+            ${api_gateway_port} \
+            ${api_gateway_path}
+    else
+        print_warn "API网关jar包不存在，跳过启动"
+    fi
+    
     cd "${PROJECT_ROOT}"
 }
 
@@ -272,26 +321,24 @@ start_nacos() {
     local nacos_auth_identity_key=$(get_config '.nacos.auth.identity_key' '')
     local nacos_auth_identity_value=$(get_config '.nacos.auth.identity_value' '')
     local log_dir=$(get_config '.logging.dir' 'logs')
-    local deploy_dir="${PROJECT_ROOT}/deploy"
-    local nacos_home="${deploy_dir}/nacos"
+    local dist_dir="${PROJECT_ROOT}/dist"
+    local nacos_home="${dist_dir}/nacos"
     
     # 创建部署目录
-    mkdir -p "${deploy_dir}"
+    mkdir -p "${dist_dir}"
     
     # 检查是否已下载
     if [ ! -d "${nacos_home}" ]; then
-        print_info "正在下载 Nacos ${nacos_version}..."
         local download_url="https://github.com/alibaba/nacos/releases/download/${nacos_version}/nacos-server-${nacos_version}.tar.gz"
-        local temp_file="${deploy_dir}/nacos.tar.gz"
+        local temp_file="${dist_dir}/nacos.tar.gz"
         
         # 下载 Nacos
-        if ! curl -L "${download_url}" -o "${temp_file}"; then
-            print_error "Nacos 下载失败！"
+        if ! download_file "${download_url}" "${temp_file}" "Nacos ${nacos_version}"; then
             exit 1
         fi
         
         # 解压
-        cd "${deploy_dir}"
+        cd "${dist_dir}"
         if ! tar -xzf nacos.tar.gz; then
             print_error "Nacos 解压失败！"
             exit 1
@@ -375,24 +422,12 @@ start_nacos() {
     nohup bash "${nacos_home}/bin/startup.sh" -m ${nacos_mode} -p ${nacos_port} > "${nacos_home}/logs/startup.log" 2>&1 &
     
     # 等待Nacos启动
-    print_info "等待Nacos启动..."
-    local count=0
-    local max_attempts=30
-    while ! nc -z localhost ${nacos_port} && [ $count -lt $max_attempts ]; do
-        sleep 2
-        ((count++))
-        echo -n "."
-    done
-    echo ""
-    
-    if nc -z localhost ${nacos_port}; then
-        print_info "Nacos启动成功！"
+    if wait_for_service "Nacos" "${nacos_port}" "$!"; then
         echo "控制台地址: http://127.0.0.1:${nacos_port}/nacos (仅限本地访问)"
         echo "用户名/密码: nacos/nacos"
         echo "日志位置: ${nacos_home}/logs"
         cd "${PROJECT_ROOT}"
     else
-        print_error "Nacos启动失败！"
         cd "${PROJECT_ROOT}"
         exit 1
     fi
@@ -410,7 +445,6 @@ main() {
     
     print_info "开始环境检查..."
     check_java
-    check_maven
     check_python
     check_node
     
@@ -421,9 +455,9 @@ main() {
     start_nacos
     echo "========================================"
     
-    # # 启动Java服务
-    # build_and_start_java_services
-    # echo "========================================"
+    # 启动Java服务
+    build_and_start_java_services
+    echo "========================================"
     
     # # 启动Python服务
     # build_and_start_python_services
@@ -443,32 +477,6 @@ main() {
     echo "========================================"
 }
 
-# 创建停止脚本
-create_stop_script() {
-    cat > "${PROJECT_ROOT}/tools/scripts/stop-all.sh" << 'EOF'
-#!/bin/bash
-
-# 获取项目根目录
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
-# 停止Java进程
-pkill -f "spring-boot:run"
-
-# 停止Python进程
-pkill -f "python app.py"
-
-# 停止Node.js进程
-pkill -f "next start"
-
-# 停止Nacos
-bash "${PROJECT_ROOT}/deploy/nacos/nacos/bin/shutdown.sh"
-
-echo "所有服务已停止"
-EOF
-
-    chmod +x "${PROJECT_ROOT}/tools/scripts/stop-all.sh"
-}
 
 # 执行主函数
 main
-create_stop_script 

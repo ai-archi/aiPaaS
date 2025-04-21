@@ -53,5 +53,5 @@ services:
 
 # 日志配置
 logging:
-  dir: logs
+  dir: dist/logs
   level: INFO 

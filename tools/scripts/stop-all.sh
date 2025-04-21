@@ -13,6 +13,8 @@ pkill -f "python app.py"
 pkill -f "next start"
 
 # 停止Nacos
-bash "${PROJECT_ROOT}/deploy/nacos/nacos/bin/shutdown.sh"
+bash "${PROJECT_ROOT}/dist/nacos/bin/shutdown.sh"
+# 停止 API Gateway
+pkill -f "java -jar ${PROJECT_ROOT}/dist/services/api-gateway-0.0.1-SNAPSHOT.jar"
 
 echo "所有服务已停止"

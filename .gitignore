@@ -208,6 +208,32 @@ yarn-error.log*
 .node_repl_history
 .npm
 
+# Electron specific
+apps/desktop/release/app/dist
+apps/desktop/release/build
+apps/desktop/.erb/dll
+apps/desktop/.erb/dll/renderer.dev.dll.js
+apps/desktop/.erb/dll/renderer.prod.dll.js
+apps/desktop/dll
+apps/desktop/release
+apps/desktop/main.js
+apps/desktop/main.js.map
+apps/desktop/package-lock.json
+apps/desktop/yarn.lock
+apps/desktop/pnpm-lock.yaml
+
+# Route tree generated file
+apps/desktop/src/renderer/routeTree.gen.ts
+
+# Mobile app specific
+apps/mobile/ios/App/build/
+apps/mobile/ios/App/Pods/
+apps/mobile/ios/App/App/public/
+apps/mobile/android/app/build/
+apps/mobile/android/app/release/
+apps/mobile/android/.gradle/
+apps/mobile/android/local.properties
+
 # Java
 *.class
 *.log
@@ -324,3 +350,28 @@ dist-ssr/
 
 
 deploy/nacos/*
+**/.mvn
+**/.idea
+**/.vscode
+**/.DS_Store
+**/.gitignore
+**/.git
+**/.gitignore
+
+nohup.out
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+# 注意：不要忽略整个 .mvn 文件夹，因为它包含了 wrapper 的配置
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+!mvnw
+!mvnw.cmd

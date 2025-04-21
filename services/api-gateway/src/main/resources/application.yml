@@ -4,16 +4,31 @@ server:
 spring:
   application:
     name: api-gateway
+  config:
+    import: optional:nacos:${spring.application.name}.${spring.cloud.nacos.config.file-extension}
   cloud:
     nacos:
       discovery:
-        server-addr: localhost:8848
+        server-addr: 127.0.0.1:8848
+        namespace: public
+        username: nacos
+        password: nacos
+        access-key: serverIdentity
+        secret-key: security
+        context-path: /nacos
       config:
-        server-addr: localhost:8848
+        server-addr: 127.0.0.1:8848
         file-extension: yaml
+        namespace: public
+        group: DEFAULT_GROUP
+        username: nacos
+        password: nacos
+        access-key: serverIdentity
+        secret-key: security
+        context-path: /nacos
     sentinel:
       transport:
-        dashboard: localhost:8858
+        dashboard: 127.0.0.1:8858
       eager: true
     gateway:
       discovery:
