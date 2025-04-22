@@ -10,6 +10,24 @@ NC='\033[0m' # No Color
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CONFIG_FILE="${PROJECT_ROOT}/tools/config/application.yaml"
 
+# 获取当前日期
+get_date() {
+    date '+%Y%m%d'
+}
+
+# 生成日志文件名
+get_log_filename() {
+    local service_name=$1
+    local is_access_log=${2:-false}
+    local current_date=$(get_date)
+    
+    if [ "$is_access_log" = true ]; then
+        echo "${service_name}_access_log.${current_date}.log"
+    else
+        echo "${service_name}_log.${current_date}.log"
+    fi
+}
+
 # 检查yq是否安装
 if ! command -v yq &> /dev/null; then
     echo "正在安装yq..."
@@ -131,49 +149,65 @@ wait_for_service() {
     fi
 }
 
-# 通用服务启动函数
+# 启动服务
 start_service() {
     local service_name=$1
-    local command=$2
+    local start_cmd=$2
     local log_file=$3
     local port=$4
     local context_path=$5
-    
-    print_info "正在启动 ${service_name}..."
-    print_info "命令: ${command}"
-    print_info "日志文件: ${log_file}"
-    print_info "端口: ${port}"
-    if [ -n "${context_path}" ]; then
-        print_info "上下文路径: ${context_path}"
+    local process_pattern=$6
+
+    # 确保日志目录存在
+    local log_dir=$(dirname "$log_file")
+    mkdir -p "$log_dir"
+
+    print_info "启动${service_name}服务..."
+    print_info "- 启动命令: ${start_cmd}"
+    print_info "- 日志文件: ${log_file}"
+    print_info "- 端口: ${port}"
+    print_info "- 上下文路径: ${context_path}"
+
+    # 检查端口占用情况
+    if lsof -i:${port} > /dev/null 2>&1; then
+        # 检查是否是相同的服务
+        if [ ! -z "${process_pattern}" ] && ps aux | grep "${process_pattern}" | grep -v grep > /dev/null; then
+            print_warn "${service_name}服务已在运行中（端口 ${port}）"
+            print_info "- 访问地址: http://localhost:${port}${context_path}"
+            print_info "- 日志文件: ${log_file}"
+            return 0
+        else
+            print_error "端口 ${port} 被其他服务占用！"
+            print_info "正在检查占用进程..."
+            lsof -i:${port}
+            return 1
+        fi
     fi
-    
-    # 检查端口是否已被占用
-    if nc -z localhost ${port}; then
-        print_error "端口 ${port} 已被占用！"
-        return 1
-    fi
-    
-    # 使用nohup在后台执行命令
-    nohup bash -c "${command}" > "${log_file}" 2>&1 &
-    
+
+    # 启动服务
+    nohup ${start_cmd} > "${log_file}" 2>&1 &
     local pid=$!
-    print_info "进程ID: ${pid}"
-    
-    if [ -z "$pid" ]; then
-        print_error "服务启动失败，无法获取PID！"
-        return 1
-    fi
-    
+    print_info "服务已启动，进程ID: ${pid}"
+
     # 等待服务启动
-    if ! wait_for_service "${service_name}" "${port}" "${pid}"; then
-        return 1
-    fi
-    
-    if [ -n "${context_path}" ]; then
-        echo "访问地址: http://localhost:${port}${context_path}"
-    else
-        echo "访问地址: http://localhost:${port}"
-    fi
+    local max_wait=30
+    local wait_count=0
+    while ! lsof -i:${port} > /dev/null 2>&1; do
+        sleep 1
+        wait_count=$((wait_count + 1))
+        if [ ${wait_count} -ge ${max_wait} ]; then
+            print_error "服务启动超时（${max_wait}秒）"
+            return 1
+        fi
+        if ! ps -p ${pid} > /dev/null 2>&1; then
+            print_error "服务进程已退出"
+            return 1
+        fi
+    done
+
+    print_info "服务启动成功！"
+    print_info "- 访问地址: http://localhost:${port}${context_path}"
+    print_info "- 日志文件: ${log_file}"
     return 0
 }
 
@@ -199,7 +233,7 @@ build_and_start_java_services() {
     local java_agent_path=$(get_config '.services.java_agent.context_path' '/java-agent')
     
     # 创建日志目录
-    local log_dir=$(get_config '.logging.dir' 'logs')
+    local log_dir="${PROJECT_ROOT}/$(get_config '.logging.dir' 'dist/logs')"
     mkdir -p ${log_dir}
     echo "日志目录: ${log_dir}"
 
@@ -207,44 +241,80 @@ build_and_start_java_services() {
     
     # 启动认证服务
     if [ -f "${dist_dir}/auth-service-1.0.0.jar" ]; then
+        local auth_log_file="${log_dir}/$(get_log_filename "auth-service")"
         start_service "认证服务" \
-            "java -jar ${dist_dir}/auth-service-1.0.0.jar --spring.profiles.active=${auth_service_profile} --server.port=${auth_service_port}" \
-            "${PROJECT_ROOT}/${log_dir}/auth-service.log" \
+            "java -jar ${dist_dir}/auth-service-1.0.0.jar \
+            --spring.profiles.active=${auth_service_profile} \
+            --server.port=${auth_service_port} \
+            --logging.file.path=${log_dir} \
+            --logging.file.name=${auth_log_file} \
+            --logging.config= \
+            --logging.file.max-size=100MB \
+            --logging.file.max-history=30" \
+            "${auth_log_file}" \
             ${auth_service_port} \
-            ${auth_service_path}
+            ${auth_service_path} \
+            "java -jar ${dist_dir}/auth-service-1.0.0.jar"
     else
         print_warn "认证服务jar包不存在，跳过启动"
     fi
     
     # 启动用户服务
     if [ -f "${dist_dir}/user-service-1.0.0.jar" ]; then
+        local user_log_file="${log_dir}/$(get_log_filename "user-service")"
         start_service "用户服务" \
-            "java -jar ${dist_dir}/user-service-1.0.0.jar --spring.profiles.active=${user_service_profile} --server.port=${user_service_port}" \
-            "${PROJECT_ROOT}/${log_dir}/user-service.log" \
+            "java -jar ${dist_dir}/user-service-1.0.0.jar \
+            --spring.profiles.active=${user_service_profile} \
+            --server.port=${user_service_port} \
+            --logging.file.path=${log_dir} \
+            --logging.file.name=${user_log_file} \
+            --logging.config= \
+            --logging.file.max-size=100MB \
+            --logging.file.max-history=30" \
+            "${user_log_file}" \
             ${user_service_port} \
-            ${user_service_path}
+            ${user_service_path} \
+            "java -jar ${dist_dir}/user-service-1.0.0.jar"
     else
         print_warn "用户服务jar包不存在，跳过启动"
     fi
     
     # 启动Java智能体服务
     if [ -f "${dist_dir}/java-agent-1.0.0.jar" ]; then
+        local java_agent_log_file="${log_dir}/$(get_log_filename "java-agent")"
         start_service "Java智能体" \
-            "java -jar ${dist_dir}/java-agent-1.0.0.jar --spring.profiles.active=${java_agent_profile} --server.port=${java_agent_port}" \
-            "${PROJECT_ROOT}/${log_dir}/java-agent.log" \
+            "java -jar ${dist_dir}/java-agent-1.0.0.jar \
+            --spring.profiles.active=${java_agent_profile} \
+            --server.port=${java_agent_port} \
+            --logging.file.path=${log_dir} \
+            --logging.file.name=${java_agent_log_file} \
+            --logging.config= \
+            --logging.file.max-size=100MB \
+            --logging.file.max-history=30" \
+            "${java_agent_log_file}" \
             ${java_agent_port} \
-            ${java_agent_path}
+            ${java_agent_path} \
+            "java -jar ${dist_dir}/java-agent-1.0.0.jar"
     else
         print_warn "Java智能体jar包不存在，跳过启动"
     fi
     
     # 启动API网关
     if [ -f "${dist_dir}/api-gateway-1.0.0.jar" ]; then
+        local api_gateway_log_file="${log_dir}/$(get_log_filename "api-gateway")"
         start_service "API网关" \
-            "java -jar ${dist_dir}/api-gateway-1.0.0.jar --spring.profiles.active=${api_gateway_profile} --server.port=${api_gateway_port}" \
-            "${PROJECT_ROOT}/${log_dir}/api-gateway.log" \
+            "java -jar ${dist_dir}/api-gateway-1.0.0.jar \
+            --spring.profiles.active=${api_gateway_profile} \
+            --server.port=${api_gateway_port} \
+            --logging.file.path=${log_dir} \
+            --logging.file.name=${api_gateway_log_file} \
+            --logging.config= \
+            --logging.file.max-size=100MB \
+            --logging.file.max-history=30" \
+            "${api_gateway_log_file}" \
             ${api_gateway_port} \
-            ${api_gateway_path}
+            ${api_gateway_path} \
+            "java -jar ${dist_dir}/api-gateway-1.0.0.jar"
     else
         print_warn "API网关jar包不存在，跳过启动"
     fi
@@ -258,28 +328,119 @@ build_and_start_python_services() {
     cd "${PROJECT_ROOT}"
     
     # 读取Python服务配置
-    local python_agent_port=$(get_config '.ports.python_agent' '8084')
-    local python_env=$(get_config '.services.python_agent.env' 'development')
-    local python_agent_path=$(get_config '.services.python_agent.context_path' '/python-agent')
-    local log_dir=$(get_config '.logging.dir' 'logs')
+    local task_agent_port=$(get_config '.ports.task_agent' '8085')
+    local task_env=$(get_config '.services.task_agent.env' 'development')
+    local task_agent_path=$(get_config '.services.task_agent.context_path' '/task-agent')
+    local log_dir="${PROJECT_ROOT}/$(get_config '.logging.dir' 'dist/logs')"
     
-    # 创建并激活虚拟环境
-    cd agents/python-agent
-    python3 -m venv venv
-    source venv/bin/activate
+    print_info "Task Agent配置信息:"
+    print_info "- 端口: ${task_agent_port}"
+    print_info "- 环境: ${task_env}"
+    print_info "- 上下文路径: ${task_agent_path}"
+    print_info "- 日志目录: ${log_dir}"
     
-    # 安装依赖
-    pip install -r requirements.txt
+    # 确保日志目录存在
+    mkdir -p "${log_dir}"
     
-    # 启动Python服务
-    start_service "Python智能体" \
-        "PORT=${python_agent_port} PYTHON_ENV=${python_env} python app.py" \
-        "${PROJECT_ROOT}/${log_dir}/python-agent.log" \
-        ${python_agent_port} \
-        ${python_agent_path}
+    # 检查端口占用情况
+    if lsof -i:${task_agent_port} > /dev/null 2>&1; then
+        # 检查是否是task-agent服务
+        if ps aux | grep "${PROJECT_ROOT}/dist/agents/task-agent/run.py" | grep -v grep > /dev/null; then
+            print_warn "Task Agent服务已在运行中（端口 ${task_agent_port}）"
+            print_info "- 访问地址: http://localhost:${task_agent_port}${task_agent_path}"
+            print_info "- 日志文件: ${PROJECT_ROOT}/${log_dir}/task-agent.log"
+            return 0
+        else
+            print_error "端口 ${task_agent_port} 被其他服务占用！"
+            print_info "正在检查占用进程..."
+            lsof -i:${task_agent_port}
+            return 1
+        fi
+    fi
+    
+    # 检查并激活Python虚拟环境
+    if [ ! -d "dist/penv" ]; then
+        print_error "Python虚拟环境不存在: ${PROJECT_ROOT}/dist/penv"
+        print_info "请先运行 build-all.sh 创建虚拟环境"
+        return 1
+    fi
+    
+    if [ ! -f "dist/penv/bin/activate" ]; then
+        print_error "Python虚拟环境激活脚本不存在: ${PROJECT_ROOT}/dist/penv/bin/activate"
+        return 1
+    fi
+    
+    print_info "激活Python虚拟环境..."
+    local activate_cmd="source ${PROJECT_ROOT}/dist/penv/bin/activate"
+    print_info "执行命令: ${activate_cmd}"
+    source dist/penv/bin/activate
+    
+    # 检查Python环境
+    print_info "Python环境信息:"
+    print_info "- Python解释器: $(which python)"
+    print_info "- Python版本: $(python --version)"
+    print_info "- 虚拟环境路径: ${VIRTUAL_ENV}"
+    print_info "- pip版本: $(pip --version)"
+    
+    # 检查必要的Python包
+    print_info "检查Python依赖..."
+    if ! python -c "import fastapi" 2>/dev/null; then
+        print_error "FastAPI包未安装"
+        print_info "尝试安装FastAPI..."
+        pip install fastapi
+        if ! python -c "import fastapi" 2>/dev/null; then
+            print_error "FastAPI安装失败"
+            deactivate
+            return 1
+        fi
+    fi
+    
+    # 检查task-agent目录
+    if [ ! -d "dist/agents/task-agent" ]; then
+        print_error "Task Agent目录不存在: ${PROJECT_ROOT}/dist/agents/task-agent"
+        deactivate
+        return 1
+    fi
+    
+    # 检查run.py是否存在
+    if [ ! -f "dist/agents/task-agent/run.py" ]; then
+        print_error "Task Agent启动脚本不存在: ${PROJECT_ROOT}/dist/agents/task-agent/run.py"
+        deactivate
+        return 1
+    fi
+    
+    # 启动Task Agent服务
+    cd dist/agents/task-agent
+    print_info "切换到工作目录: $(pwd)"
+    
+    local task_agent_cmd="env PORT=${task_agent_port} PYTHON_ENV=${task_env} python run.py"
+    print_info "准备启动Task Agent..."
+    print_info "完整启动命令: ${task_agent_cmd}"
+    
+    local task_agent_log_file="${log_dir}/$(get_log_filename "task-agent")"
+    # 使用start_service函数启动服务
+    if ! start_service "Task智能体" \
+        "${task_agent_cmd}" \
+        "${task_agent_log_file}" \
+        ${task_agent_port} \
+        ${task_agent_path} \
+        "${PROJECT_ROOT}/dist/agents/task-agent/run.py"; then
+        print_error "Task Agent启动失败，查看最后10行日志："
+        tail -n 10 "${task_agent_log_file}"
+        deactivate
+        cd "${PROJECT_ROOT}"
+        return 1
+    fi
+    
+    print_info "Task Agent启动成功！"
+    print_info "- 访问地址: http://localhost:${task_agent_port}${task_agent_path}"
+    print_info "- 日志文件: ${task_agent_log_file}"
     
     deactivate
+    print_info "已退出Python虚拟环境"
+    
     cd "${PROJECT_ROOT}"
+    return 0
 }
 
 # 构建并启动前端应用
@@ -302,7 +463,9 @@ build_and_start_frontend() {
     start_service "前端应用" \
         "PORT=${frontend_port} npm run start" \
         "${PROJECT_ROOT}/${log_dir}/frontend.log" \
-        ${frontend_port}
+        ${frontend_port} \
+        "" \
+        "node ${frontend_port}"
     
     cd "${PROJECT_ROOT}"
 }
@@ -320,96 +483,32 @@ start_nacos() {
     local nacos_auth_token=$(get_config '.nacos.auth.token' '')
     local nacos_auth_identity_key=$(get_config '.nacos.auth.identity_key' '')
     local nacos_auth_identity_value=$(get_config '.nacos.auth.identity_value' '')
-    local log_dir=$(get_config '.logging.dir' 'logs')
+    local log_dir="${PROJECT_ROOT}/$(get_config '.logging.dir' 'dist/logs')"
     local dist_dir="${PROJECT_ROOT}/dist"
     local nacos_home="${dist_dir}/nacos"
     
-    # 创建部署目录
-    mkdir -p "${dist_dir}"
+    # 创建日志目录
+    mkdir -p "${log_dir}/nacos"
     
-    # 检查是否已下载
-    if [ ! -d "${nacos_home}" ]; then
-        local download_url="https://github.com/alibaba/nacos/releases/download/${nacos_version}/nacos-server-${nacos_version}.tar.gz"
-        local temp_file="${dist_dir}/nacos.tar.gz"
-        
-        # 下载 Nacos
-        if ! download_file "${download_url}" "${temp_file}" "Nacos ${nacos_version}"; then
-            exit 1
-        fi
-        
-        # 解压
-        cd "${dist_dir}"
-        if ! tar -xzf nacos.tar.gz; then
-            print_error "Nacos 解压失败！"
-            exit 1
-        fi
-        rm -f nacos.tar.gz
-        cd "${PROJECT_ROOT}"
-    else
-        print_info "使用已存在的 Nacos 安装..."
+    # 处理已存在的 derby.log 文件
+    if [ -f "${nacos_home}/derby.log" ]; then
+        print_info "移动已存在的 derby.log 文件到日志目录..."
+        mv "${nacos_home}/derby.log" "${log_dir}/nacos/derby.log"
     fi
     
-    # 配置Nacos
-    local conf_file="${nacos_home}/conf/application.properties"
-    print_info "正在配置 Nacos (${conf_file})"
-    
-    # 确保配置文件存在
-    if [ ! -f "${conf_file}" ]; then
-        print_info "配置文件不存在，创建新文件..."
-        touch "${conf_file}"
+    # 处理项目根目录下的 derby.log 文件
+    if [ -f "${PROJECT_ROOT}/derby.log" ]; then
+        print_info "移动项目根目录下的 derby.log 文件到日志目录..."
+        mv "${PROJECT_ROOT}/derby.log" "${log_dir}/nacos/derby.log"
     fi
     
-    print_info "更新 Nacos 配置..."
-    
-    # 生成base64编码的密钥（至少32字节）
-    local secret_key=$(echo "nacos-auth-key-super-long-security-key-2024" | base64)
-    
-    # 逐个更新配置项
-    print_info "设置 server.ip..."
-    sed -i '/^server.ip=/c server.ip=127.0.0.1' "${conf_file}"
-    
-    print_info "设置 auth.system.type..."
-    sed -i '/^nacos.core.auth.system.type=/c nacos.core.auth.system.type=nacos' "${conf_file}"
-    
-    print_info "设置 auth.enabled..."
-    sed -i '/^nacos.core.auth.enabled=/c nacos.core.auth.enabled='"${nacos_auth_enabled}" "${conf_file}"
-    
-    print_info "设置 auth.server.identity.key..."
-    sed -i '/^nacos.core.auth.server.identity.key=/c nacos.core.auth.server.identity.key='"${nacos_auth_identity_key}" "${conf_file}"
-    
-    print_info "设置 auth.server.identity.value..."
-    sed -i '/^nacos.core.auth.server.identity.value=/c nacos.core.auth.server.identity.value='"${nacos_auth_identity_value}" "${conf_file}"
-    
-    print_info "设置 auth.plugin.nacos.token..."
-    sed -i '/^nacos.core.auth.plugin.nacos.token=/c nacos.core.auth.plugin.nacos.token='"${nacos_auth_token}" "${conf_file}"
-    
-    print_info "设置 JWT 密钥..."
-    sed -i '/^nacos.core.auth.plugin.nacos.token.secret.key=/c nacos.core.auth.plugin.nacos.token.secret.key='"${secret_key}" "${conf_file}"
-    
-    # 检查配置项是否存在，如果不存在则添加
-    print_info "检查并补充缺失的配置项..."
-    for config in \
-        "server.ip=127.0.0.1" \
-        "nacos.core.auth.system.type=nacos" \
-        "nacos.core.auth.enabled=${nacos_auth_enabled}" \
-        "nacos.core.auth.server.identity.key=${nacos_auth_identity_key}" \
-        "nacos.core.auth.server.identity.value=${nacos_auth_identity_value}" \
-        "nacos.core.auth.plugin.nacos.token=${nacos_auth_token}" \
-        "nacos.core.auth.plugin.nacos.token.secret.key=${secret_key}"
-    do
-        key=$(echo "${config}" | cut -d= -f1)
-        if ! grep -q "^${key}=" "${conf_file}"; then
-            echo "${config}" >> "${conf_file}"
-            print_info "添加缺失配置: ${config}"
-        fi
-    done
-    
-    # 显示最终的配置文件内容
-    print_info "当前配置文件内容："
-    
-    # 配置JVM参数，添加内存限制
+    # 配置JVM参数，添加内存限制和Derby日志路径
     local jvm_options=$(get_config '.nacos.jvm.options' '-Xms512m -Xmx512m -Xmn256m')
-    echo "JAVA_OPT=\"${jvm_options} --add-opens java.base/java.lang=ALL-UNNAMED -Dnacos.remote.client.grpc.threadpool.max.size=20\"" > "${nacos_home}/bin/custom-jvm.properties"
+    echo "JAVA_OPT=\"${jvm_options} \
+        -Dderby.stream.error.file=${log_dir}/nacos/derby.log \
+        -Dnacos.logging.path=${log_dir}/nacos \
+        --add-opens java.base/java.lang=ALL-UNNAMED \
+        -Dnacos.remote.client.grpc.threadpool.max.size=20\"" > "${nacos_home}/bin/custom-jvm.properties"
     
     # 设置JAVA_HOME（如果配置文件中指定了）
     local java_home=$(get_config '.nacos.jvm.java_home' '')
@@ -419,13 +518,14 @@ start_nacos() {
     
     # 启动Nacos
     print_info "正在启动Nacos服务..."
-    nohup bash "${nacos_home}/bin/startup.sh" -m ${nacos_mode} -p ${nacos_port} > "${nacos_home}/logs/startup.log" 2>&1 &
+    cd "${nacos_home}"
+    nohup bash "bin/startup.sh" -m ${nacos_mode} -p ${nacos_port} > "${log_dir}/nacos/startup.log" 2>&1 &
     
     # 等待Nacos启动
     if wait_for_service "Nacos" "${nacos_port}" "$!"; then
         echo "控制台地址: http://127.0.0.1:${nacos_port}/nacos (仅限本地访问)"
         echo "用户名/密码: nacos/nacos"
-        echo "日志位置: ${nacos_home}/logs"
+        echo "日志位置: ${log_dir}/nacos"
         cd "${PROJECT_ROOT}"
     else
         cd "${PROJECT_ROOT}"
@@ -459,9 +559,9 @@ main() {
     build_and_start_java_services
     echo "========================================"
     
-    # # 启动Python服务
-    # build_and_start_python_services
-    # echo "========================================"
+    # 启动Python服务
+    build_and_start_python_services
+    echo "========================================"
     
     # # 启动前端应用
     # build_and_start_frontend
@@ -473,7 +573,18 @@ main() {
     # 显示进程信息
     echo "========================================"
     print_info "当前运行的服务进程："
-    ps aux | grep -E "spring-boot:run|python app.py|next start|nacos" | grep -v grep
+    echo "----------------------------------------"
+    print_info "Nacos服务："
+    ps aux | grep "${PROJECT_ROOT}/dist/nacos" | grep -v grep
+    echo "----------------------------------------"
+    print_info "Java服务："
+    ps aux | grep "${PROJECT_ROOT}/dist/services/.*\.jar" | grep -v grep
+    echo "----------------------------------------"
+    print_info "Python服务："
+    ps aux | grep -E "${PROJECT_ROOT}/(dist/agents/.*/(run|app)\.py|dist/penv/bin/python)" | grep -v grep
+    echo "----------------------------------------"
+    print_info "前端服务："
+    ps aux | grep "${PROJECT_ROOT}/dist/apps/web/.next" | grep -v grep
     echo "========================================"
 }
 
