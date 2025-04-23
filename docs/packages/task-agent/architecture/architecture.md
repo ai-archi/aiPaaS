@@ -1,18 +1,120 @@
 
-## 总体架构
+# Task Agent详细设计
 
-MCP Server 提供的 API 以统一的标准进行管理，减少暴露的接口数量。核心功能包括指令管理、任务管理、任务执行和状态追踪。所有的接口都采用 **RESTful API** 形式，且仅暴露任务相关的操作，保持接口简洁且易于扩展。**JWT 校验模块**确保了用户认证，**任务状态服务**使用 **Redis** 来缓存和实时更新任务的状态。
+> **MCP Server（Multi-agent Command Platform）** 是一个任务协作平台，用于统一协调多个 Agent，完成包括安装器任务、文档生成、知识图谱推理等复杂任务，并支持用户通过配置模板自定义任务流程。
 
 
-```mermaid
-graph TD
-    A[用户请求] -->|调用| B[MCP Server API Gateway]
-    B -->|指令查询| D[指令管理服务]
-    B -->|任务管理| E[任务管理服务]
-    E -->|任务执行| F[任务执行服务]
-    E -->|任务状态| G[任务状态服务]
-    F -->|执行反馈| A
-    B -->|JWT 校验| C[JWT 校验]
+##  核心领域模型设计（参考 MetaGPT）
+
+我们划分为以下子领域：
+
+### 1. Agent Domain —— `Agent`
+
+```python
+class Agent(BaseModel):
+    id: str
+    name: str
+    role_id: str
+    skills: List[str]
+    tools: List[str]
+    config: Dict[str, Any]
+```
+
+- 一个 Agent 是任务执行者。
+- 每个 Agent 被赋予一个 Role（职责），并能使用多个 Tool。
+
+---
+
+### 2. Role Domain —— `Role`
+
+```python
+class Role(BaseModel):
+    id: str
+    name: str
+    description: str
+    steps: List[str]  # 对应的 Step 模板 ID
+```
+
+- Role 定义行为流程。
+- 可以通过模板定义执行逻辑，每个 Step 对应一个 Prompt/功能。
+
+---
+
+### 3. Task Domain —— `Task`
+
+```python
+class Task(BaseModel):
+    id: str
+    name: str
+    description: str
+    created_by: str
+    context: Dict[str, Any]
+    agents: List[str]
+    status: Literal["pending", "running", "completed", "failed"]
+    logs: List[str]
+```
+
+- Task 是任务容器，分配多个 Agent 来协同执行。
+
+---
+
+### 4. Workspace Domain —— `Workspace`
+
+```python
+class Workspace(BaseModel):
+    id: str
+    name: str
+    files: Dict[str, str]         # 文件路径到内容
+    variables: Dict[str, Any]     # 上下文变量
+    shared_context: Dict[str, Any]
+```
+
+- 用于在任务和 Agent 间共享数据、中间产物。
+
+---
+
+### 5. Tool Domain —— `Tool`
+
+```python
+class Tool(BaseModel):
+    id: str
+    name: str
+    description: str
+    input_schema: Dict[str, Any]
+    output_schema: Dict[str, Any]
+    execute: Callable[[Dict[str, Any]], Dict[str, Any]]  # 函数式执行器
+```
+
+- 每个 Tool 可由 Agent 调用。
+- 工具可以是本地脚本、API、安装器等。
+
+---
+
+### 6. Step Domain —— `StepTemplate`
+
+```python
+class StepTemplate(BaseModel):
+    id: str
+    name: str
+    prompt: str
+    input_vars: List[str]
+    output_vars: List[str]
+    tool_id: Optional[str] = None
+    type: Literal["prompt", "tool", "chat"]
+```
+
+- 每个 Step 是可复用的任务单元，可绑定 Tool 或 LLM Prompt。
+
+---
+
+### 7. Message Domain —— `Message`
+
+```python
+class Message(BaseModel):
+    sender: str
+    receiver: str
+    type: Literal["task", "reply", "info", "log"]
+    payload: Dict[str, Any]
 ```
 
 ### 模块划分
@@ -85,15 +187,7 @@ graph TD
    **任务状态查询 API**：
    - **GET /tasks/{task_id}/status**：查询任务的当前执行状态。
 
-### 技术栈
-
-1. **FastAPI**：Web 框架，用于构建 RESTful API。
-2. **SQLAlchemy**：ORM，用于任务和任务历史的数据库交互。
-3. **Alembic**：数据库迁移工具，用于管理数据库架构变更。
-4. **PostgreSQL**：关系型数据库，存储任务信息。
-5. **Redis**：用于实时缓存和任务状态更新。
-6. **PyJWT**：用于 **JWT** Token 校验，确保用户认证。
-7. **本地文件系统（如 JSON）**：用于存储指令数据，简化管理。
+。
 
 ### 核心功能实现
 

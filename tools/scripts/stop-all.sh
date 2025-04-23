@@ -9,19 +9,49 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# 解析命令行参数
+# 初始化变量
 FORCE_STOP=false
+SPECIFIED_SERVICE=""
+
+# 显示帮助信息
+show_help() {
+    echo "用法: $0 [-f|--force] [-s|--service <service_name>]"
+    echo "选项:"
+    echo "  -f, --force              强制停止服务（使用kill -9）"
+    echo "  -s, --service SERVICE    指定要停止的服务"
+    echo "可用的服务:"
+    echo "  task-agent               Task Agent服务"
+    echo "  api-gateway             API网关服务"
+    echo "  auth-service            认证服务"
+    echo "  user-service            用户服务"
+    echo "  java-agent              Java Agent服务"
+    echo "  web                     前端服务"
+    echo "  nacos                   Nacos服务"
+    echo "  all                     所有服务（默认）"
+    exit 1
+}
+
+# 解析命令行参数
 while [[ $# -gt 0 ]]; do
     case $1 in
         -f|--force)
             FORCE_STOP=true
             shift
             ;;
+        -s|--service)
+            if [ -z "$2" ]; then
+                print_error "错误：--service 选项需要一个参数"
+                show_help
+            fi
+            SPECIFIED_SERVICE="$2"
+            shift 2
+            ;;
+        -h|--help)
+            show_help
+            ;;
         *)
             echo "未知参数: $1"
-            echo "用法: $0 [-f|--force]"
-            echo "  -f, --force    强制停止所有服务（使用kill -9）"
-            exit 1
+            show_help
             ;;
     esac
 done
@@ -77,145 +107,153 @@ stop_port() {
     fi
 }
 
-# 读取Task Agent端口
-TASK_AGENT_PORT=$(get_config '.ports.task_agent' '8085')
+# 停止Task Agent服务
+stop_task_agent() {
+    print_info "停止Task Agent服务..."
+    local TASK_AGENT_PORT=$(get_config '.ports.task_agent' '8085')
+    print_info "正在停止Task Agent (端口: ${TASK_AGENT_PORT})..."
+    stop_port "${TASK_AGENT_PORT}" "$FORCE_STOP"
+    if [ "$FORCE_STOP" = true ]; then
+        pkill -9 -f "${PROJECT_ROOT}/dist/agents/task-agent/run.py" || true
+    else
+        pkill -f "${PROJECT_ROOT}/dist/agents/task-agent/run.py" || true
+        sleep 2
+        if pgrep -f "${PROJECT_ROOT}/dist/agents/task-agent/run.py" > /dev/null; then
+            print_info "Task Agent未响应正常终止信号，使用强制终止..."
+            pkill -9 -f "${PROJECT_ROOT}/dist/agents/task-agent/run.py" || true
+        fi
+    fi
+}
 
 # 停止Java服务
-print_info "停止Java服务..."
-if [ "$FORCE_STOP" = true ]; then
-    pkill -9 -f "${PROJECT_ROOT}/dist/services/api-gateway.*\.jar"
-    pkill -9 -f "${PROJECT_ROOT}/dist/services/auth-service.*\.jar"
-    pkill -9 -f "${PROJECT_ROOT}/dist/services/user-service.*\.jar"
-    pkill -9 -f "${PROJECT_ROOT}/dist/services/java-agent.*\.jar"
-else
-    pkill -f "${PROJECT_ROOT}/dist/services/api-gateway.*\.jar"
-    pkill -f "${PROJECT_ROOT}/dist/services/auth-service.*\.jar"
-    pkill -f "${PROJECT_ROOT}/dist/services/user-service.*\.jar"
-    pkill -f "${PROJECT_ROOT}/dist/services/java-agent.*\.jar"
-    # 等待进程退出
-    sleep 2
-    # 检查是否需要强制终止
-    for pattern in "api-gateway" "auth-service" "user-service" "java-agent"; do
-        if pgrep -f "${PROJECT_ROOT}/dist/services/${pattern}.*\.jar" > /dev/null; then
-            print_info "${pattern} 服务未响应正常终止信号，使用强制终止..."
-            pkill -9 -f "${PROJECT_ROOT}/dist/services/${pattern}.*\.jar"
+stop_java_service() {
+    local service_name=$1
+    print_info "停止 ${service_name}..."
+    if [ "$FORCE_STOP" = true ]; then
+        pkill -9 -f "${PROJECT_ROOT}/dist/services/${service_name}.*\.jar" || true
+    else
+        pkill -f "${PROJECT_ROOT}/dist/services/${service_name}.*\.jar" || true
+        sleep 2
+        if pgrep -f "${PROJECT_ROOT}/dist/services/${service_name}.*\.jar" > /dev/null; then
+            print_info "${service_name} 未响应正常终止信号，使用强制终止..."
+            pkill -9 -f "${PROJECT_ROOT}/dist/services/${service_name}.*\.jar" || true
         fi
-    done
-fi
-
-# 停止Python服务
-print_info "停止Python服务..."
-print_info "正在停止Task Agent (端口: ${TASK_AGENT_PORT})..."
-stop_port "${TASK_AGENT_PORT}" "$FORCE_STOP"
-
-# 确保所有Python相关进程都被停止
-if [ "$FORCE_STOP" = true ]; then
-    pkill -9 -f "${PROJECT_ROOT}/dist/agents/.*/run.py"
-    pkill -9 -f "${PROJECT_ROOT}/dist/agents/.*/app.py"
-    pkill -9 -f "${PROJECT_ROOT}/dist/penv/bin/python"
-else
-    pkill -f "${PROJECT_ROOT}/dist/agents/.*/run.py"
-    pkill -f "${PROJECT_ROOT}/dist/agents/.*/app.py"
-    pkill -f "${PROJECT_ROOT}/dist/penv/bin/python"
-    # 等待进程退出
-    sleep 2
-    # 检查是否需要强制终止
-    if pgrep -f "${PROJECT_ROOT}/dist/agents/.*/(run|app)\.py" > /dev/null || \
-       pgrep -f "${PROJECT_ROOT}/dist/penv/bin/python" > /dev/null; then
-        print_info "Python服务未响应正常终止信号，使用强制终止..."
-        pkill -9 -f "${PROJECT_ROOT}/dist/agents/.*/run.py"
-        pkill -9 -f "${PROJECT_ROOT}/dist/agents/.*/app.py"
-        pkill -9 -f "${PROJECT_ROOT}/dist/penv/bin/python"
     fi
-fi
+}
 
 # 停止前端服务
-print_info "停止前端服务..."
-if [ "$FORCE_STOP" = true ]; then
-    pkill -9 -f "${PROJECT_ROOT}/dist/apps/web/.next"
-else
-    pkill -f "${PROJECT_ROOT}/dist/apps/web/.next"
-    sleep 2
-    if pgrep -f "${PROJECT_ROOT}/dist/apps/web/.next" > /dev/null; then
-        print_info "前端服务未响应正常终止信号，使用强制终止..."
-        pkill -9 -f "${PROJECT_ROOT}/dist/apps/web/.next"
-    fi
-fi
-
-# 停止Nacos
-print_info "停止Nacos服务..."
-if [ -f "${PROJECT_ROOT}/dist/nacos/bin/shutdown.sh" ]; then
-    bash "${PROJECT_ROOT}/dist/nacos/bin/shutdown.sh"
+stop_web_service() {
+    print_info "停止前端服务..."
     if [ "$FORCE_STOP" = true ]; then
-        # 强制模式下，确保Nacos进程被终止
+        pkill -9 -f "${PROJECT_ROOT}/dist/apps/web/.next" || true
+    else
+        pkill -f "${PROJECT_ROOT}/dist/apps/web/.next" || true
         sleep 2
-        if pgrep -f "${PROJECT_ROOT}/dist/nacos" > /dev/null; then
-            print_info "Nacos服务未响应正常终止信号，使用强制终止..."
-            pkill -9 -f "${PROJECT_ROOT}/dist/nacos"
+        if pgrep -f "${PROJECT_ROOT}/dist/apps/web/.next" > /dev/null; then
+            print_info "前端服务未响应正常终止信号，使用强制终止..."
+            pkill -9 -f "${PROJECT_ROOT}/dist/apps/web/.next" || true
         fi
     fi
-else
-    print_error "Nacos shutdown脚本不存在"
-    if [ "$FORCE_STOP" = true ]; then
-        print_info "强制终止所有Nacos进程..."
-        pkill -9 -f "${PROJECT_ROOT}/dist/nacos"
+}
+
+# 停止Nacos服务
+stop_nacos() {
+    print_info "停止Nacos服务..."
+    if [ -f "${PROJECT_ROOT}/dist/nacos/bin/shutdown.sh" ]; then
+        bash "${PROJECT_ROOT}/dist/nacos/bin/shutdown.sh"
+        if [ "$FORCE_STOP" = true ]; then
+            sleep 2
+            if pgrep -f "${PROJECT_ROOT}/dist/nacos" > /dev/null; then
+                print_info "Nacos服务未响应正常终止信号，使用强制终止..."
+                pkill -9 -f "${PROJECT_ROOT}/dist/nacos" || true
+            fi
+        fi
+    else
+        print_error "Nacos shutdown脚本不存在"
+        if [ "$FORCE_STOP" = true ]; then
+            print_info "强制终止所有Nacos进程..."
+            pkill -9 -f "${PROJECT_ROOT}/dist/nacos" || true
+        fi
     fi
+}
+
+# 根据指定的服务名称停止服务
+stop_service() {
+    case $1 in
+        "task-agent")
+            stop_task_agent
+            ;;
+        "api-gateway")
+            stop_java_service "api-gateway"
+            ;;
+        "auth-service")
+            stop_java_service "auth-service"
+            ;;
+        "user-service")
+            stop_java_service "user-service"
+            ;;
+        "java-agent")
+            stop_java_service "java-agent"
+            ;;
+        "web")
+            stop_web_service
+            ;;
+        "nacos")
+            stop_nacos
+            ;;
+        "all")
+            stop_task_agent
+            stop_java_service "api-gateway"
+            stop_java_service "auth-service"
+            stop_java_service "user-service"
+            stop_java_service "java-agent"
+            stop_web_service
+            stop_nacos
+            ;;
+        *)
+            print_error "未知的服务: $1"
+            show_help
+            ;;
+    esac
+}
+
+# 主逻辑
+if [ -z "$SPECIFIED_SERVICE" ]; then
+    SPECIFIED_SERVICE="all"
 fi
 
-# 验证所有服务是否已停止
-print_info "验证服务状态..."
+stop_service "$SPECIFIED_SERVICE"
+
+# 验证服务状态
+print_info "验证 $SPECIFIED_SERVICE 服务状态..."
 sleep 2
 
-# 检查是否还有服务在运行
-echo "========================================"
-print_info "检查服务状态："
-echo "----------------------------------------"
-print_info "Nacos服务："
-ps aux | grep "${PROJECT_ROOT}/dist/nacos" | grep -v grep
-echo "----------------------------------------"
-print_info "Java服务："
-ps aux | grep "${PROJECT_ROOT}/dist/services/.*\.jar" | grep -v grep
-echo "----------------------------------------"
-print_info "Python服务："
-ps aux | grep -E "${PROJECT_ROOT}/(dist/agents/.*/(run|app)\.py|dist/penv/bin/python)" | grep -v grep
-print_info "检查Task Agent端口 ${TASK_AGENT_PORT}..."
-if lsof -i:${TASK_AGENT_PORT} >/dev/null 2>&1; then
-    print_error "端口 ${TASK_AGENT_PORT} 仍被占用"
-    lsof -i:${TASK_AGENT_PORT}
-else
-    print_info "端口 ${TASK_AGENT_PORT} 已释放"
-fi
-echo "----------------------------------------"
-print_info "前端服务："
-ps aux | grep "${PROJECT_ROOT}/dist/apps/web/.next" | grep -v grep
-echo "========================================"
-
-# 如果还有服务在运行，显示错误信息
-print_info "检查未完全停止的服务："
-
-# 检查Nacos服务
-if ps aux | grep "${PROJECT_ROOT}/dist/nacos" | grep -v grep > /dev/null; then
-    print_error "- Nacos服务仍在运行"
-fi
-
-# 检查Java服务
-if ps aux | grep "${PROJECT_ROOT}/dist/services/.*\.jar" | grep -v grep > /dev/null; then
-    print_error "- 以下Java服务仍在运行："
-    ps aux | grep "${PROJECT_ROOT}/dist/services/.*\.jar" | grep -v grep | awk '{print "  * " $NF}'
-fi
-
-# 检查Python服务
-if ps aux | grep -E "${PROJECT_ROOT}/(dist/agents/.*/(run|app)\.py|dist/penv/bin/python)" | grep -v grep > /dev/null; then
-    print_error "- 以下Python服务仍在运行："
-    ps aux | grep -E "${PROJECT_ROOT}/(dist/agents/.*/(run|app)\.py|dist/penv/bin/python)" | grep -v grep | awk '{print "  * " $NF}'
-fi
-
-# 检查前端服务
-if ps aux | grep "${PROJECT_ROOT}/dist/apps/web/.next" | grep -v grep > /dev/null; then
-    print_error "- 前端服务仍在运行"
-fi
-
-# 检查是否所有服务都已停止
-if ! ps aux | grep -E "${PROJECT_ROOT}/(dist/services/.*\.jar|dist/agents/.*/(run|app)\.py|dist/penv/bin/python|dist/apps/web/.next|dist/nacos)" | grep -v grep > /dev/null; then
-    print_info "所有服务已成功停止"
-fi
+case $SPECIFIED_SERVICE in
+    "task-agent")
+        TASK_AGENT_PORT=$(get_config '.ports.task_agent' '8085')
+        if lsof -i:${TASK_AGENT_PORT} >/dev/null 2>&1; then
+            print_error "Task Agent (端口 ${TASK_AGENT_PORT}) 仍在运行"
+        else
+            print_info "Task Agent 已成功停止"
+        fi
+        ;;
+    "all")
+        # 检查所有服务状态
+        echo "========================================"
+        print_info "检查所有服务状态："
+        if ! ps aux | grep -E "${PROJECT_ROOT}/(dist/services/.*\.jar|dist/agents/.*/(run|app)\.py|dist/penv/bin/python|dist/apps/web/.next|dist/nacos)" | grep -v grep > /dev/null; then
+            print_info "所有服务已成功停止"
+        else
+            print_error "以下服务仍在运行："
+            ps aux | grep -E "${PROJECT_ROOT}/(dist/services/.*\.jar|dist/agents/.*/(run|app)\.py|dist/penv/bin/python|dist/apps/web/.next|dist/nacos)" | grep -v grep
+        fi
+        ;;
+    *)
+        # 检查特定服务状态
+        if ps aux | grep -E "${PROJECT_ROOT}.*${SPECIFIED_SERVICE}" | grep -v grep > /dev/null; then
+            print_error "$SPECIFIED_SERVICE 仍在运行"
+        else
+            print_info "$SPECIFIED_SERVICE 已成功停止"
+        fi
+        ;;
+esac
