@@ -37,7 +37,7 @@ NACOS_ACCESS_KEY = os.getenv("NACOS_ACCESS_KEY")
 NACOS_SECRET_KEY = os.getenv("NACOS_SECRET_KEY")
 NACOS_GROUP = os.getenv("NACOS_GROUP", "DEFAULT_GROUP")
 NACOS_CLUSTER = os.getenv("NACOS_CLUSTER", "DEFAULT")
-NACOS_SERVICE_NAME = os.getenv("NACOS_SERVICE_NAME", "embed-serves")
+NACOS_SERVICE_NAME = os.getenv("NACOS_SERVICE_NAME", "embed_serves")
 NACOS_WEIGHT = float(os.getenv("NACOS_WEIGHT", 1.0))
 NACOS_ENABLE = os.getenv("NACOS_ENABLE", "true").lower() == "true"
 NACOS_HEALTHY = os.getenv("NACOS_HEALTHY", "true").lower() == "true"

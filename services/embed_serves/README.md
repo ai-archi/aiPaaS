@@ -1,4 +1,4 @@
-# 嵌入模型服务（embed-serves）
+# 嵌入模型服务（embed_serves）
 
 基于 FastAPI + fastembed，支持多嵌入模型和多推理后端的本地嵌入 API。
 
@@ -20,7 +20,7 @@ pip install fastapi uvicorn fastembed
 ## 启动服务
 
 ```bash
-cd services/embed-serves
+cd services/embed_serves
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 

@@ -1,7 +1,11 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "knowledge_rag_agent"
+name = "embed_serves"
 version = "0.1.0"
-description = "知识RAG智能体，FastAPI实现，支持统一wheel构建。"
+description = "Embedding 服务，FastAPI 实现，支持统一 wheel 构建。"
 authors = [
     { name = "jin", email = "jin@jin.com" }
 ]
@@ -15,7 +19,5 @@ dependencies = [
     "python-dotenv>=1.1.0"
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-
-# 其他依赖可根据 requirements.txt 增补 
+[project.urls]
+Homepage = "https://your-homepage-url.com" 

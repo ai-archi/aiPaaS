@@ -45,7 +45,7 @@ class Settings(BaseModel):
     nacos_password: Optional[str] = os.getenv("NACOS_PASSWORD")
     nacos_group: str = os.getenv("NACOS_GROUP", "DEFAULT_GROUP")
     nacos_cluster: str = os.getenv("NACOS_CLUSTER", "DEFAULT")
-    nacos_service_name: str = os.getenv("NACOS_SERVICE_NAME", "knowledge-rag-agent")
+    nacos_service_name: str = os.getenv("NACOS_SERVICE_NAME", "knowledge_rag_agent")
     nacos_weight: float = float(os.getenv("NACOS_WEIGHT", 1.0))
     nacos_enable: bool = os.getenv("NACOS_ENABLE", "true").lower() == "true"
     nacos_healthy: bool = os.getenv("NACOS_HEALTHY", "true").lower() == "true"

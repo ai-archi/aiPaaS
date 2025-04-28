@@ -20,12 +20,12 @@ show_help() {
     echo "  -f, --force              强制停止服务（使用kill -9）"
     echo "  -s, --service SERVICE    指定要停止的服务"
     echo "可用的服务:"
-    echo "  task-agent               Task Agent服务"
+    echo "  knowledge_rag_agent      知识检索服务"
+    echo "  embed_serves             嵌入服务"
     echo "  api-gateway             API网关服务"
     echo "  auth-service            认证服务"
     echo "  user-service            用户服务"
     echo "  java-agent              Java Agent服务"
-    echo "  web                     前端服务"
     echo "  nacos                   Nacos服务"
     echo "  all                     所有服务（默认）"
     exit 1
@@ -141,21 +141,6 @@ stop_java_service() {
     fi
 }
 
-# 停止前端服务
-stop_web_service() {
-    print_info "停止前端服务..."
-    if [ "$FORCE_STOP" = true ]; then
-        pkill -9 -f "${PROJECT_ROOT}/dist/apps/web/.next" || true
-    else
-        pkill -f "${PROJECT_ROOT}/dist/apps/web/.next" || true
-        sleep 2
-        if pgrep -f "${PROJECT_ROOT}/dist/apps/web/.next" > /dev/null; then
-            print_info "前端服务未响应正常终止信号，使用强制终止..."
-            pkill -9 -f "${PROJECT_ROOT}/dist/apps/web/.next" || true
-        fi
-    fi
-}
-
 # 停止Nacos服务
 stop_nacos() {
     print_info "停止Nacos服务..."
@@ -184,7 +169,7 @@ stop_knowledge_rag_agent() {
 }
 
 stop_embed_serves() {
-    print_info "停止 embed-serves..."
+    print_info "停止 embed_serves..."
     lsof -ti:8003 | xargs kill -9 2>/dev/null || true
     pkill -f "uvicorn main:app" 2>/dev/null || true
 }
@@ -195,7 +180,7 @@ stop_service() {
         "knowledge_rag_agent")
             stop_knowledge_rag_agent
             ;;
-        "embed-serves")
+        "embed_serves")
             stop_embed_serves
             ;;
         "api-gateway")
@@ -210,9 +195,6 @@ stop_service() {
         "java-agent")
             stop_java_service "java-agent"
             ;;
-        "web")
-            stop_web_service
-            ;;
         "nacos")
             stop_nacos
             ;;
@@ -223,7 +205,6 @@ stop_service() {
             stop_java_service "auth-service"
             stop_java_service "user-service"
             stop_java_service "java-agent"
-            stop_web_service
             stop_nacos
             ;;
         *)
@@ -252,22 +233,22 @@ case $SPECIFIED_SERVICE in
             print_info "knowledge_rag_agent 已成功停止"
         fi
         ;;
-    "embed-serves")
+    "embed_serves")
         if lsof -i:8003 >/dev/null 2>&1; then
-            print_error "embed-serves (端口 8003) 仍在运行"
+            print_error "embed_serves (端口 8003) 仍在运行"
         else
-            print_info "embed-serves 已成功停止"
+            print_info "embed_serves 已成功停止"
         fi
         ;;
     "all")
         # 检查所有服务状态
         echo "========================================"
         print_info "检查所有服务状态："
-        if ! ps aux | grep -E "${PROJECT_ROOT}/(dist/services/.*\.jar|agents/knowledge_rag_agent/src/main.py|services/embed-serves/main.py|dist/apps/web/.next|dist/nacos)" | grep -v grep > /dev/null; then
+        if ! ps aux | grep -E "${PROJECT_ROOT}/(dist/services/.*\.jar|agents/knowledge_rag_agent/src/main.py|services/embed_serves/main.py|dist/nacos)" | grep -v grep > /dev/null; then
             print_info "所有服务已成功停止"
         else
             print_error "以下服务仍在运行："
-            ps aux | grep -E "${PROJECT_ROOT}/(dist/services/.*\.jar|agents/knowledge_rag_agent/src/main.py|services/embed-serves/main.py|dist/apps/web/.next|dist/nacos)" | grep -v grep
+            ps aux | grep -E "${PROJECT_ROOT}/(dist/services/.*\.jar|agents/knowledge_rag_agent/src/main.py|services/embed_serves/main.py|dist/nacos)" | grep -v grep
         fi
         ;;
     *)

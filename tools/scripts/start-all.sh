@@ -279,33 +279,14 @@ build_and_start_java_services() {
         print_warn "用户服务jar包不存在，跳过启动"
     fi
     
-    # 启动Java智能体服务
-    if [ -f "${dist_dir}/java-agent-1.0.0.jar" ]; then
-        local java_agent_log_file="${log_dir}/$(get_log_filename "java-agent")"
-        start_service "Java智能体" \
-            "java -jar ${dist_dir}/java-agent-1.0.0.jar \
-            --spring.profiles.active=${java_agent_profile} \
-            --server.port=${java_agent_port} \
-            --logging.file.path=${log_dir} \
-            --logging.file.name=${java_agent_log_file} \
-            --logging.config= \
-            --logging.file.max-size=100MB \
-            --logging.file.max-history=30" \
-            "${java_agent_log_file}" \
-            ${java_agent_port} \
-            ${java_agent_path} \
-            "java -jar ${dist_dir}/java-agent-1.0.0.jar"
-    else
-        print_warn "Java智能体jar包不存在，跳过启动"
-    fi
-    
     # 启动API网关
-    if [ -f "${dist_dir}/api-gateway-1.0.0.jar" ]; then
+    if [ -f "${dist_dir}/api-gateway/api-gateway-1.0.0.jar" ]; then
         local api_gateway_log_file="${log_dir}/$(get_log_filename "api-gateway")"
         start_service "API网关" \
-            "java -jar ${dist_dir}/api-gateway-1.0.0.jar \
+            "java -jar ${dist_dir}/api-gateway/api-gateway-1.0.0.jar \
             --spring.profiles.active=${api_gateway_profile} \
             --server.port=${api_gateway_port} \
+            --spring.config.location=${dist_dir}/api-gateway/ \
             --logging.file.path=${log_dir} \
             --logging.file.name=${api_gateway_log_file} \
             --logging.config= \
@@ -314,7 +295,7 @@ build_and_start_java_services() {
             "${api_gateway_log_file}" \
             ${api_gateway_port} \
             ${api_gateway_path} \
-            "java -jar ${dist_dir}/api-gateway-1.0.0.jar"
+            "java -jar ${dist_dir}/api-gateway/api-gateway-1.0.0.jar"
     else
         print_warn "API网关jar包不存在，跳过启动"
     fi
@@ -390,55 +371,36 @@ start_knowledge_rag_agent() {
     local log_dir="${PROJECT_ROOT}/dist/logs"
     mkdir -p "$log_dir"
     local rag_port=$(get_config '.ports.knowledge_rag_agent' '8002')
-    if [ ! -d "${PROJECT_ROOT}/agents/knowledge_rag_agent" ] || [ ! -f "${PROJECT_ROOT}/agents/knowledge_rag_agent/src/main.py" ]; then
-        print_warn "agents/knowledge_rag_agent 或 main.py 不存在，跳过启动"
-        return 0
+    local main_path="${PROJECT_ROOT}/dist/agents/knowledge_rag_agent/src/main.py"
+    if [ ! -f "$main_path" ]; then
+        print_error "main.py 未找到: $main_path"
+        return 1
     fi
-    cd "${PROJECT_ROOT}/agents/knowledge_rag_agent"
-    nohup uvicorn src.main:app --host 0.0.0.0 --port ${rag_port} --reload > "$log_dir/knowledge_rag_agent.log" 2>&1 &
+    source "${PROJECT_ROOT}/dist/penv/bin/activate"
+    local uvicorn_cmd="uvicorn dist.agents.knowledge_rag_agent.src.main:app --host 0.0.0.0 --port ${rag_port} --reload"
+    print_info "实际启动命令: $uvicorn_cmd"
+    nohup $uvicorn_cmd > "$log_dir/knowledge_rag_agent.log" 2>&1 &
+    deactivate
     print_info "knowledge_rag_agent 启动完成，日志：$log_dir/knowledge_rag_agent.log"
     cd "${PROJECT_ROOT}"
 }
 
 start_embed_serves() {
-    print_info "启动 embed-serves..."
+    print_info "启动 embed_serves..."
     local log_dir="${PROJECT_ROOT}/dist/logs"
     mkdir -p "$log_dir"
     local embed_port=$(get_config '.ports.embed_serves' '8003')
-    if [ ! -d "${PROJECT_ROOT}/services/embed-serves" ] || [ ! -f "${PROJECT_ROOT}/services/embed-serves/main.py" ]; then
-        print_warn "services/embed-serves 或 main.py 不存在，跳过启动"
-        return 0
+    local main_path="${PROJECT_ROOT}/dist/services/embed_serves/main.py"
+    if [ ! -f "$main_path" ]; then
+        print_error "main.py 未找到: $main_path"
+        return 1
     fi
-    cd "${PROJECT_ROOT}/services/embed-serves"
-    nohup uvicorn main:app --host 0.0.0.0 --port ${embed_port} --reload > "$log_dir/embed_serves.log" 2>&1 &
-    print_info "embed-serves 启动完成，日志：$log_dir/embed_serves.log"
-    cd "${PROJECT_ROOT}"
-}
-
-# 构建并启动前端应用
-build_and_start_frontend() {
-    print_info "正在构建前端应用..."
-    cd "${PROJECT_ROOT}"
-    
-    # 读取前端配置
-    local frontend_port=$(get_config '.ports.frontend' '3000')
-    local log_dir=$(get_config '.logging.dir' 'logs')
-    
-    # 安装依赖
-    npm install
-    
-    # 构建并启动前端应用
-    cd apps/web
-    npm install
-    npm run build
-    
-    start_service "前端应用" \
-        "PORT=${frontend_port} npm run start" \
-        "${PROJECT_ROOT}/${log_dir}/frontend.log" \
-        ${frontend_port} \
-        "" \
-        "node ${frontend_port}"
-    
+    source "${PROJECT_ROOT}/dist/penv/bin/activate"
+    local uvicorn_cmd="uvicorn dist.services.embed_serves.main:app --host 0.0.0.0 --port ${embed_port} --reload"
+    print_info "实际启动命令: $uvicorn_cmd"
+    nohup $uvicorn_cmd > "$log_dir/embed_serves.log" 2>&1 &
+    deactivate
+    print_info "embed_serves 启动完成，日志: $log_dir/embed_serves.log"
     cd "${PROJECT_ROOT}"
 }
 
@@ -464,7 +426,6 @@ main() {
     local embed_port=$(get_config '.ports.embed_serves' '8003')
     local nacos_port=$(get_config '.ports.nacos' '8848')
     local api_gateway_port=$(get_config '.ports.api_gateway' '8080')
-    local frontend_port=$(get_config '.ports.frontend' '3000')
     local log_dir="${PROJECT_ROOT}/$(get_config '.logging.dir' 'dist/logs')"
     start_nacos
     echo "========================================"
@@ -474,8 +435,6 @@ main() {
     echo "========================================"
     start_embed_serves
     echo "========================================"
-    build_and_start_frontend
-    echo "========================================"
     print_info "所有服务启动完成！"
     print_info "日志文件位置：${log_dir}/"
     echo "========================================"
@@ -484,16 +443,7 @@ main() {
     echo "Nacos:                http://localhost:${nacos_port}/nacos"
     echo "API网关:              http://localhost:${api_gateway_port}/api"
     echo "knowledge_rag_agent:  http://localhost:${rag_port}"
-    echo "embed-serves:         http://localhost:${embed_port}"
-    echo "前端:                 http://localhost:${frontend_port}"
-    echo "----------------------------------------"
-    print_info "服务日志路径一览："
-    echo "----------------------------------------"
-    echo "Nacos:                ${log_dir}/nacos/startup.log"
-    echo "API网关:              ${log_dir}/api-gateway_log.$(date +%Y%m%d).log"
-    echo "knowledge_rag_agent:  ${log_dir}/knowledge_rag_agent.log"
-    echo "embed-serves:         ${log_dir}/embed_serves.log"
-    echo "前端:                 ${log_dir}/frontend.log"
+    echo "embed_serves:         http://localhost:${embed_port}"
     echo "----------------------------------------"
 }
 

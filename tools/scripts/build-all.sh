@@ -8,6 +8,7 @@ NC='\033[0m' # No Color
 
 # 默认配置
 DEBUG_MODE=false
+CLEAN_MODE=false
 
 # 解析命令行参数
 while [[ $# -gt 0 ]]; do
@@ -16,9 +17,13 @@ while [[ $# -gt 0 ]]; do
             DEBUG_MODE=true
             shift
             ;;
+        --clean)
+            CLEAN_MODE=true
+            shift
+            ;;
         *)
             print_error "未知参数: $1"
-            echo "用法: $0 [--debug]"
+            echo "用法: $0 [--debug] [--clean]"
             exit 1
             ;;
     esac
@@ -158,16 +163,19 @@ build_java_services() {
     print_info "构建API网关..." "force"
     cd "${PROJECT_ROOT}/services/api-gateway"
     debug_info "切换到目录: ${PROJECT_ROOT}/services/api-gateway"
-    
+    # 清理并创建 dist/services/api-gateway 目录
+    rm -rf "${PROJECT_ROOT}/dist/services/api-gateway"
+    mkdir -p "${PROJECT_ROOT}/dist/services/api-gateway"
     if [ "$DEBUG_MODE" = true ]; then
         mvn clean package -DskipTests
     else
         mvn clean package -DskipTests -q
     fi
-    
     if [ $? -eq 0 ]; then
-        cp target/api-gateway-1.0.0.jar "${PROJECT_ROOT}/dist/services/"
-        debug_info "复制文件: target/api-gateway-1.0.0.jar -> ${PROJECT_ROOT}/dist/services/"
+        cp target/api-gateway-1.0.0.jar "${PROJECT_ROOT}/dist/services/api-gateway/api-gateway-1.0.0.jar"
+        # 复制所有配置文件到 dist/services/api-gateway
+        cp -r src/main/resources/application*.yml src/main/resources/application*.yaml src/main/resources/application.properties "${PROJECT_ROOT}/dist/services/api-gateway/" 2>/dev/null || true
+        debug_info "复制文件: target/api-gateway-1.0.0.jar 及配置文件 -> ${PROJECT_ROOT}/dist/services/api-gateway/"
         print_info "API网关构建成功" "force"
     else
         print_error "API网关构建失败"
@@ -180,114 +188,33 @@ build_java_services() {
 build_python_services() {
     print_info "正在构建Python服务..." "force"
     cd "${PROJECT_ROOT}"
-    
     # 清理并创建dist目录
     print_info "清理Python服务构建目录..." "force"
-    rm -rf dist/agents/python-agent dist/agents/task-agent dist/penv
-    debug_info "已删除旧的构建目录"
-    
-    mkdir -p dist/agents/python-agent
-    mkdir -p dist/agents/task-agent
+    if [ "$CLEAN_MODE" = true ]; then
+        rm -rf dist/penv
+        debug_info "已删除旧的构建目录"
+    fi
     mkdir -p dist/penv
     debug_info "创建目录结构:"
-    debug_info "- ${PROJECT_ROOT}/dist/agents/python-agent"
-    debug_info "- ${PROJECT_ROOT}/dist/agents/task-agent"
     debug_info "- ${PROJECT_ROOT}/dist/penv"
-    
     # 创建全局Python虚拟环境
     print_info "创建全局Python虚拟环境..." "force"
     python3 -m venv dist/penv
     source dist/penv/bin/activate
     debug_info "Python虚拟环境已激活: $(which python)"
-    
     # 升级pip
     print_info "升级pip..." "force"
-    if [ "$DEBUG_MODE" = true ]; then
-        python -m pip install --upgrade pip
-    else
-        python -m pip install --upgrade pip -q
+    pip install --upgrade pip
+    # 安装所有服务 requirements.txt
+    if [ -f "agents/knowledge_rag_agent/requirements.txt" ]; then
+        pip install -r agents/knowledge_rag_agent/requirements.txt
     fi
-    
-    # 安装全局依赖
-    print_info "安装全局Python依赖..." "force"
-    if [ -f "agents/task-agent/requirements.txt" ]; then
-        debug_info "安装依赖文件: agents/task-agent/requirements.txt"
-        if [ "$DEBUG_MODE" = true ]; then
-            pip install --no-cache-dir -r agents/task-agent/requirements.txt
-        else
-            pip install --no-cache-dir -r agents/task-agent/requirements.txt -q
-        fi
-        if [ $? -ne 0 ]; then
-            print_error "全局Python依赖安装失败"
-            deactivate
-            exit 1
-        fi
-        debug_info "依赖安装成功，安装位置: ${VIRTUAL_ENV}"
+    if [ -f "services/embed_serves/requirements.txt" ]; then
+        pip install -r services/embed_serves/requirements.txt
     fi
-    
-    # 构建Python智能体
-    print_info "构建Python智能体..." "force"
-    cd agents/python-agent
-    debug_info "切换到目录: ${PROJECT_ROOT}/agents/python-agent"
-    
-    # 安装Python智能体特定依赖
-    if [ -f "requirements.txt" ]; then
-        debug_info "安装依赖文件: requirements.txt"
-        if [ "$DEBUG_MODE" = true ]; then
-            pip install --no-cache-dir -r requirements.txt
-        else
-            pip install --no-cache-dir -r requirements.txt -q
-        fi
-        if [ $? -eq 0 ]; then
-            print_info "Python智能体依赖安装成功" "force"
-            # 复制必要文件到dist目录
-            cp -r app.py requirements.txt "${PROJECT_ROOT}/dist/agents/python-agent/"
-            debug_info "复制文件到: ${PROJECT_ROOT}/dist/agents/python-agent/"
-        else
-            print_error "Python智能体依赖安装失败"
-            deactivate
-            exit 1
-        fi
-    fi
-    
-    cd "${PROJECT_ROOT}"
-    debug_info "切换回项目根目录"
-
-    # 构建Task智能体
-    print_info "构建Task智能体..." "force"
-    cd agents/task-agent
-    debug_info "切换到目录: ${PROJECT_ROOT}/agents/task-agent"
-    
-    # 复制必要文件到dist目录
-    debug_info "复制Task智能体文件到dist目录"
-    cp -r run.py requirements.txt .env "${PROJECT_ROOT}/dist/agents/task-agent/"
-    debug_info "复制基础文件到: ${PROJECT_ROOT}/dist/agents/task-agent/"
-    
-    # 复制应用代码到dist目录
-    if [ -d "app" ]; then
-        cp -r app "${PROJECT_ROOT}/dist/agents/task-agent/"
-        debug_info "复制app目录到: ${PROJECT_ROOT}/dist/agents/task-agent/"
-    fi
-    if [ -d "core" ]; then
-        cp -r core "${PROJECT_ROOT}/dist/agents/task-agent/"
-        debug_info "复制core目录到: ${PROJECT_ROOT}/dist/agents/task-agent/"
-    fi
-    if [ -d "utils" ]; then
-        cp -r utils "${PROJECT_ROOT}/dist/agents/task-agent/"
-        debug_info "复制utils目录到: ${PROJECT_ROOT}/dist/agents/task-agent/"
-    fi
-    
-    cd "${PROJECT_ROOT}"
-    debug_info "切换回项目根目录"
-    
-    # 验证虚拟环境中的依赖安装
-    print_info "验证Python依赖安装..." "force"
-    if [ "$DEBUG_MODE" = true ]; then
-        pip list
-    fi
-    
     deactivate
     debug_info "Python虚拟环境已退出"
+    cd "${PROJECT_ROOT}"
 }
 
 # 构建前端应用
@@ -386,28 +313,44 @@ build_nacos() {
 build_mf_nacos_service_registrar() {
     print_info "构建并本地发布 mf-nacos-service-registrar..." "force"
     cd "${PROJECT_ROOT}/libs/python/mf-nacos-service-registrar"
+    source "${PROJECT_ROOT}/dist/penv/bin/activate"
     python3 -m build
     pip install -e .
+    deactivate
     cd "${PROJECT_ROOT}"
 }
 
 # 构建 knowledge_rag_agent
 build_knowledge_rag_agent() {
     print_info "构建 knowledge_rag_agent..." "force"
+    if [ "$CLEAN_MODE" = true ]; then
+        rm -rf "${PROJECT_ROOT}/dist/agents/knowledge_rag_agent"
+        debug_info "已删除 dist/agents/knowledge_rag_agent 目录"
+    fi
+    mkdir -p "${PROJECT_ROOT}/dist/agents/knowledge_rag_agent"
     cd "${PROJECT_ROOT}/agents/knowledge_rag_agent"
-    pip install -r requirements.txt
+    if [ -f "requirements.txt" ]; then
+        pip install -r requirements.txt
+    fi
+    # 仅复制源码和配置到 dist 目录，不再构建 wheel 包
+    cp -r src README.md pyproject.toml requirements.txt "${PROJECT_ROOT}/dist/agents/knowledge_rag_agent/" 2>/dev/null || true
     cd "${PROJECT_ROOT}"
 }
 
-# 构建 embed-serves
+# 构建 embed_serves
 build_embed_serves() {
-    print_info "构建 embed-serves..." "force"
-    cd "${PROJECT_ROOT}/services/embed-serves"
+    print_info "构建 embed_serves..." "force"
+    if [ "$CLEAN_MODE" = true ]; then
+        rm -rf "${PROJECT_ROOT}/dist/services/embed_serves"
+        debug_info "已删除 dist/services/embed_serves 目录"
+    fi
+    mkdir -p "${PROJECT_ROOT}/dist/services/embed_serves"
+    cd "${PROJECT_ROOT}/services/embed_serves"
     if [ -f "requirements.txt" ]; then
         pip install -r requirements.txt
-    else
-        print_warn "services/embed-serves/requirements.txt 不存在，跳过依赖安装"
     fi
+    # 仅复制源码和配置到 dist 目录，不再构建 wheel 包
+    cp -r main.py README.md pyproject.toml requirements.txt "${PROJECT_ROOT}/dist/services/embed_serves/" 2>/dev/null || true
     cd "${PROJECT_ROOT}"
 }
 
@@ -456,12 +399,8 @@ main() {
     build_knowledge_rag_agent
     echo "========================================"
     
-    # 构建 embed-serves
+    # 构建 embed_serves
     build_embed_serves
-    echo "========================================"
-    
-    # 构建前端应用
-    build_frontend
     echo "========================================"
     
     print_info "所有服务构建完成！" "force"
