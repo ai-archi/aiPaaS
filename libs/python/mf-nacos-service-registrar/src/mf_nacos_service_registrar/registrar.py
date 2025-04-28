@@ -121,36 +121,95 @@ def deregister_instance(
 
 
 class NacosServiceRegistrar:
-    def __init__(self, server: str, namespace: str = "public", username: str = "nacos", password: str = "nacos"):
+    def __init__(
+        self,
+        server: str,
+        namespace: str = "public",
+        username: str = None,
+        password: str = None
+    ):
         self.client = nacos.NacosClient(
             server_addresses=server,
             namespace=namespace,
             username=username,
             password=password
         )
+        self.service_name: str = None
+        self.service_ip: str = get_local_ip()
+        self.service_port: int = None
+        self.service_group: str = "DEFAULT_GROUP"
 
-    def register(self, service_name: str, ip: Optional[str] = None, port: int = 50051, group: str = "DEFAULT_GROUP"):
-        ip = ip or self.get_local_ip()
+    def set_service(self, service_name: str, service_ip: str, service_port: int, service_group: str):
+        self.service_name = service_name
+        self.service_ip = service_ip
+        self.service_port = service_port
+        self.service_group = service_group
+
+    def register(self):
+        if not all([self.service_name, self.service_ip, self.service_port, self.service_group]):
+            raise ValueError("service_name, service_ip, service_port, service_group 必须先 set_service")
         self.client.add_naming_instance(
-            service_name,
-            ip,
-            port,
-            group_name=group,
-            ephemeral=True
+            self.service_name,
+            self.service_ip,
+            self.service_port,
+            group_name=self.service_group
         )
+        logging.info(f"注册服务: {self.service_name}@{self.service_ip}:{self.service_port} group={self.service_group}")
 
-    def deregister(self, service_name: str, ip: Optional[str] = None, port: int = 50051, group: str = "DEFAULT_GROUP"):
-        ip = ip or self.get_local_ip()
+    def unregister(self):
+        if not all([self.service_name, self.service_ip, self.service_port, self.service_group]):
+            raise ValueError("service_name, service_ip, service_port, service_group 必须先 set_service")
         self.client.remove_naming_instance(
-            service_name,
-            ip,
-            port,
-            group_name=group
+            self.service_name,
+            self.service_ip,
+            self.service_port,
+            group_name=self.service_group
         )
+        logging.info(f"注销服务: {self.service_name}@{self.service_ip}:{self.service_port} group={self.service_group}")
+
+    def modify(self, service_name: str, service_ip: str = None, service_port: int = None):
+        self.client.modify_naming_instance(
+            service_name,
+            service_ip if service_ip else self.service_ip,
+            service_port if service_port else self.service_port
+        )
+        logging.info(f"修改服务实例: {service_name}@{service_ip or self.service_ip}:{service_port or self.service_port}")
+
+    def send_heartbeat(self):
+        if not all([self.service_name, self.service_ip, self.service_port]):
+            raise ValueError("service_name, service_ip, service_port 必须先 set_service")
+        self.client.send_heartbeat(
+            self.service_name,
+            self.service_ip,
+            self.service_port
+        )
+        logging.info(f"发送心跳: {self.service_name}@{self.service_ip}:{self.service_port}")
+
+    def get_config(self, data_id: str, group: str) -> str:
+        return self.client.get_config(data_id=data_id, group=group, no_snapshot=True)
+
+    def add_config_watcher(self, data_id: str, group: str, callback):
+        self.client.add_config_watcher(data_id=data_id, group=group, cb=callback)
+        logging.info(f"添加配置监听: {data_id}@{group}")
 
     def get_one_healthy_instance(self, service_name: str, group: str = "DEFAULT_GROUP") -> str:
         instances = self.client.list_naming_instance(service_name, group_name=group)
         for inst in instances['hosts']:
             if inst['healthy']:
                 return f"{inst['ip']}:{inst['port']}"
+        raise RuntimeError(f"No healthy instance for {service_name}")
+
+    def get_one_healthy_instance_url(
+        self,
+        service_name: str,
+        group: str = "DEFAULT_GROUP",
+        schema: str = "http"
+    ) -> str:
+        """
+        返回可用服务的完整 URL（如 http://ip:port）
+        """
+        instances = self.client.list_naming_instance(service_name, group_name=group)
+        for inst in instances.get('hosts', []):
+            if inst.get('healthy'):
+                return f"{schema}://{inst['ip']}:{inst['port']}"
         raise RuntimeError(f"No healthy instance for {service_name}") 

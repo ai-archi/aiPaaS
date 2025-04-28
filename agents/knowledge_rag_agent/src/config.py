@@ -22,7 +22,7 @@ class Settings(BaseModel):
     app_name: str = os.getenv("APP_NAME", "knowledge_rag_agent")
     environment: str = os.getenv("ENVIRONMENT", "dev")
     host: str = os.getenv("HOST", "0.0.0.0")
-    port: int = int(os.getenv("PORT", 8000))
+    port: int = int(os.getenv("PORT", 8002))
     db_url: str = get_db_url()
     embedding_api_url: Optional[str] = os.getenv("EMBEDDING_API_URL")
     llm_api_url: Optional[str] = os.getenv("LLM_API_URL")
