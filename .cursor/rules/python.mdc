@@ -71,30 +71,8 @@ alwaysApply: true
 
 ---
 
-### 示例代码结构：
-
-```
-/app
-    /routers
-        __init__.py
-        user_routes.py      # 处理用户相关的查询和命令
-        product_routes.py   # 处理产品相关的查询和命令
-    /models
-        __init__.py
-        user.py             # 定义用户的领域模型
-        product.py          # 定义产品的领域模型
-    /services
-        __init__.py
-        user_service.py     # 处理用户相关的命令和查询
-        product_service.py  # 处理产品相关的命令和查询
-    /schemas
-        __init__.py
-        user.py             # 定义用户的 Pydantic 模型（输入、输出）
-        product.py          # 定义产品的 Pydantic 模型（输入、输出）
-    /middlewares
-        __init__.py
-        error_handling.py   # 中间件：处理错误和日志
-```
+## 统一python虚拟环境
+位置: {project_root}/.venv
 
 这种结构遵循 DDD 中的 **聚合根** 和 **领域服务** 模式，同时根据 CQRS 模式将命令和查询的责任分离，确保代码的可维护性和清晰性。
 

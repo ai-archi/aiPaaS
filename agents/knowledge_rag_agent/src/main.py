@@ -8,15 +8,49 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from config import settings
 from interfaces.rest_api import router as rest_router
-from infrastructure.nacos_register import register_instance, deregister_instance
+from nacos_client_python.registrar import get_nacos_client, register_instance, deregister_instance
+
+_nacos_client = None
+
+def get_or_create_nacos_client():
+    global _nacos_client
+    if _nacos_client is not None:
+        return _nacos_client
+    _nacos_client = get_nacos_client(
+        server_addr=settings.nacos_server_addr,
+        namespace=settings.nacos_namespace,
+        ak=settings.nacos_access_key,
+        sk=settings.nacos_secret_key
+    )
+    return _nacos_client
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await register_instance()
+    client = get_or_create_nacos_client()
+    register_instance(
+        client=client,
+        service_name=settings.nacos_service_name,
+        port=settings.port,
+        cluster_name=settings.nacos_cluster,
+        weight=settings.nacos_weight,
+        metadata={"env": settings.environment},
+        enable=settings.nacos_enable,
+        healthy=settings.nacos_healthy,
+        ephemeral=settings.nacos_ephemeral,
+        group_name=settings.nacos_group,
+        heartbeat_interval=5
+    )
     try:
         yield
     finally:
-        await deregister_instance()
+        deregister_instance(
+            client=client,
+            service_name=settings.nacos_service_name,
+            port=settings.port,
+            cluster_name=settings.nacos_cluster,
+            ephemeral=settings.nacos_ephemeral,
+            group_name=settings.nacos_group
+        )
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
