@@ -29,5 +29,20 @@ class Settings(BaseModel):
     permission_api_url: Optional[str] = os.getenv("PERMISSION_API_URL")
     vector_db_url: str = get_vector_db_url()
     log_level: str = os.getenv("LOG_LEVEL", "info")
+    # nacos 配置
+    nacos_server_addr: str = os.getenv("NACOS_SERVER_ADDR", "127.0.0.1:8848")
+    nacos_namespace: Optional[str] = os.getenv("NACOS_NAMESPACE", "public")
+    nacos_username: Optional[str] = os.getenv("NACOS_USERNAME")
+    nacos_password: Optional[str] = os.getenv("NACOS_PASSWORD")
+    nacos_group: str = os.getenv("NACOS_GROUP", "DEFAULT_GROUP")
+    nacos_cluster: str = os.getenv("NACOS_CLUSTER", "DEFAULT")
+    nacos_service_name: str = os.getenv("NACOS_SERVICE_NAME", "knowledge-rag-agent")
+    nacos_weight: float = float(os.getenv("NACOS_WEIGHT", 1.0))
+    nacos_enable: bool = os.getenv("NACOS_ENABLE", "true").lower() == "true"
+    nacos_healthy: bool = os.getenv("NACOS_HEALTHY", "true").lower() == "true"
+    nacos_ephemeral: bool = os.getenv("NACOS_EPHEMERAL", "true").lower() == "true"
+    nacos_access_key: Optional[str] = os.getenv("NACOS_ACCESS_KEY")
+    nacos_secret_key: Optional[str] = os.getenv("NACOS_SECRET_KEY")
+    nacos_context_path: Optional[str] = os.getenv("NACOS_CONTEXT_PATH")
 
 settings = Settings() 

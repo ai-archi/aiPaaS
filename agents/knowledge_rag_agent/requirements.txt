@@ -44,8 +44,6 @@ loguru==0.7.3
 mmh3==5.1.0
 mpmath==1.3.0
 multidict==6.4.3
-nacos-client-python @ file:///Users/jin/DEVELOP/AI/libs/nacos-client-python/dist/nacos_client_python-0.1.0-py3-none-any.whl#sha256=cddd51eca066e7964845e5a5d29889ce75d6fefa156065ac20febb990aebc66f
-nacos-sdk-python==2.0.4
 numpy==2.2.5
 onnxruntime==1.21.1
 packaging==25.0

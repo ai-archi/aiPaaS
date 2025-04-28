@@ -8,10 +8,15 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from config import settings
 from interfaces.rest_api import router as rest_router
+from infrastructure.nacos_register import register_instance, deregister_instance
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    yield
+    await register_instance()
+    try:
+        yield
+    finally:
+        await deregister_instance()
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
