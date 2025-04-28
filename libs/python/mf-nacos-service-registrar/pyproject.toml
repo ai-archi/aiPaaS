@@ -1,7 +1,7 @@
 [project]
-name = "nacos-client-python"
+name = "mf-nacos-service-registrar"
 version = "0.1.0"
-description = "Python 工程，支持服务注册/发现到 Nacos 注册中心"
+description = "Python Nacos 服务注册/发现二方包，适用于 MF 生态"
 authors = [
     {name = "Your Name", email = "your@email.com"}
 ]

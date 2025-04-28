@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from config import settings
 from interfaces.rest_api import router as rest_router
-from nacos_client_python.registrar import get_nacos_client, register_instance, deregister_instance
+from mf_nacos_service_registrar.registrar import get_nacos_client, register_instance, deregister_instance
 
 _nacos_client = None
 

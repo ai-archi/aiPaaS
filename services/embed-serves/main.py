@@ -5,6 +5,8 @@ from functools import lru_cache
 import fastembed
 import os
 import psutil
+from contextlib import asynccontextmanager
+from mf_nacos_service_registrar.registrar import get_nacos_client, register_instance, deregister_instance
 
 app = FastAPI()
 
@@ -26,6 +28,64 @@ SUPPORTED_PROVIDERS = [
 
 # 全局集合，记录已加载的模型-后端组合
 CACHED_MODELS = set()
+
+# 读取 nacos 配置
+NACOS_SERVER_ADDR = os.getenv("NACOS_SERVER_ADDR", "127.0.0.1:8848")
+NACOS_NAMESPACE = os.getenv("NACOS_NAMESPACE", "public")
+NACOS_ACCESS_KEY = os.getenv("NACOS_ACCESS_KEY")
+NACOS_SECRET_KEY = os.getenv("NACOS_SECRET_KEY")
+NACOS_GROUP = os.getenv("NACOS_GROUP", "DEFAULT_GROUP")
+NACOS_CLUSTER = os.getenv("NACOS_CLUSTER", "DEFAULT")
+NACOS_SERVICE_NAME = os.getenv("NACOS_SERVICE_NAME", "embed-serves")
+NACOS_WEIGHT = float(os.getenv("NACOS_WEIGHT", 1.0))
+NACOS_ENABLE = os.getenv("NACOS_ENABLE", "true").lower() == "true"
+NACOS_HEALTHY = os.getenv("NACOS_HEALTHY", "true").lower() == "true"
+NACOS_EPHEMERAL = os.getenv("NACOS_EPHEMERAL", "true").lower() == "true"
+NACOS_PORT = int(os.getenv("PORT", 8001))
+
+_nacos_client = None
+
+def get_or_create_nacos_client():
+    global _nacos_client
+    if _nacos_client is not None:
+        return _nacos_client
+    _nacos_client = get_nacos_client(
+        server_addr=NACOS_SERVER_ADDR,
+        namespace=NACOS_NAMESPACE,
+        ak=NACOS_ACCESS_KEY,
+        sk=NACOS_SECRET_KEY
+    )
+    return _nacos_client
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    client = get_or_create_nacos_client()
+    register_instance(
+        client=client,
+        service_name=NACOS_SERVICE_NAME,
+        port=NACOS_PORT,
+        cluster_name=NACOS_CLUSTER,
+        weight=NACOS_WEIGHT,
+        metadata={"env": os.getenv("ENVIRONMENT", "dev")},
+        enable=NACOS_ENABLE,
+        healthy=NACOS_HEALTHY,
+        ephemeral=NACOS_EPHEMERAL,
+        group_name=NACOS_GROUP,
+        heartbeat_interval=5
+    )
+    try:
+        yield
+    finally:
+        deregister_instance(
+            client=client,
+            service_name=NACOS_SERVICE_NAME,
+            port=NACOS_PORT,
+            cluster_name=NACOS_CLUSTER,
+            ephemeral=NACOS_EPHEMERAL,
+            group_name=NACOS_GROUP
+        )
+
+app = FastAPI(lifespan=lifespan)
 
 class EmbedRequest(BaseModel):
     texts: List[str]
