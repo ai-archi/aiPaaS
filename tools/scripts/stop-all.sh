@@ -177,11 +177,26 @@ stop_nacos() {
     fi
 }
 
+stop_knowledge_rag_agent() {
+    print_info "停止 knowledge_rag_agent..."
+    lsof -ti:8002 | xargs kill -9 2>/dev/null || true
+    pkill -f "uvicorn src.main:app" 2>/dev/null || true
+}
+
+stop_embed_serves() {
+    print_info "停止 embed-serves..."
+    lsof -ti:8003 | xargs kill -9 2>/dev/null || true
+    pkill -f "uvicorn main:app" 2>/dev/null || true
+}
+
 # 根据指定的服务名称停止服务
 stop_service() {
     case $1 in
-        "task-agent")
-            stop_task_agent
+        "knowledge_rag_agent")
+            stop_knowledge_rag_agent
+            ;;
+        "embed-serves")
+            stop_embed_serves
             ;;
         "api-gateway")
             stop_java_service "api-gateway"
@@ -202,7 +217,8 @@ stop_service() {
             stop_nacos
             ;;
         "all")
-            stop_task_agent
+            stop_knowledge_rag_agent
+            stop_embed_serves
             stop_java_service "api-gateway"
             stop_java_service "auth-service"
             stop_java_service "user-service"
@@ -229,27 +245,32 @@ print_info "验证 $SPECIFIED_SERVICE 服务状态..."
 sleep 2
 
 case $SPECIFIED_SERVICE in
-    "task-agent")
-        TASK_AGENT_PORT=$(get_config '.ports.task_agent' '8085')
-        if lsof -i:${TASK_AGENT_PORT} >/dev/null 2>&1; then
-            print_error "Task Agent (端口 ${TASK_AGENT_PORT}) 仍在运行"
+    "knowledge_rag_agent")
+        if lsof -i:8002 >/dev/null 2>&1; then
+            print_error "knowledge_rag_agent (端口 8002) 仍在运行"
         else
-            print_info "Task Agent 已成功停止"
+            print_info "knowledge_rag_agent 已成功停止"
+        fi
+        ;;
+    "embed-serves")
+        if lsof -i:8003 >/dev/null 2>&1; then
+            print_error "embed-serves (端口 8003) 仍在运行"
+        else
+            print_info "embed-serves 已成功停止"
         fi
         ;;
     "all")
         # 检查所有服务状态
         echo "========================================"
         print_info "检查所有服务状态："
-        if ! ps aux | grep -E "${PROJECT_ROOT}/(dist/services/.*\.jar|dist/agents/.*/(run|app)\.py|dist/penv/bin/python|dist/apps/web/.next|dist/nacos)" | grep -v grep > /dev/null; then
+        if ! ps aux | grep -E "${PROJECT_ROOT}/(dist/services/.*\.jar|agents/knowledge_rag_agent/src/main.py|services/embed-serves/main.py|dist/apps/web/.next|dist/nacos)" | grep -v grep > /dev/null; then
             print_info "所有服务已成功停止"
         else
             print_error "以下服务仍在运行："
-            ps aux | grep -E "${PROJECT_ROOT}/(dist/services/.*\.jar|dist/agents/.*/(run|app)\.py|dist/penv/bin/python|dist/apps/web/.next|dist/nacos)" | grep -v grep
+            ps aux | grep -E "${PROJECT_ROOT}/(dist/services/.*\.jar|agents/knowledge_rag_agent/src/main.py|services/embed-serves/main.py|dist/apps/web/.next|dist/nacos)" | grep -v grep
         fi
         ;;
     *)
-        # 检查特定服务状态
         if ps aux | grep -E "${PROJECT_ROOT}.*${SPECIFIED_SERVICE}" | grep -v grep > /dev/null; then
             print_error "$SPECIFIED_SERVICE 仍在运行"
         else

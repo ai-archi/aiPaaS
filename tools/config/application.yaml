@@ -7,6 +7,8 @@ ports:
   java_agent: 8083
   python_agent: 8084
   frontend: 3000
+  knowledge_rag_agent: 8002
+  embed_serves: 8003
 
 # Nacos配置
 nacos:

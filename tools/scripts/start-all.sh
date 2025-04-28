@@ -322,154 +322,6 @@ build_and_start_java_services() {
     cd "${PROJECT_ROOT}"
 }
 
-# 构建并启动Python服务
-build_and_start_python_services() {
-    print_info "正在设置Python环境..."
-    cd "${PROJECT_ROOT}"
-    
-    # 读取Python服务配置
-    local task_agent_port=$(get_config '.ports.task_agent' '8085')
-    local task_env=$(get_config '.services.task_agent.env' 'development')
-    local task_agent_path=$(get_config '.services.task_agent.context_path' '/task-agent')
-    local log_dir="${PROJECT_ROOT}/$(get_config '.logging.dir' 'dist/logs')"
-    
-    print_info "Task Agent配置信息:"
-    print_info "- 端口: ${task_agent_port}"
-    print_info "- 环境: ${task_env}"
-    print_info "- 上下文路径: ${task_agent_path}"
-    print_info "- 日志目录: ${log_dir}"
-    
-    # 确保日志目录存在
-    mkdir -p "${log_dir}"
-    
-    # 检查端口占用情况
-    if lsof -i:${task_agent_port} > /dev/null 2>&1; then
-        # 检查是否是task-agent服务
-        if ps aux | grep "${PROJECT_ROOT}/dist/agents/task-agent/run.py" | grep -v grep > /dev/null; then
-            print_warn "Task Agent服务已在运行中（端口 ${task_agent_port}）"
-            print_info "- 访问地址: http://localhost:${task_agent_port}${task_agent_path}"
-            print_info "- 日志文件: ${PROJECT_ROOT}/${log_dir}/task-agent.log"
-            return 0
-        else
-            print_error "端口 ${task_agent_port} 被其他服务占用！"
-            print_info "正在检查占用进程..."
-            lsof -i:${task_agent_port}
-            return 1
-        fi
-    fi
-    
-    # 检查并激活Python虚拟环境
-    if [ ! -d "dist/penv" ]; then
-        print_error "Python虚拟环境不存在: ${PROJECT_ROOT}/dist/penv"
-        print_info "请先运行 build-all.sh 创建虚拟环境"
-        return 1
-    fi
-    
-    if [ ! -f "dist/penv/bin/activate" ]; then
-        print_error "Python虚拟环境激活脚本不存在: ${PROJECT_ROOT}/dist/penv/bin/activate"
-        return 1
-    fi
-    
-    print_info "激活Python虚拟环境..."
-    local activate_cmd="source ${PROJECT_ROOT}/dist/penv/bin/activate"
-    print_info "执行命令: ${activate_cmd}"
-    source dist/penv/bin/activate
-    
-    # 检查Python环境
-    print_info "Python环境信息:"
-    print_info "- Python解释器: $(which python)"
-    print_info "- Python版本: $(python --version)"
-    print_info "- 虚拟环境路径: ${VIRTUAL_ENV}"
-    print_info "- pip版本: $(pip --version)"
-    
-    # 检查必要的Python包
-    print_info "检查Python依赖..."
-    if ! python -c "import fastapi" 2>/dev/null; then
-        print_error "FastAPI包未安装"
-        print_info "尝试安装FastAPI..."
-        pip install fastapi
-        if ! python -c "import fastapi" 2>/dev/null; then
-            print_error "FastAPI安装失败"
-            deactivate
-            return 1
-        fi
-    fi
-    
-    # 检查task-agent目录
-    if [ ! -d "dist/agents/task-agent" ]; then
-        print_error "Task Agent目录不存在: ${PROJECT_ROOT}/dist/agents/task-agent"
-        deactivate
-        return 1
-    fi
-    
-    # 检查run.py是否存在
-    if [ ! -f "dist/agents/task-agent/run.py" ]; then
-        print_error "Task Agent启动脚本不存在: ${PROJECT_ROOT}/dist/agents/task-agent/run.py"
-        deactivate
-        return 1
-    fi
-    
-    # 启动Task Agent服务
-    cd dist/agents/task-agent
-    print_info "切换到工作目录: $(pwd)"
-    
-    local task_agent_cmd="env PORT=${task_agent_port} PYTHON_ENV=${task_env} python run.py"
-    print_info "准备启动Task Agent..."
-    print_info "完整启动命令: ${task_agent_cmd}"
-    
-    local task_agent_log_file="${log_dir}/$(get_log_filename "task-agent")"
-    # 使用start_service函数启动服务
-    if ! start_service "Task智能体" \
-        "${task_agent_cmd}" \
-        "${task_agent_log_file}" \
-        ${task_agent_port} \
-        ${task_agent_path} \
-        "${PROJECT_ROOT}/dist/agents/task-agent/run.py"; then
-        print_error "Task Agent启动失败，查看最后10行日志："
-        tail -n 10 "${task_agent_log_file}"
-        deactivate
-        cd "${PROJECT_ROOT}"
-        return 1
-    fi
-    
-    print_info "Task Agent启动成功！"
-    print_info "- 访问地址: http://localhost:${task_agent_port}${task_agent_path}"
-    print_info "- 日志文件: ${task_agent_log_file}"
-    
-    deactivate
-    print_info "已退出Python虚拟环境"
-    
-    cd "${PROJECT_ROOT}"
-    return 0
-}
-
-# 构建并启动前端应用
-build_and_start_frontend() {
-    print_info "正在构建前端应用..."
-    cd "${PROJECT_ROOT}"
-    
-    # 读取前端配置
-    local frontend_port=$(get_config '.ports.frontend' '3000')
-    local log_dir=$(get_config '.logging.dir' 'logs')
-    
-    # 安装依赖
-    npm install
-    
-    # 构建并启动前端应用
-    cd apps/web
-    npm install
-    npm run build
-    
-    start_service "前端应用" \
-        "PORT=${frontend_port} npm run start" \
-        "${PROJECT_ROOT}/${log_dir}/frontend.log" \
-        ${frontend_port} \
-        "" \
-        "node ${frontend_port}"
-    
-    cd "${PROJECT_ROOT}"
-}
-
 # 启动Nacos服务
 start_nacos() {
     print_info "正在启动Nacos服务..."
@@ -533,6 +385,63 @@ start_nacos() {
     fi
 }
 
+start_knowledge_rag_agent() {
+    print_info "启动 knowledge_rag_agent..."
+    local log_dir="${PROJECT_ROOT}/dist/logs"
+    mkdir -p "$log_dir"
+    local rag_port=$(get_config '.ports.knowledge_rag_agent' '8002')
+    if [ ! -d "${PROJECT_ROOT}/agents/knowledge_rag_agent" ] || [ ! -f "${PROJECT_ROOT}/agents/knowledge_rag_agent/src/main.py" ]; then
+        print_warn "agents/knowledge_rag_agent 或 main.py 不存在，跳过启动"
+        return 0
+    fi
+    cd "${PROJECT_ROOT}/agents/knowledge_rag_agent"
+    nohup uvicorn src.main:app --host 0.0.0.0 --port ${rag_port} --reload > "$log_dir/knowledge_rag_agent.log" 2>&1 &
+    print_info "knowledge_rag_agent 启动完成，日志：$log_dir/knowledge_rag_agent.log"
+    cd "${PROJECT_ROOT}"
+}
+
+start_embed_serves() {
+    print_info "启动 embed-serves..."
+    local log_dir="${PROJECT_ROOT}/dist/logs"
+    mkdir -p "$log_dir"
+    local embed_port=$(get_config '.ports.embed_serves' '8003')
+    if [ ! -d "${PROJECT_ROOT}/services/embed-serves" ] || [ ! -f "${PROJECT_ROOT}/services/embed-serves/main.py" ]; then
+        print_warn "services/embed-serves 或 main.py 不存在，跳过启动"
+        return 0
+    fi
+    cd "${PROJECT_ROOT}/services/embed-serves"
+    nohup uvicorn main:app --host 0.0.0.0 --port ${embed_port} --reload > "$log_dir/embed_serves.log" 2>&1 &
+    print_info "embed-serves 启动完成，日志：$log_dir/embed_serves.log"
+    cd "${PROJECT_ROOT}"
+}
+
+# 构建并启动前端应用
+build_and_start_frontend() {
+    print_info "正在构建前端应用..."
+    cd "${PROJECT_ROOT}"
+    
+    # 读取前端配置
+    local frontend_port=$(get_config '.ports.frontend' '3000')
+    local log_dir=$(get_config '.logging.dir' 'logs')
+    
+    # 安装依赖
+    npm install
+    
+    # 构建并启动前端应用
+    cd apps/web
+    npm install
+    npm run build
+    
+    start_service "前端应用" \
+        "PORT=${frontend_port} npm run start" \
+        "${PROJECT_ROOT}/${log_dir}/frontend.log" \
+        ${frontend_port} \
+        "" \
+        "node ${frontend_port}"
+    
+    cd "${PROJECT_ROOT}"
+}
+
 # 主函数
 main() {
     cd "${PROJECT_ROOT}"
@@ -551,41 +460,41 @@ main() {
     print_info "开始启动所有服务..."
     echo "========================================"
     
-    # 启动Nacos
+    local rag_port=$(get_config '.ports.knowledge_rag_agent' '8002')
+    local embed_port=$(get_config '.ports.embed_serves' '8003')
+    local nacos_port=$(get_config '.ports.nacos' '8848')
+    local api_gateway_port=$(get_config '.ports.api_gateway' '8080')
+    local frontend_port=$(get_config '.ports.frontend' '3000')
+    local log_dir="${PROJECT_ROOT}/$(get_config '.logging.dir' 'dist/logs')"
     start_nacos
     echo "========================================"
-    
-    # 启动Java服务
     build_and_start_java_services
     echo "========================================"
-    
-    # 启动Python服务
-    build_and_start_python_services
+    start_knowledge_rag_agent
     echo "========================================"
-    
-    # # 启动前端应用
-    # build_and_start_frontend
-    # echo "========================================"
-    
+    start_embed_serves
+    echo "========================================"
+    build_and_start_frontend
+    echo "========================================"
     print_info "所有服务启动完成！"
-    print_info "日志文件位置：${PROJECT_ROOT}/$(get_config '.logging.dir' 'logs')/"
-    
-    # 显示进程信息
+    print_info "日志文件位置：${log_dir}/"
     echo "========================================"
-    print_info "当前运行的服务进程："
+    print_info "服务访问地址一览："
     echo "----------------------------------------"
-    print_info "Nacos服务："
-    ps aux | grep "${PROJECT_ROOT}/dist/nacos" | grep -v grep
+    echo "Nacos:                http://localhost:${nacos_port}/nacos"
+    echo "API网关:              http://localhost:${api_gateway_port}/api"
+    echo "knowledge_rag_agent:  http://localhost:${rag_port}"
+    echo "embed-serves:         http://localhost:${embed_port}"
+    echo "前端:                 http://localhost:${frontend_port}"
     echo "----------------------------------------"
-    print_info "Java服务："
-    ps aux | grep "${PROJECT_ROOT}/dist/services/.*\.jar" | grep -v grep
+    print_info "服务日志路径一览："
     echo "----------------------------------------"
-    print_info "Python服务："
-    ps aux | grep -E "${PROJECT_ROOT}/(dist/agents/.*/(run|app)\.py|dist/penv/bin/python)" | grep -v grep
+    echo "Nacos:                ${log_dir}/nacos/startup.log"
+    echo "API网关:              ${log_dir}/api-gateway_log.$(date +%Y%m%d).log"
+    echo "knowledge_rag_agent:  ${log_dir}/knowledge_rag_agent.log"
+    echo "embed-serves:         ${log_dir}/embed_serves.log"
+    echo "前端:                 ${log_dir}/frontend.log"
     echo "----------------------------------------"
-    print_info "前端服务："
-    ps aux | grep "${PROJECT_ROOT}/dist/apps/web/.next" | grep -v grep
-    echo "========================================"
 }
 
 

@@ -2,6 +2,7 @@ import os
 from pydantic import BaseModel
 from typing import Optional
 from dotenv import load_dotenv
+import yaml
 
 # 加载 .env 文件
 load_dotenv()
@@ -18,11 +19,19 @@ def get_vector_db_url():
         return f"postgresql+asyncpg://{os.getenv('VECTOR_DB_USER')}:{os.getenv('VECTOR_DB_PASSWORD')}@{os.getenv('VECTOR_DB_HOST')}:{os.getenv('VECTOR_DB_PORT')}/{os.getenv('VECTOR_DB_NAME')}"
     return os.getenv("VECTOR_DB_URL", "sqlite:///./rag_vector.db")
 
+def get_port_from_yaml():
+    yaml_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'tools', 'config', 'application.yaml')
+    if os.path.exists(yaml_path):
+        with open(yaml_path, 'r') as f:
+            config = yaml.safe_load(f)
+            return int(config.get('ports', {}).get('knowledge_rag_agent', 8002))
+    return 8002
+
 class Settings(BaseModel):
     app_name: str = os.getenv("APP_NAME", "knowledge_rag_agent")
     environment: str = os.getenv("ENVIRONMENT", "dev")
     host: str = os.getenv("HOST", "0.0.0.0")
-    port: int = int(os.getenv("PORT", 8002))
+    port: int = int(os.getenv("PORT") or get_port_from_yaml())
     db_url: str = get_db_url()
     embedding_api_url: Optional[str] = os.getenv("EMBEDDING_API_URL")
     llm_api_url: Optional[str] = os.getenv("LLM_API_URL")

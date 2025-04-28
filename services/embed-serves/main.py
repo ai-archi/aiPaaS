@@ -7,6 +7,7 @@ import os
 import psutil
 from contextlib import asynccontextmanager
 from mf_nacos_service_registrar.registrar import get_nacos_client, register_instance, deregister_instance
+import yaml
 
 app = FastAPI()
 
@@ -41,7 +42,17 @@ NACOS_WEIGHT = float(os.getenv("NACOS_WEIGHT", 1.0))
 NACOS_ENABLE = os.getenv("NACOS_ENABLE", "true").lower() == "true"
 NACOS_HEALTHY = os.getenv("NACOS_HEALTHY", "true").lower() == "true"
 NACOS_EPHEMERAL = os.getenv("NACOS_EPHEMERAL", "true").lower() == "true"
-NACOS_PORT = int(os.getenv("PORT", 8001))
+
+def get_port_from_yaml():
+    yaml_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'tools', 'config', 'application.yaml')
+    if os.path.exists(yaml_path):
+        with open(yaml_path, 'r') as f:
+            config = yaml.safe_load(f)
+            return int(config.get('ports', {}).get('embed_serves', 8003))
+    return 8003
+
+# 端口优先级：.env > application.yaml > 默认
+NACOS_PORT = int(os.getenv("PORT") or get_port_from_yaml())
 
 _nacos_client = None
 
@@ -184,4 +195,8 @@ async def infer_info():
 @app.get("/models")
 async def list_models():
     """列出可用模型和推理后端（本地维护）"""
-    return {"models": SUPPORTED_MODELS, "providers": SUPPORTED_PROVIDERS} 
+    return {"models": SUPPORTED_MODELS, "providers": SUPPORTED_PROVIDERS}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=NACOS_PORT, reload=True) 

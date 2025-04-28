@@ -294,35 +294,26 @@ build_python_services() {
 build_frontend() {
     print_info "正在构建前端应用..."
     cd "${PROJECT_ROOT}"
-    
-    # 创建dist目录
-    mkdir -p dist/apps/web
-    
-    # 安装根目录依赖
-    npm install
-    if [ $? -ne 0 ]; then
-        print_error "前端根目录依赖安装失败"
-        exit 1
+    if [ ! -d "apps/web" ] || [ ! -f "apps/web/package.json" ]; then
+        print_warn "apps/web 或 package.json 不存在，跳过前端构建"
+        return 0
     fi
-    
-    # 构建前端应用
+    mkdir -p dist/apps/web
+    npm install
     cd apps/web
     npm install
-    if [ $? -ne 0 ]; then
-        print_error "前端应用依赖安装失败"
-        exit 1
-    fi
-    
-    npm run build
-    if [ $? -eq 0 ]; then
-        # 复制构建产物到dist目录
-        cp -r .next package.json package-lock.json "${PROJECT_ROOT}/dist/apps/web/"
-        print_info "前端应用构建成功"
+    if grep -q '"build"' package.json; then
+        npm run build
+        if [ $? -eq 0 ]; then
+            cp -r .next package.json package-lock.json "${PROJECT_ROOT}/dist/apps/web/"
+            print_info "前端应用构建成功"
+        else
+            print_error "前端应用构建失败"
+            exit 1
+        fi
     else
-        print_error "前端应用构建失败"
-        exit 1
+        print_warn "package.json 未定义 build 脚本，跳过前端构建"
     fi
-    
     cd "${PROJECT_ROOT}"
 }
 
@@ -391,6 +382,35 @@ build_nacos() {
     cd "${PROJECT_ROOT}"
 }
 
+# 构建 mf-nacos-service-registrar
+build_mf_nacos_service_registrar() {
+    print_info "构建并本地发布 mf-nacos-service-registrar..." "force"
+    cd "${PROJECT_ROOT}/libs/python/mf-nacos-service-registrar"
+    python3 -m build
+    pip install -e .
+    cd "${PROJECT_ROOT}"
+}
+
+# 构建 knowledge_rag_agent
+build_knowledge_rag_agent() {
+    print_info "构建 knowledge_rag_agent..." "force"
+    cd "${PROJECT_ROOT}/agents/knowledge_rag_agent"
+    pip install -r requirements.txt
+    cd "${PROJECT_ROOT}"
+}
+
+# 构建 embed-serves
+build_embed_serves() {
+    print_info "构建 embed-serves..." "force"
+    cd "${PROJECT_ROOT}/services/embed-serves"
+    if [ -f "requirements.txt" ]; then
+        pip install -r requirements.txt
+    else
+        print_warn "services/embed-serves/requirements.txt 不存在，跳过依赖安装"
+    fi
+    cd "${PROJECT_ROOT}"
+}
+
 # 主函数
 main() {
     cd "${PROJECT_ROOT}"
@@ -428,9 +448,21 @@ main() {
     build_python_services
     echo "========================================"
     
-    # # 构建前端应用
-    # build_frontend
-    # echo "========================================"
+    # 构建 mf-nacos-service-registrar
+    build_mf_nacos_service_registrar
+    echo "========================================"
+    
+    # 构建 knowledge_rag_agent
+    build_knowledge_rag_agent
+    echo "========================================"
+    
+    # 构建 embed-serves
+    build_embed_serves
+    echo "========================================"
+    
+    # 构建前端应用
+    build_frontend
+    echo "========================================"
     
     print_info "所有服务构建完成！" "force"
     print_info "构建产物位置：${PROJECT_ROOT}/dist/" "force"
