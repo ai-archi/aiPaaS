@@ -61,16 +61,712 @@
 
 ---
 
-## 三、核心功能
+## 三、架构设计
+### 技术架构
 
-1. **用户问答（QA）**：接收用户问题，返回基于知识库的高质量答案及引用依据。
-2. **知识检索（Retrieval）**：通过嵌入模型与向量数据库，检索相关文档片段。
-3. **生成式问答（Generation）**：调用大语言模型（LLM），基于检索内容生成自然语言答案。
-4. **知识入库（Ingestion）**：读取已上传的文档，进行分段、嵌入生成与入库。
-5. **多模型支持**：支持多种嵌入模型、生成模型、向量数据库后端。
-6. **服务监控与日志**：全链路日志、性能监控、异常追踪。
+```mermaid
+
+graph TB
+    subgraph "接口层 Interfaces"
+        REST["REST API (FastAPI)"]
+        GRPC["gRPC Service"]
+        REST --> Auth["认证中间件"]
+        GRPC --> Auth
+    end
+
+    subgraph "应用层 Application"
+        CH["命令处理器<br>Command Handlers"]
+        QH["查询处理器<br>Query Handlers"]
+        Auth --> CH
+        Auth --> QH
+    end
+
+    subgraph "领域层 Domain"
+        DM["领域模型<br>Domain Models"]
+        DS["领域服务<br>Domain Services"]
+        
+        subgraph "领域模型"
+            Document["文档<br>Document"]
+            Chunk["文档片段<br>Chunk"]
+            ResAttr["资源属性<br>ResourceAttribute"]
+        end
+        
+        subgraph "领域服务"
+            DocService["文档分片服务<br>DocumentChunkingService"]
+            EmbService["嵌入生成服务<br>EmbeddingService"]
+            RetService["检索生成服务<br>RetrievalService"]
+            ABACService["ABAC权限服务<br>ABACFilterService"]
+        end
+    end
+
+    subgraph "基础设施层 Infrastructure"
+        DB[("数据库<br>PostgreSQL/SQLite")]
+        VDB[("向量数据库<br>Vector Store")]
+        ES["嵌入服务<br>Embedding Service"]
+        LLM["大语言模型<br>LLM Service"]
+        PS["权限服务<br>Permission Service"]
+        Storage["对象存储<br>MinIO/S3"]
+    end
+
+    %% 应用层与领域层的连接
+    CH --> DM
+    CH --> DS
+    QH --> DM
+    QH --> DS
+
+    %% 领域服务与基础设施的连接
+    DocService --> Storage
+    EmbService --> ES
+    RetService --> VDB
+    RetService --> LLM
+    ABACService --> PS
+
+    %% 领域模型与数据库的连接
+    Document --> DB
+    Chunk --> DB
+    ResAttr --> DB
+    Chunk --> VDB
+
+    %% 样式定义
+    classDef interface fill:#f9f,stroke:#333,stroke-width:2px
+    classDef application fill:#bbf,stroke:#333,stroke-width:2px
+    classDef domain fill:#dfd,stroke:#333,stroke-width:2px
+    classDef infrastructure fill:#fdd,stroke:#333,stroke-width:2px
+
+    %% 应用样式
+    class REST,GRPC,Auth interface
+    class CH,QH application
+    class Document,Chunk,ResAttr,DocService,EmbService,RetService,ABACService domain
+    class DB,VDB,ES,LLM,PS,Storage infrastructure
+```
+
+
+### 核心功能时序图
+
+
+#### **用户问答（QA）**
+接收用户问题，返回基于知识库的高质量答案及引用依据。
+
+ ```mermaid
+ sequenceDiagram
+    autonumber
+    actor User as 用户
+    participant API as REST API
+    participant Auth as 认证中间件
+    participant QH as 查询处理器
+    participant PS as 权限服务
+    participant RS as 检索服务
+    participant ES as 嵌入服务
+    participant VDB as 向量数据库
+    participant LLM as 大语言模型
+    
+    User->>+API: 发送问答请求 POST /qa
+    Note over User,API: 请求包含：问题内容和JWT Token
+    
+    API->>+Auth: 验证 JWT Token
+    Auth-->>-API: Token 验证结果
+    
+    API->>+QH: 转发到查询处理器
+    
+    QH->>+PS: 获取用户属性
+    PS-->>-QH: 返回用户属性（部门/角色等）
+    
+    QH->>+ES: 生成问题的嵌入向量
+    ES-->>-QH: 返回问题向量
+    
+    QH->>+VDB: 向量相似度检索
+    Note over QH,VDB: 包含用户属性的过滤条件
+    VDB-->>-QH: 返回相关文档片段
+    
+    QH->>+PS: ABAC权限过滤
+    PS-->>-QH: 返回过滤后的片段
+    
+    QH->>QH: 组装上下文
+    Note over QH: 合并相关片段和问题
+    
+    QH->>+LLM: 生成答案请求
+    Note over QH,LLM: 发送上下文和问题
+    LLM-->>-QH: 返回生成的答案
+    
+    QH->>QH: 格式化响应
+    Note over QH: 组装答案和引用信息
+    
+    QH-->>-API: 返回处理结果
+    
+    API-->>User: 返回答案
+    Note over User,API: 包含：答案内容、相关片段和来源
+ ```
+用户问答功能的完整流程：
+
+1. **请求接收与认证**
+   - 用户发送问答请求，包含问题内容和JWT Token
+   - API层验证Token的有效性
+
+2. **用户权限处理**
+   - 查询处理器从权限服务获取用户属性
+   - 这些属性将用于后续的数据访问控制
+
+3. **向量检索流程**
+   - 使用嵌入服务生成问题的向量表示
+   - 在向量数据库中进行相似度检索
+   - 检索时包含基于用户属性的过滤条件
+
+4. **权限过滤**
+   - 对检索结果进行ABAC权限过滤
+   - 确保用户只能访问有权限的内容
+
+5. **答案生成**
+   - 组装过滤后的文档片段和用户问题
+   - 调用大语言模型生成答案
+
+6. **响应返回**
+   - 格式化处理结果，包含答案和引用信息
+   - 返回给用户
+
+这个流程体现了以下几个关键特点：
+严格的权限控制：在检索和过滤阶段都进行权限验证
+CQRS原则：整个流程都在查询处理器中处理，不涉及状态修改
+多重安全保障：JWT验证、ABAC过滤等多层次的安全机制
+完整的可追溯性：包含答案的来源和引用信息
+#### **生成式问答（Generation）**
+调用大语言模型（LLM），基于检索内容生成自然语言答案。
+
+ ```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 用户
+    participant API as REST API
+    participant Auth as 认证中间件
+    participant QH as 查询处理器
+    participant PS as 权限服务
+    participant ES as 嵌入服务
+    participant VDB as 向量数据库
+    participant DB as 数据库
+    participant LLM as 大语言模型
+    
+    User->>+API: 发送生成式问答请求 POST /rag/qa
+    Note over User,API: 请求包含：问题内容和JWT Token
+    
+    API->>+Auth: 验证 JWT Token
+    Auth-->>-API: Token 验证结果
+    
+    API->>+QH: 转发到RAG查询处理器
+    
+    QH->>+PS: 获取用户属性
+    PS-->>-QH: 返回用户属性（部门/角色等）
+    
+    par 问题分析
+        QH->>QH: 问题预处理
+        Note over QH: 提取关键词和意图分析
+    and 向量生成
+        QH->>+ES: 生成问题的嵌入向量
+        ES-->>-QH: 返回问题向量
+    end
+    
+    QH->>+VDB: 多阶段检索
+    Note over QH,VDB: 1. 语义相似度检索<br>2. 关键词匹配<br>3. 属性过滤
+    VDB-->>-QH: 返回相关片段ID和分数
+    
+    QH->>+DB: 获取片段详细信息
+    Note over QH,DB: 批量查询片段内容和元数据
+    DB-->>-QH: 返回完整片段信息
+    
+    QH->>+PS: ABAC权限过滤
+    PS-->>-QH: 返回过滤后的片段
+    
+    QH->>QH: 上下文组装
+    Note over QH: 1. 相关性排序<br>2. 内容去重<br>3. 上下文截断
+    
+    QH->>+LLM: 生成答案请求
+    Note over QH,LLM: 发送：<br>1. 系统提示词<br>2. 上下文片段<br>3. 用户问题
+    LLM-->>-QH: 返回生成的答案
+    
+    QH->>QH: 后处理
+    Note over QH: 1. 答案验证<br>2. 引用标注<br>3. 置信度评估
+    
+    QH-->>-API: 返回完整结果
+    
+    API-->>User: 返回生成式问答结果
+    Note over User,API: 包含：<br>1. 生成的答案<br>2. 引用来源<br>3. 相关片段<br>4. 置信度分数
+ ```
+生成式问答（RAG）的完整流程：
+
+1. **初始化阶段**
+   - 用户发送问答请求
+   - 进行Token验证
+   - 获取用户权限属性
+
+2. **并行预处理**
+   - 问题分析：提取关键词和意图
+   - 向量生成：计算问题的嵌入向量
+   这种并行处理可以提高响应速度
+
+3. **多阶段检索**
+   - 语义相似度检索：使用向量匹配
+   - 关键词匹配：提高精确度
+   - 属性过滤：确保访问权限
+
+4. **上下文处理**
+   - 获取完整片段信息
+   - 进行ABAC权限过滤
+   - 上下文组装和优化：
+     * 相关性排序
+     * 内容去重
+     * 上下文长度控制
+
+5. **生成答案**
+   - 构建完整的提示词
+   - 调用大语言模型
+   - 包含系统提示词、上下文和用户问题
+
+6. **后处理优化**
+   - 答案验证
+   - 引用标注
+   - 置信度评估
+
+7. **结果返回**
+   - 生成的答案
+   - 引用来源
+   - 相关片段
+   - 置信度分数
+
+这个流程的特点：
+
+- **多阶段检索**：结合向量检索和关键词匹配，提高准确性
+- **并行处理**：问题分析和向量生成并行执行，优化性能
+- **严格的权限控制**：多层次的权限验证和过滤
+- **完整的上下文管理**：包括组装、去重和长度控制
+- **质量保证**：包含答案验证和置信度评估
+- **可追溯性**：提供完整的引用和来源信息
+
+这个设计确保了：
+1. 回答的准确性和可靠性
+2. 系统的响应性能
+3. 数据访问的安全性
+4. 答案的可解释性和可追溯性
+#### **知识检索（Retrieval）**
+
+通过嵌入模型与向量数据库，检索相关文档片段。
+
+ ```mermaid
+ sequenceDiagram
+    autonumber
+    actor User as 用户
+    participant API as REST API
+    participant Auth as 认证中间件
+    participant QH as 查询处理器
+    participant PS as 权限服务
+    participant ES as 嵌入服务
+    participant VDB as 向量数据库
+    participant DB as 数据库
+    
+    User->>+API: 发送检索请求 POST /search
+    Note over User,API: 请求包含：检索关键词、过滤条件和JWT Token
+    
+    API->>+Auth: 验证 JWT Token
+    Auth-->>-API: Token 验证结果
+    
+    API->>+QH: 转发到检索查询处理器
+    
+    QH->>+PS: 获取用户属性
+    PS-->>-QH: 返回用户属性（部门/角色等）
+    
+    par 向量检索准备
+        QH->>+ES: 生成检索词的嵌入向量
+        ES-->>-QH: 返回检索向量
+    and 属性过滤准备
+        QH->>QH: 构建属性过滤条件
+        Note over QH: 合并用户过滤条件和权限属性
+    end
+    
+    QH->>+VDB: 混合检索请求
+    Note over QH,VDB: 包含向量相似度和属性过滤
+    VDB-->>-QH: 返回候选文档片段ID和相似度分数
+    
+    QH->>+DB: 获取片段详细信息
+    Note over QH,DB: 批量查询片段内容和元数据
+    DB-->>-QH: 返回完整片段信息
+    
+    QH->>+PS: ABAC权限过滤
+    PS-->>-QH: 返回过滤后的片段
+    
+    QH->>QH: 结果排序和处理
+    Note over QH: 按相关度排序并格式化
+    
+    QH->>QH: 添加高亮和摘要
+    Note over QH: 处理关键词高亮和上下文摘要
+    
+    QH-->>-API: 返回处理结果
+    
+    API-->>User: 返回检索结果
+    Note over User,API: 包含：相关片段列表、高亮、来源和元数据
+ ```
+知识检索功能的完整流程：
+
+1. **请求接收与认证**
+   - 用户发送检索请求，包含检索关键词、过滤条件和JWT Token
+   - API层验证Token的有效性
+
+2. **用户权限处理**
+   - 查询处理器获取用户属性
+   - 用于构建权限过滤条件
+
+3. **并行处理准备**
+   - 生成检索词的向量表示
+   - 同时构建属性过滤条件
+   这种并行处理可以提高检索效率
+
+4. **混合检索流程**
+   - 在向量数据库中进行混合检索
+   - 同时考虑语义相似度和属性过滤
+   - 返回初步候选结果
+
+5. **详细信息获取**
+   - 从关系数据库获取完整的片段信息
+   - 包括内容、元数据等
+
+6. **权限过滤与结果处理**
+   - 进行ABAC权限过滤
+   - 对结果进行排序
+   - 添加关键词高亮和上下文摘要
+
+7. **响应返回**
+   - 返回格式化的检索结果
+   - 包含相关度排序、高亮显示和元数据信息
+
+这个流程体现了以下特点：
+- **混合检索策略**：结合向量相似度和属性过滤
+- **并行处理优化**：向量生成和过滤条件准备并行执行
+- **多重安全保障**：JWT验证和ABAC权限过滤
+- **结果优化**：包含排序、高亮和摘要等增强功能
+- **完整元数据**：返回检索结果的完整上下文信息
+
+
+
+#### **知识入库（Ingestion）**
+读取已上传的文档，进行分段、嵌入生成与入库。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 用户
+    participant API as REST API
+    participant Auth as 认证中间件
+    participant CH as 命令处理器
+    participant PS as 权限服务
+    participant DS as 文档服务
+    participant ES as 嵌入服务
+    participant VDB as 向量数据库
+    participant DB as 数据库
+    participant Storage as 对象存储
+    
+    User->>+API: 发送文档处理请求 POST /doc/process
+    Note over User,API: 请求包含：文档ID和JWT Token
+    
+    API->>+Auth: 验证 JWT Token
+    Auth-->>-API: Token 验证结果
+    
+    API->>+CH: 转发到文档入库命令处理器
+    
+    CH->>+PS: 获取用户属性
+    PS-->>-CH: 返回用户属性（部门/角色等）
+    
+    CH->>+Storage: 获取文档内容
+    Storage-->>-CH: 返回原始文档
+    
+    CH->>CH: 文档预处理
+    Note over CH: 1. 格式验证<br>2. 内容提取<br>3. 计算文档哈希
+    
+    CH->>+DB: 查询文档哈希
+    DB-->>-CH: 返回查重结果
+    
+    alt 文档未重复
+        CH->>+DS: 文档分段
+        Note over CH,DS: 智能分段，保持语义完整性
+        DS-->>-CH: 返回文档片段
+        
+        par 批量向量生成
+            CH->>+ES: 生成片段嵌入向量
+            Note over CH,ES: 批量处理以提高效率
+            ES-->>-CH: 返回片段向量
+        and 元数据处理
+            CH->>CH: 生成元数据
+            Note over CH: 1. 提取属性<br>2. 生成标签<br>3. 设置权限
+        end
+        
+        par 并行存储
+            CH->>+DB: 存储文档元数据
+            DB-->>-CH: 确认元数据存储
+        and
+            CH->>+VDB: 存储向量数据
+            VDB-->>-CH: 确认向量存储
+        and
+            CH->>+Storage: 存储处理后的文档
+            Storage-->>-CH: 确认文档存储
+        end
+        
+        CH->>+PS: 设置资源权限
+        PS-->>-CH: 确认权限设置
+        
+        CH->>CH: 生成处理报告
+        Note over CH: 1. 统计信息<br>2. 处理状态<br>3. 错误信息
+    else 文档已存在
+        CH->>CH: 生成重复报告
+        Note over CH: 记录重复文档信息
+    end
+    
+    CH-->>-API: 返回处理结果
+    
+    API-->>User: 返回入库结果
+    Note over User,API: 包含：处理状态、统计信息和错误报告
+```
+
+这个时序图展示了知识入库的完整流程：
+
+1. **初始化阶段**
+   - 用户发送文档处理请求
+   - 验证Token和用户权限
+   - 获取原始文档内容
+
+2. **文档预处理**
+   - 格式验证和内容提取
+   - 计算文档哈希值
+   - 文档查重检查
+
+3. **文档分段处理**
+   - 智能分段，确保语义完整性
+   - 生成文档片段
+
+4. **并行处理**
+   - 批量生成向量嵌入
+   - 处理文档元数据
+   - 生成文档属性和标签
+
+5. **并行存储**
+   - 存储文档元数据到数据库
+   - 存储向量数据到向量数据库
+   - 存储处理后的文档到对象存储
+   - 设置资源访问权限
+
+6. **结果处理**
+   - 生成处理报告
+   - 返回处理结果和统计信息
+
+这个流程的特点：
+
+1. **性能优化**
+   - 批量处理向量生成
+   - 并行存储多种数据
+   - 智能文档分段
+
+2. **数据完整性**
+   - 文档查重机制
+   - 完整的元数据处理
+   - 多重存储保障
+
+3. **安全保障**
+   - Token验证
+   - 用户权限验证
+   - 资源权限设置
+
+4. **可追踪性**
+   - 完整的处理报告
+   - 错误信息记录
+   - 处理状态跟踪
+
+5. **异常处理**
+   - 文档重复处理
+   - 格式验证
+   - 错误报告
+
+这个设计确保了：
+1. 入库过程的高效性
+2. 数据的完整性和安全性
+3. 处理过程的可追踪性
+4. 系统的可扩展性
+5. 异常情况的优雅处理
+
+
+
+#### **多模型支持**
+支持多种嵌入模型、生成模型、向量数据库后端。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant API as REST API
+    participant MM as 模型管理器
+    participant MC as 模型配置服务
+    participant Cache as 模型缓存
+    participant ES as 嵌入服务
+    participant LLM as LLM服务
+    participant MS as 模型存储
+    participant MR as 模型注册中心
+    
+    rect rgb(200, 220, 240)
+        Note over API,MR: 模型初始化阶段
+        
+        MM->>+MR: 获取已注册模型列表
+        MR-->>-MM: 返回模型注册信息
+        
+        MM->>+MC: 加载模型配置
+        MC-->>-MM: 返回模型配置
+        
+        loop 对每个已注册模型
+            MM->>+MS: 检查模型文件
+            MS-->>-MM: 返回模型状态
+            
+            alt 模型需要更新
+                MM->>+MS: 下载/更新模型
+                MS-->>-MM: 更新完成
+            end
+            
+            MM->>Cache: 预热模型缓存
+            Note over MM,Cache: 加载常用模型到内存
+        end
+    end
+    
+    rect rgb(220, 240, 220)
+        Note over API,MR: 动态模型切换
+        
+        API->>+MM: 请求特定模型服务
+        
+        MM->>MM: 检查模型状态
+        
+        alt 模型未加载
+            MM->>+MS: 加载模型
+            MS-->>-MM: 模型加载完成
+            MM->>Cache: 更新模型缓存
+        end
+        
+        alt 嵌入模型请求
+            MM->>+ES: 分配嵌入模型实例
+            ES-->>-MM: 返回模型句柄
+        else 生成模型请求
+            MM->>+LLM: 分配LLM模型实例
+            LLM-->>-MM: 返回模型句柄
+        end
+        
+        MM-->>-API: 返回模型服务实例
+    end
+    
+    rect rgb(240, 220, 220)
+        Note over API,MR: 模型监控和自动调整
+        
+        loop 定期监控
+            MM->>MM: 监控模型性能
+            Note over MM: 延迟、内存、负载等
+            
+            alt 需要负载均衡
+                MM->>MM: 调整模型实例
+                Note over MM: 扩缩容或资源重分配
+            end
+            
+            alt 性能低于阈值
+                MM->>+Cache: 清理低使用率模型
+                Cache-->>-MM: 释放资源
+            end
+            
+            MM->>MR: 更新模型状态
+            Note over MM,MR: 同步健康状态
+        end
+    end
+    
+    rect rgb(240, 240, 220)
+        Note over API,MR: 模型更新和回滚
+        
+        MR->>+MM: 通知模型更新
+        
+        MM->>+MC: 获取新配置
+        MC-->>-MM: 返回更新配置
+        
+        MM->>MM: 创建更新计划
+        Note over MM: 确定更新顺序和策略
+        
+        loop 对每个需更新的模型
+            MM->>+MS: 下载新模型
+            MS-->>-MM: 下载完成
+            
+            MM->>MM: 验证新模型
+            
+            alt 验证成功
+                MM->>Cache: 更新模型缓存
+                MM->>MR: 确认更新
+            else 验证失败
+                MM->>MM: 执行回滚
+                MM->>MR: 报告失败
+            end
+        end
+        
+        MM-->>-MR: 完成更新流程
+    end
+```
+
+这个时序图展示了多模型支持的四个主要阶段：
+
+1. **模型初始化阶段**
+   - 获取已注册模型列表
+   - 加载模型配置
+   - 检查模型文件状态
+   - 更新必要的模型
+   - 预热模型缓存
+
+2. **动态模型切换**
+   - 处理特定模型服务请求
+   - 检查模型状态
+   - 按需加载模型
+   - 分配模型实例
+   - 管理模型缓存
+
+3. **模型监控和自动调整**
+   - 定期监控模型性能
+   - 执行负载均衡
+   - 清理低使用率模型
+   - 更新模型状态
+
+4. **模型更新和回滚**
+   - 接收更新通知
+   - 获取新配置
+   - 创建更新计划
+   - 执行更新流程
+   - 验证和回滚机制
+
+系统特点：
+
+1. **灵活性**
+   - 支持多种模型类型
+   - 动态加载和卸载
+   - 配置热更新
+
+2. **可靠性**
+   - 模型验证机制
+   - 自动回滚支持
+   - 健康状态监控
+
+3. **性能优化**
+   - 模型缓存管理
+   - 负载均衡
+   - 资源动态调整
+
+4. **可维护性**
+   - 集中式配置管理
+   - 状态监控和报告
+   - 自动化运维
+
+5. **扩展性**
+   - 模型注册机制
+   - 插件式架构
+   - 配置驱动
+
+这个设计确保了：
+1. 模型服务的高可用性
+2. 资源的高效利用
+3. 运维的自动化
+4. 系统的可扩展性
+5. 故障的快速恢复
 
 ---
+
 
 ## 四、技术栈说明
 

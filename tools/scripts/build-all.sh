@@ -10,6 +10,72 @@ NC='\033[0m' # No Color
 DEBUG_MODE=false
 CLEAN_MODE=false
 
+# 设置环境变量
+export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+# 检查并安装yq
+install_yq() {
+    if ! command -v yq &> /dev/null; then
+        print_info "正在安装yq..." "force"
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # 对于 macOS，尝试直接下载二进制文件
+            local tmp_dir=$(mktemp -d)
+            if curl -L "https://github.com/mikefarah/yq/releases/latest/download/yq_darwin_amd64" -o "${tmp_dir}/yq"; then
+                chmod +x "${tmp_dir}/yq"
+                if [ -d "/usr/local/bin" ]; then
+                    sudo mv "${tmp_dir}/yq" /usr/local/bin/yq
+                else
+                    mkdir -p ~/bin
+                    mv "${tmp_dir}/yq" ~/bin/yq
+                    export PATH="$HOME/bin:$PATH"
+                fi
+                rm -rf "${tmp_dir}"
+                print_info "yq 安装成功"
+            else
+                print_warn "无法下载 yq，将使用默认配置继续"
+            fi
+        else
+            # 对于 Linux，尝试直接下载二进制文件
+            local tmp_dir=$(mktemp -d)
+            if curl -L "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64" -o "${tmp_dir}/yq"; then
+                chmod +x "${tmp_dir}/yq"
+                if [ -d "/usr/local/bin" ]; then
+                    sudo mv "${tmp_dir}/yq" /usr/local/bin/yq
+                else
+                    mkdir -p ~/bin
+                    mv "${tmp_dir}/yq" ~/bin/yq
+                    export PATH="$HOME/bin:$PATH"
+                fi
+                rm -rf "${tmp_dir}"
+                print_info "yq 安装成功"
+            else
+                print_warn "无法下载 yq，将使用默认配置继续"
+            fi
+        fi
+    fi
+}
+
+# 检查必要的命令
+check_required_commands() {
+    local missing_commands=()
+    
+    # 检查基本命令
+    for cmd in curl mkdir rm cp mv chmod python3; do
+        if ! command -v $cmd &> /dev/null; then
+            missing_commands+=($cmd)
+        fi
+    done
+    
+    # 如果有缺失的命令，输出错误信息并退出
+    if [ ${#missing_commands[@]} -ne 0 ]; then
+        print_error "以下必要命令未找到: ${missing_commands[*]}"
+        print_error "请安装这些命令后重试"
+        exit 1
+    fi
+}
+
 # 解析命令行参数
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -55,22 +121,23 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# 检查yq是否安装
-if ! command -v yq &> /dev/null; then
-    print_info "正在安装yq..." "force"
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        brew install yq
-    else
-        sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
-    fi
-fi
-
 # 读取配置文件函数
 get_config() {
     local key=$1
     local default_value=$2
-    value=$(yq eval "$key" "$CONFIG_FILE")
-    if [ "$value" = "null" ]; then
+    
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo "$default_value"
+        return
+    fi
+    
+    if ! command -v yq &> /dev/null; then
+        echo "$default_value"
+        return
+    fi
+    
+    value=$(yq eval "$key" "$CONFIG_FILE" 2>/dev/null || echo "$default_value")
+    if [ "$value" = "null" ] || [ -z "$value" ]; then
         echo "$default_value"
     else
         echo "$value"
@@ -80,12 +147,29 @@ get_config() {
 # 检查Java版本
 check_java_version() {
     local required_version=$1
-    local java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F. '{print $1}')
+    local java_version
     
-    if [ -z "$java_version" ] || [ "$java_version" -lt "$required_version" ]; then
-        print_error "需要JDK ${required_version}或更高版本"
-        print_error "当前Java版本: $(java -version 2>&1 | head -n 1)"
-        exit 1
+    # 获取完整的Java版本信息
+    if java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}'); then
+        # 提取主版本号
+        local major_version=$(echo "$java_version" | cut -d'.' -f1)
+        
+        if [ -z "$major_version" ] || [ "$major_version" -lt "$required_version" ]; then
+            print_error "需要JDK ${required_version}或更高版本"
+            print_error "当前Java版本: $java_version"
+            return 1
+        fi
+        
+        # 检查是否为预览版本
+        if java -version 2>&1 | grep -q "preview"; then
+            print_warn "检测到Java预览版本，可能会影响某些功能的使用"
+        fi
+        
+        print_info "检测到Java版本: $java_version"
+        return 0
+    else
+        print_error "无法获取Java版本信息"
+        return 1
     fi
 }
 
@@ -123,15 +207,16 @@ check_python() {
     print_info "检测到Python版本: $python_version"
 }
 
-# 检查Node.js环境
+# 检查Node.js环境（可选）
 check_node() {
     if ! command -v node &> /dev/null; then
-        print_error "Node.js未安装，请安装Node.js"
-        exit 1
+        print_warn "Node.js未安装，跳过前端构建"
+        return 1
     fi
     
     node_version=$(node --version)
     print_info "检测到Node.js版本: $node_version"
+    return 0
 }
 
 # 构建Java服务
@@ -148,30 +233,46 @@ build_java_services() {
     cd "${PROJECT_ROOT}/services"
     debug_info "切换到目录: ${PROJECT_ROOT}/services"
     
+    # 设置Maven编译选项
+    export MAVEN_OPTS="-Xmx1024m"
+    
+    # 构建命令，禁用预览特性
+    local mvn_cmd="mvn clean install -DskipTests"
     if [ "$DEBUG_MODE" = true ]; then
-        mvn clean install -DskipTests
+        mvn_cmd="$mvn_cmd"
     else
-        mvn clean install -DskipTests -q
+        mvn_cmd="$mvn_cmd -q"
     fi
     
-    if [ $? -ne 0 ]; then
+    # 添加编译器参数
+    mvn_cmd="$mvn_cmd -Dmaven.compiler.source=21 -Dmaven.compiler.target=21 -Dmaven.compiler.release=21"
+    
+    if ! eval "$mvn_cmd"; then
         print_error "父项目构建失败"
-        exit 1
+        return 1
     fi
     
     # 构建API网关
     print_info "构建API网关..." "force"
     cd "${PROJECT_ROOT}/services/api-gateway"
     debug_info "切换到目录: ${PROJECT_ROOT}/services/api-gateway"
+    
     # 清理并创建 dist/services/api-gateway 目录
     rm -rf "${PROJECT_ROOT}/dist/services/api-gateway"
     mkdir -p "${PROJECT_ROOT}/dist/services/api-gateway"
+    
+    # 构建命令
+    mvn_cmd="mvn clean package -DskipTests"
     if [ "$DEBUG_MODE" = true ]; then
-        mvn clean package -DskipTests
+        mvn_cmd="$mvn_cmd"
     else
-        mvn clean package -DskipTests -q
+        mvn_cmd="$mvn_cmd -q"
     fi
-    if [ $? -eq 0 ]; then
+    
+    # 添加编译器参数
+    mvn_cmd="$mvn_cmd -Dmaven.compiler.source=21 -Dmaven.compiler.target=21 -Dmaven.compiler.release=21"
+    
+    if eval "$mvn_cmd"; then
         cp target/api-gateway-1.0.0.jar "${PROJECT_ROOT}/dist/services/api-gateway/api-gateway-1.0.0.jar"
         # 复制所有配置文件到 dist/services/api-gateway
         cp -r src/main/resources/application*.yml src/main/resources/application*.yaml src/main/resources/application.properties "${PROJECT_ROOT}/dist/services/api-gateway/" 2>/dev/null || true
@@ -179,39 +280,47 @@ build_java_services() {
         print_info "API网关构建成功" "force"
     else
         print_error "API网关构建失败"
-        exit 1
+        return 1
     fi
+    
     cd "${PROJECT_ROOT}"
+    return 0
 }
 
 # 构建Python服务
 build_python_services() {
     print_info "正在构建Python服务..." "force"
     cd "${PROJECT_ROOT}"
-    # 清理并创建dist目录
-    print_info "清理Python服务构建目录..." "force"
-    if [ "$CLEAN_MODE" = true ]; then
-        rm -rf dist/penv
-        debug_info "已删除旧的构建目录"
+    
+    # 创建虚拟环境目录（如果不存在）
+    if [ ! -d "dist/penv" ] || [ "$CLEAN_MODE" = true ]; then
+        if [ "$CLEAN_MODE" = true ]; then
+            print_info "清理模式：删除旧的Python虚拟环境..." "force"
+            rm -rf dist/penv
+        fi
+        
+        print_info "创建新的Python虚拟环境..." "force"
+        mkdir -p dist/penv
+        python3 -m venv dist/penv
+        
+        # 激活虚拟环境并更新pip
+        source dist/penv/bin/activate
+        pip install --upgrade pip
+        pip install wheel setuptools
+        deactivate
     fi
-    mkdir -p dist/penv
-    debug_info "创建目录结构:"
-    debug_info "- ${PROJECT_ROOT}/dist/penv"
-    # 创建全局Python虚拟环境
-    print_info "创建全局Python虚拟环境..." "force"
-    python3 -m venv dist/penv
+    
+    # 激活虚拟环境
     source dist/penv/bin/activate
-    debug_info "Python虚拟环境已激活: $(which python)"
-    # 升级pip
-    print_info "升级pip..." "force"
-    pip install --upgrade pip
-    # 安装所有服务 requirements.txt
-    if [ -f "agents/knowledge_rag_agent/requirements.txt" ]; then
-        pip install -r agents/knowledge_rag_agent/requirements.txt
-    fi
-    if [ -f "services/embed_serves/requirements.txt" ]; then
-        pip install -r services/embed_serves/requirements.txt
-    fi
+    
+    # 首先构建并安装 mf-nacos-service-registrar
+    print_info "构建并安装 mf-nacos-service-registrar..." "force"
+    build_mf_nacos_service_registrar || { deactivate; return 1; }
+    
+    # 然后构建其他Python服务
+    build_knowledge_rag_agent || { deactivate; return 1; }
+    build_embed_serves || { deactivate; return 1; }
+    
     deactivate
     debug_info "Python虚拟环境已退出"
     cd "${PROJECT_ROOT}"
@@ -313,95 +422,189 @@ build_nacos() {
 build_mf_nacos_service_registrar() {
     print_info "构建并本地发布 mf-nacos-service-registrar..." "force"
     cd "${PROJECT_ROOT}/libs/python/mf-nacos-service-registrar"
-    source "${PROJECT_ROOT}/dist/penv/bin/activate"
-    python3 -m build
+    
+    # 虚拟环境已在父函数中激活
+    python -m build
     pip install -e .
-    deactivate
+    
     cd "${PROJECT_ROOT}"
+    return 0
 }
 
 # 构建 knowledge_rag_agent
 build_knowledge_rag_agent() {
     print_info "构建 knowledge_rag_agent..." "force"
+    local target_dir="${PROJECT_ROOT}/dist/agents/knowledge_rag_agent"
+    local source_dir="${PROJECT_ROOT}/agents/knowledge_rag_agent"
+    
+    # 如果是清理模式，删除目标目录
     if [ "$CLEAN_MODE" = true ]; then
-        rm -rf "${PROJECT_ROOT}/dist/agents/knowledge_rag_agent"
-        debug_info "已删除 dist/agents/knowledge_rag_agent 目录"
+        print_info "清理模式：删除旧的构建目录..." "force"
+        rm -rf "${target_dir}"
     fi
-    mkdir -p "${PROJECT_ROOT}/dist/agents/knowledge_rag_agent"
-    cd "${PROJECT_ROOT}/agents/knowledge_rag_agent"
+    
+    # 创建目标目录
+    mkdir -p "${target_dir}"
+    
+    cd "${source_dir}"
+    
+    # 检查并安装依赖（虚拟环境已在父函数中激活）
     if [ -f "requirements.txt" ]; then
-        pip install -r requirements.txt
+        print_info "安装 knowledge_rag_agent 依赖..." "force"
+        
+        # 安装依赖（使用虚拟环境中的pip）
+        if ! pip install -v -r requirements.txt; then
+            print_error "依赖安装失败，请检查 requirements.txt 和上述错误信息"
+            return 1
+        fi
+        
+        # 验证关键依赖是否安装成功
+        if ! python -c "import httpx" 2>/dev/null; then
+            print_error "httpx 导入测试失败，依赖可能未正确安装"
+            return 1
+        fi
+        
+        print_info "依赖安装成功" "force"
+    else
+        print_error "requirements.txt 文件不存在"
+        return 1
     fi
-    # 仅复制源码和配置到 dist 目录，不再构建 wheel 包
-    cp -r src README.md pyproject.toml requirements.txt "${PROJECT_ROOT}/dist/agents/knowledge_rag_agent/" 2>/dev/null || true
+    
+    # 同步源码和配置文件
+    print_info "同步 knowledge_rag_agent 源码和配置..." "force"
+    
+    # 使用 rsync 进行增量同步，保持目录结构
+    if command -v rsync &> /dev/null; then
+        rsync -av --delete \
+            --exclude '*.pyc' \
+            --exclude '__pycache__' \
+            --exclude '*.egg-info' \
+            --exclude '.pytest_cache' \
+            --exclude '.coverage' \
+            --exclude 'htmlcov' \
+            --exclude '*.log' \
+            src/ "${target_dir}/src/"
+    else
+        # 如果没有 rsync，使用 cp 命令
+        rm -rf "${target_dir}/src"
+        cp -r src "${target_dir}/"
+    fi
+    
+    # 复制其他必要文件
+    for file in README.md pyproject.toml requirements.txt config.yaml; do
+        if [ -f "$file" ]; then
+            cp -f "$file" "${target_dir}/" 2>/dev/null || true
+        fi
+    done
+    
+    # 创建必要的数据目录
+    mkdir -p "${target_dir}/data/"{vector_db,storage,temp}
+    mkdir -p "${target_dir}/logs"
+    
     cd "${PROJECT_ROOT}"
+    return 0
 }
 
 # 构建 embed_serves
 build_embed_serves() {
     print_info "构建 embed_serves..." "force"
+    local target_dir="${PROJECT_ROOT}/dist/services/embed_serves"
+    local source_dir="${PROJECT_ROOT}/services/embed_serves"
+    
+    # 如果是清理模式，删除目标目录
     if [ "$CLEAN_MODE" = true ]; then
-        rm -rf "${PROJECT_ROOT}/dist/services/embed_serves"
-        debug_info "已删除 dist/services/embed_serves 目录"
+        print_info "清理模式：删除旧的构建目录..." "force"
+        rm -rf "${target_dir}"
     fi
-    mkdir -p "${PROJECT_ROOT}/dist/services/embed_serves"
-    cd "${PROJECT_ROOT}/services/embed_serves"
+    
+    # 创建目标目录
+    mkdir -p "${target_dir}"
+    
+    cd "${source_dir}"
+    
+    # 检查并安装依赖（虚拟环境已在父函数中激活）
     if [ -f "requirements.txt" ]; then
-        pip install -r requirements.txt
+        print_info "安装 embed_serves 依赖..." "force"
+        if ! pip install -v -r requirements.txt; then
+            print_error "依赖安装失败"
+            return 1
+        fi
+        print_info "依赖安装成功" "force"
     fi
-    # 仅复制源码和配置到 dist 目录，不再构建 wheel 包
-    cp -r main.py README.md pyproject.toml requirements.txt "${PROJECT_ROOT}/dist/services/embed_serves/" 2>/dev/null || true
+    
+    # 同步源码和配置文件
+    print_info "同步 embed_serves 源码和配置..." "force"
+    
+    # 使用 rsync 进行增量同步，保持目录结构
+    if command -v rsync &> /dev/null; then
+        rsync -av --delete \
+            --exclude '*.pyc' \
+            --exclude '__pycache__' \
+            --exclude '*.egg-info' \
+            --exclude '.pytest_cache' \
+            --exclude '.coverage' \
+            --exclude 'htmlcov' \
+            --exclude '*.log' \
+            ./ "${target_dir}/"
+    else
+        # 如果没有 rsync，使用 cp 命令
+        find "${target_dir}" -type f -delete
+        find . -type f \( -name "*.py" -o -name "*.yaml" -o -name "*.yml" -o -name "*.json" \) -exec cp --parents {} "${target_dir}/" \;
+    fi
+    
+    # 复制其他必要文件
+    for file in README.md pyproject.toml requirements.txt; do
+        if [ -f "$file" ]; then
+            cp -f "$file" "${target_dir}/" 2>/dev/null || true
+        fi
+    done
+    
     cd "${PROJECT_ROOT}"
+    return 0
 }
 
 # 主函数
 main() {
     cd "${PROJECT_ROOT}"
     
-    if [ "$DEBUG_MODE" = true ]; then
-        print_info "调试模式已启用" "force"
-        print_info "项目根目录: ${PROJECT_ROOT}" "force"
-        print_info "配置文件: ${CONFIG_FILE}" "force"
-    fi
+    # 检查必要的命令
+    check_required_commands
+    
+    # 安装 yq（如果需要）
+    install_yq
     
     # 检查配置文件是否存在
     if [ ! -f "$CONFIG_FILE" ]; then
-        print_error "配置文件不存在: $CONFIG_FILE"
-        exit 1
+        print_warn "配置文件不存在: $CONFIG_FILE，将使用默认配置"
     fi
     
     print_info "开始环境检查..." "force"
-    check_java
-    check_maven
-    check_python
+    check_java || { print_error "Java环境检查失败"; exit 1; }
+    check_python || { print_error "Python环境检查失败"; exit 1; }
+    
+    # Node.js检查改为可选
     check_node
     
     print_info "开始构建所有服务..." "force"
     echo "========================================"
     
     # 构建Nacos服务
-    build_nacos
+    build_nacos || { print_error "Nacos构建失败"; exit 1; }
     echo "========================================"
     
     # 构建Java服务
-    build_java_services
+    build_java_services || { print_error "Java服务构建失败"; exit 1; }
     echo "========================================"
     
-    # 构建Python服务
-    build_python_services
+    # 构建Python服务（包含了mf-nacos-service-registrar的构建）
+    build_python_services || { print_error "Python服务构建失败"; exit 1; }
     echo "========================================"
     
-    # 构建 mf-nacos-service-registrar
-    build_mf_nacos_service_registrar
-    echo "========================================"
-    
-    # 构建 knowledge_rag_agent
-    build_knowledge_rag_agent
-    echo "========================================"
-    
-    # 构建 embed_serves
-    build_embed_serves
-    echo "========================================"
+    # 构建前端（如果Node.js可用）
+    if command -v node &> /dev/null; then
+        build_frontend
+        echo "========================================"
+    fi
     
     print_info "所有服务构建完成！" "force"
     print_info "构建产物位置：${PROJECT_ROOT}/dist/" "force"

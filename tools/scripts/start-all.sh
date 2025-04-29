@@ -149,6 +149,58 @@ wait_for_service() {
     fi
 }
 
+# 健康检查函数增加重试和详细日志
+check_health() {
+    local url=$1
+    local max_attempts=${2:-30}
+    local sleep_time=${3:-2}
+    local attempt=1
+    local service_name=$4
+
+    print_info "正在检查服务健康状态: $url"
+    while [ $attempt -le $max_attempts ]; do
+        local response=$(curl -s -w "\n%{http_code}" "$url" 2>&1)
+        local status_code=$(echo "$response" | tail -n1)
+        local body=$(echo "$response" | sed '$d')
+        
+        if [[ "$status_code" =~ ^[23] ]]; then
+            print_info "$service_name 健康检查通过"
+            return 0
+        fi
+        
+        if [ $((attempt % 5)) -eq 0 ]; then
+            print_info "$service_name 等待服务就绪... (尝试 $attempt/$max_attempts)"
+            if [ ! -z "$body" ]; then
+                print_info "响应内容: $body"
+            fi
+        else
+            echo -n "."
+        fi
+        
+        sleep $sleep_time
+        attempt=$((attempt + 1))
+    done
+    
+    print_error "$service_name 健康检查失败"
+    if [ ! -z "$body" ]; then
+        print_error "最后一次响应: $body"
+    fi
+    return 1
+}
+
+# 清理失败的服务
+cleanup_failed_service() {
+    local port=$1
+    local pid=$2
+    print_error "服务启动失败，正在清理..."
+    if [ ! -z "$pid" ]; then
+        kill -9 $pid 2>/dev/null || true
+    fi
+    if [ ! -z "$port" ]; then
+        lsof -ti:$port | xargs kill -9 2>/dev/null || true
+    fi
+}
+
 # 启动服务
 start_service() {
     local service_name=$1
@@ -157,6 +209,8 @@ start_service() {
     local port=$4
     local context_path=$5
     local process_pattern=$6
+    local force_reload=${7:-false}  # 新增：强制重启参数
+    local health_path="/actuator/health"  # 统一健康检查路径
 
     # 确保日志目录存在
     local log_dir=$(dirname "$log_file")
@@ -167,20 +221,25 @@ start_service() {
     print_info "- 日志文件: ${log_file}"
     print_info "- 端口: ${port}"
     print_info "- 上下文路径: ${context_path}"
+    print_info "- 健康检查路径: ${health_path}"
 
     # 检查端口占用情况
     if lsof -i:${port} > /dev/null 2>&1; then
-        # 检查是否是相同的服务
-        if [ ! -z "${process_pattern}" ] && ps aux | grep "${process_pattern}" | grep -v grep > /dev/null; then
-            print_warn "${service_name}服务已在运行中（端口 ${port}）"
-            print_info "- 访问地址: http://localhost:${port}${context_path}"
-            print_info "- 日志文件: ${log_file}"
-            return 0
+        # 检查服务健康状态
+        local health_url="http://localhost:${port}${health_path}"
+        if curl -s "${health_url}" 2>&1 | grep -q "status.*ok"; then
+            if [ "$force_reload" = true ] && [[ "${start_cmd}" == *"--reload"* ]]; then
+                print_info "${service_name}服务正在运行，检测到 --reload 参数，将重启服务"
+                lsof -ti:${port} | xargs kill -9 2>/dev/null
+            else
+                print_info "${service_name}服务正在运行且健康"
+                print_info "- 访问地址: http://localhost:${port}${context_path}"
+                print_info "- 日志文件: ${log_file}"
+                return 0
+            fi
         else
-            print_error "端口 ${port} 被其他服务占用！"
-            print_info "正在检查占用进程..."
-            lsof -i:${port}
-            return 1
+            print_warn "${service_name}服务端口被占用但健康检查失败，将重启服务"
+            lsof -ti:${port} | xargs kill -9 2>/dev/null
         fi
     fi
 
@@ -189,26 +248,31 @@ start_service() {
     local pid=$!
     print_info "服务已启动，进程ID: ${pid}"
 
-    # 等待服务启动
-    local max_wait=30
-    local wait_count=0
-    while ! lsof -i:${port} > /dev/null 2>&1; do
-        sleep 1
-        wait_count=$((wait_count + 1))
-        if [ ${wait_count} -ge ${max_wait} ]; then
-            print_error "服务启动超时（${max_wait}秒）"
-            return 1
-        fi
-        if ! ps -p ${pid} > /dev/null 2>&1; then
-            print_error "服务进程已退出"
-            return 1
-        fi
-    done
+    # 等待进程初始化
+    sleep 2
 
-    print_info "服务启动成功！"
-    print_info "- 访问地址: http://localhost:${port}${context_path}"
-    print_info "- 日志文件: ${log_file}"
-    return 0
+    # 检查进程是否还在运行
+    if ! ps -p $pid > /dev/null; then
+        print_error "服务进程已退出，请检查日志: ${log_file}"
+        tail -n 50 "${log_file}"
+        return 1
+    fi
+
+    # 健康检查
+    print_info "等待服务启动并进行健康检查..."
+    local health_url="http://localhost:${port}${health_path}"
+    if check_health "$health_url" 30 2 "${service_name}"; then
+        print_info "${service_name}启动成功！(PID: ${pid})"
+        print_info "- 访问地址: http://localhost:${port}${context_path}"
+        print_info "- 日志文件: ${log_file}"
+        return 0
+    else
+        print_error "${service_name}启动失败"
+        print_error "请检查日志文件: ${log_file}"
+        tail -n 50 "${log_file}"
+        cleanup_failed_service $port $pid
+        return 1
+    fi
 }
 
 # 启动Java服务
@@ -254,7 +318,8 @@ build_and_start_java_services() {
             "${auth_log_file}" \
             ${auth_service_port} \
             ${auth_service_path} \
-            "java -jar ${dist_dir}/auth-service-1.0.0.jar"
+            "java -jar ${dist_dir}/auth-service-1.0.0.jar" \
+            false
     else
         print_warn "认证服务jar包不存在，跳过启动"
     fi
@@ -274,7 +339,8 @@ build_and_start_java_services() {
             "${user_log_file}" \
             ${user_service_port} \
             ${user_service_path} \
-            "java -jar ${dist_dir}/user-service-1.0.0.jar"
+            "java -jar ${dist_dir}/user-service-1.0.0.jar" \
+            false
     else
         print_warn "用户服务jar包不存在，跳过启动"
     fi
@@ -295,7 +361,8 @@ build_and_start_java_services() {
             "${api_gateway_log_file}" \
             ${api_gateway_port} \
             ${api_gateway_path} \
-            "java -jar ${dist_dir}/api-gateway/api-gateway-1.0.0.jar"
+            "java -jar ${dist_dir}/api-gateway/api-gateway-1.0.0.jar" \
+            false
     else
         print_warn "API网关jar包不存在，跳过启动"
     fi
@@ -355,7 +422,11 @@ start_nacos() {
     nohup bash "bin/startup.sh" -m ${nacos_mode} -p ${nacos_port} > "${log_dir}/nacos/startup.log" 2>&1 &
     
     # 等待Nacos启动
-    if wait_for_service "Nacos" "${nacos_port}" "$!"; then
+    local health_url="http://localhost:${nacos_port}/nacos/actuator/health"
+    print_info "等待服务启动并进行健康检查..."
+    print_info "健康检查地址: ${health_url}"
+    
+    if check_health "${health_url}" 30 2 "Nacos"; then
         echo "控制台地址: http://127.0.0.1:${nacos_port}/nacos (仅限本地访问)"
         echo "用户名/密码: nacos/nacos"
         echo "日志位置: ${log_dir}/nacos"
@@ -372,17 +443,29 @@ start_knowledge_rag_agent() {
     mkdir -p "$log_dir"
     local rag_port=$(get_config '.ports.knowledge_rag_agent' '8002')
     local main_path="${PROJECT_ROOT}/dist/agents/knowledge_rag_agent/src/main.py"
+    
     if [ ! -f "$main_path" ]; then
         print_error "main.py 未找到: $main_path"
         return 1
     fi
+    
     source "${PROJECT_ROOT}/dist/penv/bin/activate"
-    local uvicorn_cmd="uvicorn dist.agents.knowledge_rag_agent.src.main:app --host 0.0.0.0 --port ${rag_port} --reload"
-    print_info "实际启动命令: $uvicorn_cmd"
-    nohup $uvicorn_cmd > "$log_dir/knowledge_rag_agent.log" 2>&1 &
-    deactivate
-    print_info "knowledge_rag_agent 启动完成，日志：$log_dir/knowledge_rag_agent.log"
+    cd "${PROJECT_ROOT}/dist/agents/knowledge_rag_agent"
+    export PYTHONPATH="${PROJECT_ROOT}/dist/agents/knowledge_rag_agent/src:${PYTHONPATH:-}"
+    local uvicorn_cmd="uvicorn src.main:app --host 0.0.0.0 --port ${rag_port} --reload"
+    
+    start_service "knowledge_rag_agent" \
+        "$uvicorn_cmd" \
+        "$log_dir/knowledge_rag_agent.log" \
+        ${rag_port} \
+        "" \
+        "uvicorn src.main:app" \
+        true  # 启用强制重启
+    
+    local result=$?
     cd "${PROJECT_ROOT}"
+    deactivate
+    return $result
 }
 
 start_embed_serves() {
@@ -391,17 +474,29 @@ start_embed_serves() {
     mkdir -p "$log_dir"
     local embed_port=$(get_config '.ports.embed_serves' '8003')
     local main_path="${PROJECT_ROOT}/dist/services/embed_serves/main.py"
+    
     if [ ! -f "$main_path" ]; then
         print_error "main.py 未找到: $main_path"
         return 1
     fi
+    
     source "${PROJECT_ROOT}/dist/penv/bin/activate"
-    local uvicorn_cmd="uvicorn dist.services.embed_serves.main:app --host 0.0.0.0 --port ${embed_port} --reload"
-    print_info "实际启动命令: $uvicorn_cmd"
-    nohup $uvicorn_cmd > "$log_dir/embed_serves.log" 2>&1 &
-    deactivate
-    print_info "embed_serves 启动完成，日志: $log_dir/embed_serves.log"
+    cd "${PROJECT_ROOT}/dist/services/embed_serves"
+    export PYTHONPATH="${PROJECT_ROOT}/dist/services/embed_serves:${PYTHONPATH:-}"
+    local uvicorn_cmd="uvicorn main:app --host 0.0.0.0 --port ${embed_port} --reload"
+    
+    start_service "embed_serves" \
+        "$uvicorn_cmd" \
+        "$log_dir/embed_serves.log" \
+        ${embed_port} \
+        "" \
+        "uvicorn main:app" \
+        true  # 启用强制重启
+    
+    local result=$?
     cd "${PROJECT_ROOT}"
+    deactivate
+    return $result
 }
 
 # 主函数

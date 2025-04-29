@@ -8,8 +8,12 @@ import psutil
 from contextlib import asynccontextmanager
 from mf_nacos_service_registrar.registrar import get_nacos_client, register_instance, deregister_instance
 import yaml
+from datetime import datetime
 
 app = FastAPI()
+
+# 服务启动时间
+START_TIME = datetime.now()
 
 default_model_name = "BAAI/bge-base-en-v1.5"
 default_provider = "onnx"
@@ -30,8 +34,8 @@ SUPPORTED_PROVIDERS = [
 # 全局集合，记录已加载的模型-后端组合
 CACHED_MODELS = set()
 
-# 读取 nacos 配置
-NACOS_SERVER_ADDR = os.getenv("NACOS_SERVER_ADDR", "127.0.0.1:8848")
+# 读取 nacos 配置server_addresses
+NACOS_SERVER_ADDRESSES = os.getenv("NACOS_SERVER_ADDRESSES", "127.0.0.1:8848")
 NACOS_NAMESPACE = os.getenv("NACOS_NAMESPACE", "public")
 NACOS_ACCESS_KEY = os.getenv("NACOS_ACCESS_KEY")
 NACOS_SECRET_KEY = os.getenv("NACOS_SECRET_KEY")
@@ -61,7 +65,7 @@ def get_or_create_nacos_client():
     if _nacos_client is not None:
         return _nacos_client
     _nacos_client = get_nacos_client(
-        server_addr=NACOS_SERVER_ADDR,
+        server_addresses=NACOS_SERVER_ADDRESSES,
         namespace=NACOS_NAMESPACE,
         ak=NACOS_ACCESS_KEY,
         sk=NACOS_SECRET_KEY
@@ -196,6 +200,50 @@ async def infer_info():
 async def list_models():
     """列出可用模型和推理后端（本地维护）"""
     return {"models": SUPPORTED_MODELS, "providers": SUPPORTED_PROVIDERS}
+
+@app.get("/actuator/health")
+async def health_check():
+    """标准健康检查接口"""
+    try:
+        # 获取服务基本信息
+        process = psutil.Process(os.getpid())
+        mem_info = process.memory_info()
+        
+        return {
+            "status": "UP",
+            "components": {
+                "diskSpace": {
+                    "status": "UP",
+                    "details": {
+                        "total": psutil.disk_usage("/").total,
+                        "free": psutil.disk_usage("/").free,
+                        "threshold": 1024 * 1024 * 100  # 100MB
+                    }
+                },
+                "memory": {
+                    "status": "UP",
+                    "details": {
+                        "total": mem_info.rss,
+                        "free": psutil.virtual_memory().available,
+                        "processors": psutil.cpu_count()
+                    }
+                },
+                "nacos": {
+                    "status": "UP" if _nacos_client is not None else "DOWN"
+                }
+            },
+            "details": {
+                "service": NACOS_SERVICE_NAME,
+                "port": NACOS_PORT,
+                "uptime": str(datetime.now() - START_TIME),
+                "pid": process.pid
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "DOWN",
+            "error": str(e)
+        }
 
 if __name__ == "__main__":
     import uvicorn

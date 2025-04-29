@@ -25,7 +25,6 @@ show_help() {
     echo "  api-gateway             API网关服务"
     echo "  auth-service            认证服务"
     echo "  user-service            用户服务"
-    echo "  java-agent              Java Agent服务"
     echo "  nacos                   Nacos服务"
     echo "  all                     所有服务（默认）"
     exit 1
@@ -192,9 +191,6 @@ stop_service() {
         "user-service")
             stop_java_service "user-service"
             ;;
-        "java-agent")
-            stop_java_service "java-agent"
-            ;;
         "nacos")
             stop_nacos
             ;;
@@ -204,7 +200,6 @@ stop_service() {
             stop_java_service "api-gateway"
             stop_java_service "auth-service"
             stop_java_service "user-service"
-            stop_java_service "java-agent"
             stop_nacos
             ;;
         *)

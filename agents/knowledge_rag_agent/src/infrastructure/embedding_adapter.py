@@ -1,7 +1,7 @@
 from typing import List
 from domain.ports import EmbeddingServicePort
 import httpx
-from config import settings
+from config.config import settings
 from mf_nacos_service_registrar import get_nacos_client, get_one_healthy_instance_url
 
 class EmbeddingServiceClient(EmbeddingServicePort):

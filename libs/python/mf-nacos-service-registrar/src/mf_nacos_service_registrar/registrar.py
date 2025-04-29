@@ -17,22 +17,22 @@ def get_local_ip() -> str:
 
 
 def get_nacos_client(
-    server_addr: str,
+    server_addresses: str,
     namespace: Optional[str] = None,
     ak: Optional[str] = None,
     sk: Optional[str] = None
 ):
     """
     获取 NacosClient 实例。
-    :param server_addr: 形如 127.0.0.1:8848
+    :param server_addresses: 形如 127.0.0.1:8848
     :param namespace: 命名空间 id
     :param ak: access key
     :param sk: secret key
     :return: nacos.NacosClient 实例
     """
     if ak and sk:
-        return nacos.NacosClient(server_addr, namespace=namespace, ak=ak, sk=sk)
-    return nacos.NacosClient(server_addr, namespace=namespace)
+        return nacos.NacosClient(server_addresses, namespace=namespace, ak=ak, sk=sk)
+    return nacos.NacosClient(server_addresses, namespace=namespace)
 
 
 def register_instance(
@@ -123,13 +123,13 @@ def deregister_instance(
 class NacosServiceRegistrar:
     def __init__(
         self,
-        server: str,
+        server_addresses: str,
         namespace: str = "public",
         username: str = None,
         password: str = None
     ):
         self.client = nacos.NacosClient(
-            server_addresses=server,
+            server_addresses=server_addresses,
             namespace=namespace,
             username=username,
             password=password

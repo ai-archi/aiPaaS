@@ -1,0 +1,99 @@
+app:
+  name: "knowledge_rag_agent"
+  version: "1.0.0"
+  description: "Knowledge RAG Agent Service"
+  debug: ${DEBUG:true}
+  environment: ${ENVIRONMENT:development}
+
+server:
+  host: ${HOST:0.0.0.0}
+  port: ${PORT:8002}
+  reload: ${RELOAD:true}
+  workers: ${WORKERS:1}
+
+data:
+  base_dir: data
+  vector_db_dir: data/vector_db
+  storage_dir: data/storage
+  temp_dir: data/temp
+
+database:
+  type: sqlite  # 支持 sqlite 或 postgresql
+  # SQLite配置
+  sqlite:
+    url: ${SQLITE_URL:sqlite:///./rag.db}
+    echo: ${SQLITE_ECHO:false}
+  # PostgreSQL配置
+  postgresql:
+    host: ${PG_HOST:localhost}
+    port: ${PG_PORT:5432}
+    database: ${PG_DATABASE:knowledge_rag}
+    user: ${PG_USER:postgres}
+    password: ${PG_PASSWORD:}
+    echo: ${PG_ECHO:false}
+    min_connections: ${PG_MIN_CONNECTIONS:1}
+    max_connections: ${PG_MAX_CONNECTIONS:10}
+  
+# 向量数据库配置
+vector_db:
+  type: sqlite  # 支持 sqlite 或 postgresql
+  # SQLite向量数据库配置
+  sqlite:
+    url: ${VECTOR_DB_SQLITE_URL:sqlite:///./vector_store.db}
+    echo: ${VECTOR_DB_SQLITE_ECHO:false}
+    dimension: ${VECTOR_DB_DIMENSION:768}  # 向量维度
+    distance_strategy: ${VECTOR_DB_DISTANCE:cosine}  # 距离计算策略：cosine, euclidean, dot_product
+  # PostgreSQL向量数据库配置（使用 pgvector 扩展）
+  postgresql:
+    host: ${VECTOR_DB_PG_HOST:localhost}
+    port: ${VECTOR_DB_PG_PORT:5432}
+    database: ${VECTOR_DB_PG_DATABASE:vector_store}
+    user: ${VECTOR_DB_PG_USER:postgres}
+    password: ${VECTOR_DB_PG_PASSWORD:}
+    echo: ${VECTOR_DB_PG_ECHO:false}
+    min_connections: ${VECTOR_DB_PG_MIN_CONNECTIONS:1}
+    max_connections: ${VECTOR_DB_PG_MAX_CONNECTIONS:10}
+    dimension: ${VECTOR_DB_DIMENSION:768}  # 向量维度
+    distance_strategy: ${VECTOR_DB_DISTANCE:cosine}  # 距离计算策略：cosine, euclidean, dot_product
+    index_type: ${VECTOR_DB_INDEX_TYPE:ivfflat}  # 索引类型：ivfflat, hnsw
+    index_lists: ${VECTOR_DB_INDEX_LISTS:100}  # IVFFlat 索引的聚类中心数量
+    ef_construction: ${VECTOR_DB_EF_CONSTRUCTION:100}  # HNSW 索引构建时的搜索深度
+    m_neighbors: ${VECTOR_DB_M_NEIGHBORS:16}  # HNSW 图中每个节点的最大连接数
+
+logging:
+  level: ${LOG_LEVEL:INFO}
+  format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"
+  file: ${LOG_FILE:logs/knowledge_rag.log}
+
+auth:
+  secret_key: ${JWT_SECRET_KEY:your-secret-key-here}
+  algorithm: ${JWT_ALGORITHM:HS256}
+  access_token_expire_minutes: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:30}
+
+cors:
+  allow_origins: ${CORS_ALLOW_ORIGINS:["*"]}
+  allow_credentials: ${CORS_ALLOW_CREDENTIALS:true}
+  allow_methods: ${CORS_ALLOW_METHODS:["*"]}
+  allow_headers: ${CORS_ALLOW_HEADERS:["*"]}
+
+nacos:
+  # Nacos 服务器配置
+  enable: ${NACOS_ENABLE:true}
+  server_addresses: ${NACOS_SERVER_ADDRESSES:127.0.0.1:8848}  # Nacos服务器地址
+  namespace: ${NACOS_NAMESPACE:public}               # 命名空间
+  username: ${NACOS_USERNAME:nacos}                 # 用户名
+  password: ${NACOS_PASSWORD:nacos}                 # 密码
+  context_path: ${NACOS_CONTEXT_PATH:/nacos}       # 上下文路径
+  
+  # 服务注册配置
+  service_name: ${NACOS_SERVICE_NAME:knowledge-rag-agent}  # 服务名称
+  group_name: ${NACOS_GROUP_NAME:DEFAULT_GROUP}     # 分组名称
+  cluster_name: ${NACOS_CLUSTER_NAME:DEFAULT}       # 集群名称
+  
+  # 服务实例配置
+  port: ${NACOS_PORT:8002}                         # 服务端口
+  weight: ${NACOS_WEIGHT:1.0}                      # 权重
+  metadata: {}                                     # 元数据
+  
+  # 健康检查配置
+  health_check_url: ${NACOS_HEALTH_CHECK_URL:/actuator/health}  # 健康检查URL 

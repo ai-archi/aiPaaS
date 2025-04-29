@@ -1,71 +1,92 @@
 import sys
-import os
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
+from typing import Optional
+from loguru import logger
+import uvicorn
+from fastapi import FastAPI, APIRouter
+from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime
 
-# 确保 src 目录在 sys.path 中
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from config.config import settings
+from bootstrap.bootstrap import (
+    setup_app,
+    start_app,
+    stop_app
+)
 
-from config import settings
-from interfaces.rest_api import router as rest_router
-from mf_nacos_service_registrar.registrar import get_nacos_client, register_instance, deregister_instance
-
-_nacos_client = None
-
-def get_or_create_nacos_client():
-    global _nacos_client
-    if _nacos_client is not None:
-        return _nacos_client
-    _nacos_client = get_nacos_client(
-        server_addr=settings.nacos_server_addr,
-        namespace=settings.nacos_namespace,
-        ak=settings.nacos_access_key,
-        sk=settings.nacos_secret_key
+def create_app() -> FastAPI:
+    """创建并返回 FastAPI 应用实例"""
+    app = FastAPI(
+        title=settings.app.name,
+        description=settings.app.description,
+        version=settings.app.version,
+        lifespan=app_lifespan
     )
-    return _nacos_client
+    
+    # 配置基础中间件
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors.allow_origins,
+        allow_credentials=settings.cors.allow_credentials,
+        allow_methods=settings.cors.allow_methods,
+        allow_headers=settings.cors.allow_headers,
+    )
+    
+    # 添加健康检查路由
+    @app.get("/actuator/health")
+    async def health_check():
+        """健康检查接口，返回服务状态和启动时间"""
+        if not hasattr(app.state, "initialized"):
+            return {
+                "status": "DOWN",
+                "details": {
+                    "message": "服务未完成初始化"
+                }
+            }
+            
+        return {
+            "status": "UP" if app.state.initialized else "DOWN",
+            "details": {
+                "startupTime": app.state.startup_time.isoformat() if hasattr(app.state, "startup_time") else None,
+                "error": app.state.startup_error if hasattr(app.state, "startup_error") else None
+            }
+        }
+    
+    return app
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    client = get_or_create_nacos_client()
-    register_instance(
-        client=client,
-        service_name=settings.nacos_service_name,
-        port=settings.port,
-        cluster_name=settings.nacos_cluster,
-        weight=settings.nacos_weight,
-        metadata={"env": settings.environment},
-        enable=settings.nacos_enable,
-        healthy=settings.nacos_healthy,
-        ephemeral=settings.nacos_ephemeral,
-        group_name=settings.nacos_group,
-        heartbeat_interval=5
-    )
+async def app_lifespan(app: FastAPI):
+    """应用生命周期管理器"""
     try:
+        # 配置阶段：初始化所有必要的组件和服务
+        await setup_app(app)
+        
+        # 启动阶段：启动所有服务
+        await start_app(app)
+        
         yield
     finally:
-        deregister_instance(
-            client=client,
-            service_name=settings.nacos_service_name,
-            port=settings.port,
-            cluster_name=settings.nacos_cluster,
-            ephemeral=settings.nacos_ephemeral,
-            group_name=settings.nacos_group
+        # 停止阶段：清理资源和关闭服务
+        await stop_app(app)
+
+# 创建应用实例
+app = create_app()
+
+def run_server():
+    """启动服务器"""
+    try:
+        logger.info(f"正在启动 {settings.app.name} 服务...")
+        uvicorn.run(
+            app="main:app",
+            host=settings.server.host,
+            port=settings.server.port,
+            reload=settings.server.reload,
+            log_level=settings.log.level.lower(),
+            access_log=True
         )
-
-app = FastAPI(title=settings.app_name, lifespan=lifespan)
-
-# 注册 REST API 路由
-app.include_router(rest_router)
-
-# 可选：添加中间件、事件处理等
-# @app.on_event("startup")
-# async def startup_event():
-#     ...
-
-# @app.on_event("shutdown")
-# async def shutdown_event():
-#     ...
+    except Exception as e:
+        logger.error(f"服务启动失败: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host=settings.host, port=settings.port, reload=True) 
+    run_server() 
