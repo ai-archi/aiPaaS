@@ -12,15 +12,15 @@ class EmbeddingServiceClient(EmbeddingServicePort):
         if self._service_url:
             return self._service_url
         client = get_nacos_client(
-            server_addr=settings.nacos_server_addr,
-            namespace=settings.nacos_namespace,
-            ak=settings.nacos_access_key,
-            sk=settings.nacos_secret_key
+            server_addresses=settings.nacos.server_addresses,
+            namespace=settings.nacos.namespace,
+            ak=settings.nacos.username,
+            sk=settings.nacos.password
         )
         self._service_url = get_one_healthy_instance_url(
             client,
             service_name="embed_serves",
-            group=settings.nacos_group,
+            group=settings.nacos.group_name,
             schema="http"
         )
         return self._service_url

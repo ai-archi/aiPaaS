@@ -9,7 +9,11 @@ from infrastructure.vector_db_adapter import VectorDBClient
 from infrastructure.llm_adapter import LLMServiceClient
 from infrastructure.permission_adapter import PermissionServiceClient
 
-router = APIRouter()
+# 创建路由器，设置统一前缀和标签
+router = APIRouter(
+    prefix="/api/v1",
+    tags=["knowledge_rag"]
+)
 
 class DocumentIn(BaseModel):
     id: int
@@ -22,7 +26,7 @@ class IngestRequest(BaseModel):
 class IngestResponse(BaseModel):
     document_id: str
 
-@router.post("/doc/process")
+@router.post("/doc/process", summary="Process Document")
 async def process_document(
     doc: DocumentIn,
     embedding_client: EmbeddingServiceClient = Depends()
@@ -36,7 +40,7 @@ class QARequest(BaseModel):
     query_embedding: List[float]
     filter_params: Dict[str, Any]
 
-@router.post("/qa")
+@router.post("/qa", summary="Question Answering")
 async def qa(
     req: QARequest,
     vector_db_client: VectorDBClient = Depends(),
@@ -54,18 +58,18 @@ async def qa(
     )
     return result
 
-@router.post("/documents/ingest", response_model=IngestResponse)
+@router.post("/documents/ingest", response_model=IngestResponse, summary="Ingest Document")
 async def ingest(request: IngestRequest):
     document_id = await ingest_document(request.content, request.metadata)
     return IngestResponse(document_id=document_id)
 
-@router.get("/documents/{document_id}", response_model=Document)
+@router.get("/documents/{document_id}", response_model=Document, summary="Get Document")
 async def get(document_id: str):
     document = await get_document(document_id)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     return document
 
-@router.get("/documents", response_model=List[Document])
+@router.get("/documents", response_model=List[Document], summary="List Documents")
 async def list_all():
-    return await list_documents() 
+    return await list_documents()

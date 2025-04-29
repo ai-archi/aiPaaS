@@ -33,15 +33,34 @@ async def setup_app(app: FastAPI) -> None:
         app.state.db = db_config
         
         # 3. 路由配置
-        router = APIRouter()
-        await _setup_routes(router)
-        app.include_router(router)
+        app.include_router(api_router)
         
-        # 4. Nacos配置（如果启用）
+        # 4. 健康检查路由
+        @app.get("/actuator/health")
+        async def health_check():
+            """健康检查接口，返回服务状态和启动时间"""
+            if not hasattr(app.state, "initialized"):
+                return {
+                    "status": "DOWN",
+                    "details": {
+                        "message": "服务未完成初始化"
+                    }
+                }
+            
+            return {
+                "status": "UP" if app.state.initialized else "DOWN",
+                "details": {
+                    "startupTime": app.state.startup_time.isoformat() if hasattr(app.state, "startup_time") else None,
+                    "error": app.state.startup_error if hasattr(app.state, "startup_error") else None,
+                    "version": settings.app.version
+                }
+            }
+        
+        # 5. Nacos配置（如果启用）
         if settings.nacos.enable:
             _setup_nacos(app)
             
-        # 5. 记录初始化状态
+        # 6. 记录初始化状态
         app.state.initialized = True
         app.state.startup_time = datetime.now()
         
@@ -222,18 +241,6 @@ def _setup_database() -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"数据库初始化失败: {e}")
         raise
-
-async def _setup_routes(router: APIRouter) -> None:
-    """配置路由"""
-    # 注册 API 路由
-    router.include_router(api_router, prefix="/api")
-    
-    # 健康检查路由
-    @router.get("/actuator/health")
-    async def health_check():
-        return {"status": "ok"}
-    
-    logger.info("路由配置完成")
 
 def _get_local_ip() -> str:
     """获取本机IP地址"""

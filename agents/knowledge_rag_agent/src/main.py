@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from typing import Optional
 from loguru import logger
 import uvicorn
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 
@@ -31,26 +31,6 @@ def create_app() -> FastAPI:
         allow_methods=settings.cors.allow_methods,
         allow_headers=settings.cors.allow_headers,
     )
-    
-    # 添加健康检查路由
-    @app.get("/actuator/health")
-    async def health_check():
-        """健康检查接口，返回服务状态和启动时间"""
-        if not hasattr(app.state, "initialized"):
-            return {
-                "status": "DOWN",
-                "details": {
-                    "message": "服务未完成初始化"
-                }
-            }
-            
-        return {
-            "status": "UP" if app.state.initialized else "DOWN",
-            "details": {
-                "startupTime": app.state.startup_time.isoformat() if hasattr(app.state, "startup_time") else None,
-                "error": app.state.startup_error if hasattr(app.state, "startup_error") else None
-            }
-        }
     
     return app
 
