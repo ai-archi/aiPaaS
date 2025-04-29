@@ -1,15 +1,37 @@
 import nacos
 import socket
 import logging
+import netifaces
 from typing import Optional, Dict, Any
 
 def get_local_ip() -> str:
-    """获取本机 IP 地址。"""
+    """获取第一个非回环的网络接口IP地址。"""
     try:
+        # 获取所有网络接口
+        interfaces = netifaces.interfaces()
+        
+        # 遍历所有网络接口
+        for iface in interfaces:
+            # 跳过回环接口
+            if iface.startswith('lo'):
+                continue
+                
+            addrs = netifaces.ifaddresses(iface)
+            # 获取IPv4地址
+            if netifaces.AF_INET in addrs:
+                for addr in addrs[netifaces.AF_INET]:
+                    ip = addr['addr']
+                    # 跳过回环地址和保留地址
+                    if not ip.startswith('127.') and not ip.startswith('169.254.'):
+                        logging.info(f"使用网络接口 {iface} 的IP地址: {ip}")
+                        return ip
+                        
+        # 如果没有找到合适的IP，使用默认方法
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
         s.close()
+        logging.info(f"使用默认方法获取IP地址: {ip}")
         return ip
     except Exception as e:
         logging.error(f"获取本机 IP 失败: {e}")

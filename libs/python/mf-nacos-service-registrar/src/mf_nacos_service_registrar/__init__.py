@@ -1,5 +1,20 @@
-from .registrar import get_nacos_client, register_instance, deregister_instance
-from .registrar import NacosServiceRegistrar
+from .registrar import (
+    get_local_ip,
+    get_nacos_client,
+    register_instance,
+    deregister_instance,
+    NacosServiceRegistrar
+)
+
+__version__ = "0.1.1"
+
+__all__ = [
+    "get_local_ip",
+    "get_nacos_client",
+    "register_instance",
+    "deregister_instance",
+    "NacosServiceRegistrar",
+]
 
 # 导出 NacosServiceRegistrar 的实例方法为独立函数
 
