@@ -9,7 +9,7 @@ from fastapi import FastAPI, APIRouter
 from loguru import logger
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from mf_nacos_service_registrar.registrar import get_nacos_client, register_instance, deregister_instance
+from mf_nacos_service_registrar.registrar import get_nacos_client, register_instance, deregister_instance,get_local_ip
 
 from config.config import settings
 from interfaces.rest_api import router as api_router
@@ -242,17 +242,7 @@ def _setup_database() -> Dict[str, Any]:
         logger.error(f"数据库初始化失败: {e}")
         raise
 
-def _get_local_ip() -> str:
-    """获取本机IP地址"""
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception as e:
-        logger.error(f"获取本机IP失败: {e}")
-        return "127.0.0.1"
+
 
 def _setup_nacos(app: FastAPI) -> None:
     """设置 Nacos 服务注册"""
@@ -292,7 +282,7 @@ async def _register_nacos(app: FastAPI, max_retries: int = 5, retry_interval: in
                 group_name=settings.nacos.group_name,
                 heartbeat_interval=5
             )
-            logger.info(f"Nacos服务注册成功: {settings.nacos.service_name}@{_get_local_ip()}:{settings.nacos.port}")
+            logger.info(f"Nacos服务注册成功: {settings.nacos.service_name}@{get_local_ip()}:{settings.nacos.port}")
             return
         except Exception as e:
             retries += 1
