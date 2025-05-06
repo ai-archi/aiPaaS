@@ -10,9 +10,9 @@
         <version>1.0.0</version>
     </parent>
 
-    <artifactId>llm-serve</artifactId>
+    <artifactId>llm_serve</artifactId>
     <version>1.0.0</version>
-    <name>llm-serve</name>
+    <name>llm_serve</name>
     <description>Unified LLM Service Platform</description>
 
     <dependencies>

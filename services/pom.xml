@@ -11,7 +11,7 @@
 
     <modules>
         <module>api-gateway</module>
-        <module>llm-serve</module>
+        <module>llm_serve</module>
     </modules>
 
     <properties>
