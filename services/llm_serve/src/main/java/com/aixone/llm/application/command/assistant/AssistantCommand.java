@@ -1,24 +1,15 @@
-package com.aixone.llm.domain.models.aggregates.assistant;
+package com.aixone.llm.application.command.assistant;
 
 import com.aixone.llm.domain.models.values.config.AssistantCapability;
 import com.aixone.llm.domain.models.values.config.ToolConfig;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class Assistant {
-    private String id;
+public class AssistantCommand {
     private String name;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
     private String userId;
     private String modelId;
     private List<ToolConfig> toolConfigs;
     private AssistantCapability capability;
-    // 可扩展更多字段
 } 

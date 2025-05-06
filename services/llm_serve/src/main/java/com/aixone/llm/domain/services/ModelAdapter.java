@@ -1,13 +1,33 @@
 package com.aixone.llm.domain.services;
 
 import reactor.core.publisher.Mono;
+import com.aixone.llm.domain.models.values.config.ModelRequest;
+import com.aixone.llm.domain.models.values.config.ModelResponse;
 
 public interface ModelAdapter {
     /**
-     * 调用大模型，参数和返回值可根据实际业务扩展
-     * @param prompt 输入提示
-     * @param modelName 模型名称
-     * @return 模型返回结果
+     * 调用大模型，参数和返回值均为领域模型
      */
-    Mono<String> invoke(String prompt, String modelName);
+    Mono<ModelResponse> invoke(ModelRequest request);
+
+    /**
+     * 查询模型配额
+     * @param modelName 模型名称
+     * @return 剩余额度
+     */
+    Mono<Long> getQuota(String modelName);
+
+    /**
+     * 查询模型用量
+     * @param modelName 模型名称
+     * @return 已用量
+     */
+    Mono<Long> getUsage(String modelName);
+
+    /**
+     * 检查模型可用性
+     * @param modelName 模型名称
+     * @return 是否可用
+     */
+    Mono<Boolean> checkAvailability(String modelName);
 } 

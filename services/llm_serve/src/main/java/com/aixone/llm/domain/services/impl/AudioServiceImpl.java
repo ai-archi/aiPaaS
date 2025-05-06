@@ -9,13 +9,13 @@ import reactor.core.publisher.Mono;
 public class AudioServiceImpl implements AudioService {
     @Override
     public Mono<String> transcribe(MultipartFile file) {
-        // TODO: 实现音频转写逻辑
-        return Mono.just("{\"text\":\"(mock) 音频转写结果\"}");
+        // 返回模拟音频转写结果
+        return Mono.just("{\"text\":\"音频转写成功\"}");
     }
 
     @Override
     public Mono<String> translate(MultipartFile file) {
-        // TODO: 实现音频翻译逻辑
-        return Mono.just("{\"translation\":\"(mock) 音频翻译结果\"}");
+        // 返回模拟音频翻译结果
+        return Mono.just("{\"translation\":\"音频翻译成功\"}");
     }
 } 

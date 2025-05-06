@@ -1,6 +1,7 @@
 package com.aixone.llm.domain.services;
 
 import com.aixone.llm.domain.models.values.config.ModelResponse;
+import com.aixone.llm.domain.models.values.config.ModelRequest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -9,14 +10,10 @@ import java.util.Map;
 
 public interface ModelInvokeService {
     // 同步调用模型
-    Mono<ModelResponse> invoke(String userId, String modelId, String prompt,
-                             List<Map<String, String>> messages,
-                             Map<String, Object> parameters);
+    Mono<ModelResponse> invoke(ModelRequest request);
     
     // 流式调用模型
-    Flux<ModelResponse> streamInvoke(String userId, String modelId, String prompt,
-                                   List<Map<String, String>> messages,
-                                   Map<String, Object> parameters);
+    Flux<ModelResponse> streamInvoke(ModelRequest request);
     
     // 获取已使用的Token数量
     Mono<Long> getUsedTokens(String userId, String modelId);

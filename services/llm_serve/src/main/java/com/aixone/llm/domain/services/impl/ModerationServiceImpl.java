@@ -9,9 +9,10 @@ import java.util.Map;
 public class ModerationServiceImpl implements ModerationService {
     @Override
     public Mono<Map<String, Object>> moderate(String input) {
-        // TODO: 调用真实大模型API进行内容审核
+        // 简单内容审核：包含"违规"则flagged为true
+        boolean flagged = input != null && input.contains("违规");
         return Mono.just(Map.of(
-                "flagged", false,
+                "flagged", flagged,
                 "categories", Map.of(
                         "hate", false,
                         "violence", false

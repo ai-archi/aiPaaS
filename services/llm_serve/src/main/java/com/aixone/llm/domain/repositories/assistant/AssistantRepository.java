@@ -42,4 +42,9 @@ public interface AssistantRepository extends Repository<Assistant, String> {
      * 获取助理的活跃线程数
      */
     Mono<Long> countActiveThreads(String assistantId);
+
+    Mono<Assistant> save(Assistant assistant);
+    Mono<Assistant> findById(String id);
+    Flux<Assistant> findAll();
+    Mono<Void> deleteById(String id);
 } 

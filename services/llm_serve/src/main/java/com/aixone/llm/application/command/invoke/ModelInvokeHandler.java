@@ -1,5 +1,6 @@
 package com.aixone.llm.application.command.invoke;
 
+import com.aixone.llm.domain.models.values.config.ModelRequest;
 import com.aixone.llm.domain.models.values.config.ModelResponse;
 import com.aixone.llm.domain.services.ModelInvokeService;
 import com.aixone.llm.domain.services.QuotaService;
@@ -15,14 +16,15 @@ public class ModelInvokeHandler {
     private final QuotaService quotaService;
 
     public Mono<ModelResponse> handleInvoke(ModelInvokeCommand command) {
+        ModelRequest request = ModelRequest.builder()
+                .model(command.getModelId())
+                .prompt(command.getPrompt())
+                .messages(command.getMessages())
+                .extraParams(command.getParameters())
+                .stream(command.isStream())
+                .build();
         return quotaService.checkAndReserveQuota(command.getUserId(), command.getModelId())
-            .then(modelInvokeService.invoke(
-                command.getUserId(),
-                command.getModelId(),
-                command.getPrompt(),
-                command.getMessages(),
-                command.getParameters()
-            ))
+            .then(modelInvokeService.invoke(request))
             .doOnSuccess(response -> {
                 Long usedTokens = response.getUsage() != null ? (long) response.getUsage().getTotalTokens() : 0L;
                 quotaService.consumeQuota(
@@ -34,14 +36,15 @@ public class ModelInvokeHandler {
     }
 
     public Flux<ModelResponse> handleStreamInvoke(ModelInvokeCommand command) {
+        ModelRequest request = ModelRequest.builder()
+                .model(command.getModelId())
+                .prompt(command.getPrompt())
+                .messages(command.getMessages())
+                .extraParams(command.getParameters())
+                .stream(command.isStream())
+                .build();
         return quotaService.checkAndReserveQuota(command.getUserId(), command.getModelId())
-            .thenMany(modelInvokeService.streamInvoke(
-                command.getUserId(),
-                command.getModelId(),
-                command.getPrompt(),
-                command.getMessages(),
-                command.getParameters()
-            ))
+            .thenMany(modelInvokeService.streamInvoke(request))
             .doOnComplete(() ->
                 modelInvokeService.getUsedTokens(command.getUserId(), command.getModelId())
                     .flatMap(tokens ->

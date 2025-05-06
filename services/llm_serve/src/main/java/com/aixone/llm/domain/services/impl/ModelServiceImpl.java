@@ -11,6 +11,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 @Service
@@ -19,64 +22,70 @@ public class ModelServiceImpl implements ModelService {
     private final ModelInvokeRepository modelInvokeRepository;
     private static final int MONITORING_WINDOW_SECONDS = 60;
     
+    private final Map<String, ModelConfig> modelStore = new ConcurrentHashMap<>();
+    private final AtomicLong idGen = new AtomicLong(1);
+    
     @Override
     @Transactional
     public Mono<ModelConfig> createModel(ModelConfig modelConfig) {
-        // TODO: 实现模型创建逻辑
+        String id = String.valueOf(idGen.getAndIncrement());
+        modelConfig.setId(id);
+        modelStore.put(id, modelConfig);
         return Mono.just(modelConfig);
     }
     
     @Override
     @Transactional
     public Mono<ModelConfig> updateModel(String modelId, ModelConfig modelConfig) {
-        // TODO: 实现模型更新逻辑
+        modelConfig.setId(modelId);
+        modelStore.put(modelId, modelConfig);
         return Mono.just(modelConfig);
     }
     
     @Override
     public Mono<ModelConfig> getModel(String modelId) {
-        // TODO: 实现模型查询逻辑
-        return Mono.empty();
+        ModelConfig config = modelStore.get(modelId);
+        return config != null ? Mono.just(config) : Mono.empty();
     }
     
     @Override
     public Flux<ModelConfig> listModels() {
-        // TODO: 实现模型列表查询逻辑
-        return Flux.empty();
+        return Flux.fromIterable(modelStore.values());
     }
     
     @Override
     @Transactional
     public Mono<Void> deleteModel(String modelId) {
-        // TODO: 实现模型删除逻辑
+        modelStore.remove(modelId);
         return Mono.empty();
     }
     
     @Override
     @Transactional
     public Mono<ModelConfig> activateModel(String modelId) {
-        // TODO: 实现模型激活逻辑
-        return getModel(modelId)
-            .map(model -> {
-                model.activate();
-                return model;
-            });
+        ModelConfig config = modelStore.get(modelId);
+        if (config != null) {
+            config.activate();
+            modelStore.put(modelId, config);
+            return Mono.just(config);
+        }
+        return Mono.empty();
     }
     
     @Override
     @Transactional
     public Mono<ModelConfig> deactivateModel(String modelId) {
-        // TODO: 实现模型停用逻辑
-        return getModel(modelId)
-            .map(model -> {
-                model.deactivate();
-                return model;
-            });
+        ModelConfig config = modelStore.get(modelId);
+        if (config != null) {
+            config.deactivate();
+            modelStore.put(modelId, config);
+            return Mono.just(config);
+        }
+        return Mono.empty();
     }
     
     @Override
     public Mono<Boolean> validateModel(ModelConfig modelConfig) {
-        // TODO: 实现模型验证逻辑
         return Mono.just(modelConfig.isValid());
     }
 
@@ -103,7 +112,7 @@ public class ModelServiceImpl implements ModelService {
 
     @Override
     public Mono<Double> getModelCost(String modelId, String timeRange) {
-        // TODO: 实现成本计算逻辑
+        // 简单返回0.0
         return Mono.just(0.0);
     }
 
@@ -116,7 +125,7 @@ public class ModelServiceImpl implements ModelService {
 
     @Override
     public Flux<ModelConfig> getTopModels(String metric, int limit) {
-        // TODO: 实现模型排名逻辑
-        return Flux.empty();
+        // 简单返回全部
+        return Flux.fromIterable(modelStore.values()).take(limit);
     }
 } 

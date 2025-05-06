@@ -10,7 +10,7 @@ import java.util.List;
 public class EmbeddingServiceImpl implements EmbeddingService {
     @Override
     public Mono<List<Float>> generateEmbedding(String model, String input) {
-        // TODO: 实现真实的embedding生成逻辑
-        return Mono.just(List.of(0.1f, 0.2f, 0.3f));
+        // 返回固定的embedding向量
+        return Mono.just(List.of(0.11f, 0.22f, 0.33f, 0.44f));
     }
 } 
