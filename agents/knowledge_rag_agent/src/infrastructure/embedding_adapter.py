@@ -19,7 +19,7 @@ class EmbeddingServiceClient(EmbeddingServicePort):
         )
         self._service_url = get_one_healthy_instance_url(
             client,
-            service_name="embed_serves",
+            service_name="embed_serve",
             group=settings.nacos.group_name,
             schema="http"
         )

@@ -319,7 +319,7 @@ build_python_services() {
     
     # 然后构建其他Python服务
     build_knowledge_rag_agent || { deactivate; return 1; }
-    build_embed_serves || { deactivate; return 1; }
+    build_embed_serve || { deactivate; return 1; }
     
     deactivate
     debug_info "Python虚拟环境已退出"
@@ -505,11 +505,11 @@ build_knowledge_rag_agent() {
     return 0
 }
 
-# 构建 embed_serves
-build_embed_serves() {
-    print_info "构建 embed_serves..." "force"
-    local target_dir="${PROJECT_ROOT}/dist/services/embed_serves"
-    local source_dir="${PROJECT_ROOT}/services/embed_serves"
+# 构建 embed_serve
+build_embed_serve() {
+    print_info "构建 embed_serve..." "force"
+    local target_dir="${PROJECT_ROOT}/dist/services/embed_serve"
+    local source_dir="${PROJECT_ROOT}/services/embed_serve"
     
     # 如果是清理模式，删除目标目录
     if [ "$CLEAN_MODE" = true ]; then
@@ -524,7 +524,7 @@ build_embed_serves() {
     
     # 检查并安装依赖（虚拟环境已在父函数中激活）
     if [ -f "requirements.txt" ]; then
-        print_info "安装 embed_serves 依赖..." "force"
+        print_info "安装 embed_serve 依赖..." "force"
         if ! pip install -v -r requirements.txt; then
             print_error "依赖安装失败"
             return 1
@@ -533,7 +533,7 @@ build_embed_serves() {
     fi
     
     # 同步源码和配置文件
-    print_info "同步 embed_serves 源码和配置..." "force"
+    print_info "同步 embed_serve 源码和配置..." "force"
     
     # 使用 rsync 进行增量同步，保持目录结构
     if command -v rsync &> /dev/null; then

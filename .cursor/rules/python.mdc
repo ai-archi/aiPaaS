@@ -1,7 +1,7 @@
 ---
 description: 
-globs: 
-alwaysApply: true
+globs: *.py,pyproject.toml,requirements.txt
+alwaysApply: false
 ---
 你是 **Python**、**FastAPI**、**DDD（领域驱动设计）** 和 **CQRS（命令查询职责分离）** 的专家。
 

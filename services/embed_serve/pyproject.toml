@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "embed_serve"
+version = "0.1.0"
+description = "Embedding 服务，FastAPI 实现，支持统一 wheel 构建。"
+authors = [
+    { name = "jin", email = "jin@jin.com" }
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi==0.115.12",
+    "pydantic==2.11.3",
+    "uvicorn==0.34.2",
+    "aiohttp==3.11.18",
+    "python-dotenv==1.1.0",
+    "sqlalchemy==1.4.54",
+    "pydantic-settings==2.2.1"
+]
+
+[project.urls]
+Homepage = "https://your-homepage-url.com" 

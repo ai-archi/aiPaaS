@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.aiplatform</groupId>
+        <groupId>com.aixone</groupId>
         <artifactId>services</artifactId>
         <version>1.0.0</version>
     </parent>
@@ -100,7 +100,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>com.aiplatform.gateway.ApiGatewayApplication</mainClass>
+                    <mainClass>com.aixone.gateway.ApiGatewayApplication</mainClass>
                 </configuration>
             </plugin>
             <plugin>

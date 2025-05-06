@@ -74,7 +74,7 @@ logging:
   level:
     root: INFO
     org.springframework.cloud.gateway: DEBUG
-    com.aiplatform.gateway: DEBUG
+    com.aixone.gateway: DEBUG
   file:
     name: logs/api-gateway.log
   pattern:

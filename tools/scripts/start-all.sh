@@ -468,12 +468,12 @@ start_knowledge_rag_agent() {
     return $result
 }
 
-start_embed_serves() {
-    print_info "启动 embed_serves..."
+start_embed_serve() {
+    print_info "启动 embed_serve..."
     local log_dir="${PROJECT_ROOT}/dist/logs"
     mkdir -p "$log_dir"
-    local embed_port=$(get_config '.ports.embed_serves' '8003')
-    local main_path="${PROJECT_ROOT}/dist/services/embed_serves/main.py"
+    local embed_port=$(get_config '.ports.embed_serve' '8003')
+    local main_path="${PROJECT_ROOT}/dist/services/embed_serve/main.py"
     
     if [ ! -f "$main_path" ]; then
         print_error "main.py 未找到: $main_path"
@@ -481,13 +481,13 @@ start_embed_serves() {
     fi
     
     source "${PROJECT_ROOT}/dist/penv/bin/activate"
-    cd "${PROJECT_ROOT}/dist/services/embed_serves"
-    export PYTHONPATH="${PROJECT_ROOT}/dist/services/embed_serves:${PYTHONPATH:-}"
+    cd "${PROJECT_ROOT}/dist/services/embed_serve"
+    export PYTHONPATH="${PROJECT_ROOT}/dist/services/embed_serve:${PYTHONPATH:-}"
     local uvicorn_cmd="uvicorn main:app --host 0.0.0.0 --port ${embed_port} --reload"
     
-    start_service "embed_serves" \
+    start_service "embed_serve" \
         "$uvicorn_cmd" \
-        "$log_dir/embed_serves.log" \
+        "$log_dir/embed_serve.log" \
         ${embed_port} \
         "" \
         "uvicorn main:app" \
@@ -518,7 +518,7 @@ main() {
     echo "========================================"
     
     local rag_port=$(get_config '.ports.knowledge_rag_agent' '8002')
-    local embed_port=$(get_config '.ports.embed_serves' '8003')
+    local embed_port=$(get_config '.ports.embed_serve' '8003')
     local nacos_port=$(get_config '.ports.nacos' '8848')
     local api_gateway_port=$(get_config '.ports.api_gateway' '8080')
     local log_dir="${PROJECT_ROOT}/$(get_config '.logging.dir' 'dist/logs')"
@@ -528,7 +528,7 @@ main() {
     echo "========================================"
     start_knowledge_rag_agent
     echo "========================================"
-    start_embed_serves
+    start_embed_serve
     echo "========================================"
     print_info "所有服务启动完成！"
     print_info "日志文件位置：${log_dir}/"
@@ -538,7 +538,7 @@ main() {
     echo "Nacos:                http://localhost:${nacos_port}/nacos"
     echo "API网关:              http://localhost:${api_gateway_port}/api"
     echo "knowledge_rag_agent:  http://localhost:${rag_port}"
-    echo "embed_serves:         http://localhost:${embed_port}"
+    echo "embed_serve:         http://localhost:${embed_port}"
     echo "----------------------------------------"
 }
 

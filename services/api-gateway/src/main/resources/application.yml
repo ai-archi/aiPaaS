@@ -73,4 +73,4 @@ management:
 logging:
   level:
     org.springframework.cloud.gateway: debug
-    com.aiplatform.gateway: debug 
+    com.aixone.gateway: debug 
