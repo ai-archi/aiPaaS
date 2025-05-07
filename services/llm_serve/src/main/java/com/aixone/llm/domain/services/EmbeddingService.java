@@ -1,8 +1,10 @@
 package com.aixone.llm.domain.services;
 
 import reactor.core.publisher.Mono;
-import java.util.List;
+
+import com.aixone.llm.domain.models.values.config.ModelRequest;
+import com.aixone.llm.domain.models.values.config.ModelResponse;
 
 public interface EmbeddingService {
-    Mono<List<Float>> generateEmbedding(String model, String input);
+    Mono<ModelResponse> generateEmbedding(ModelRequest request);
 } 

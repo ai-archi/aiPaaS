@@ -2,6 +2,7 @@ package com.aixone.llm.interfaces.rest;
 
 import com.aixone.llm.application.command.chat.ChatCompletionCommand;
 import com.aixone.llm.domain.models.values.config.ModelResponse;
+import com.aixone.llm.domain.models.entities.message.Message;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -16,11 +17,11 @@ public class ChatControllerTest {
     private WebTestClient webTestClient;
 
     @MockBean
-    private com.aixone.llm.application.command.chat.ChatCommandHandler chatCommandHandler;
+    private com.aixone.llm.application.command.chat.ChatCompletionCommandHandler chatCommandHandler;
 
     @Test
     void testChatCompletions() {
-        ChatCompletionCommand.Message msg = ChatCompletionCommand.Message.builder()
+        Message msg = Message.builder()
                 .role("user").content("你好").build();
         ChatCompletionCommand command = ChatCompletionCommand.builder()
                 .model("test-model").messages(Collections.singletonList(msg)).build();

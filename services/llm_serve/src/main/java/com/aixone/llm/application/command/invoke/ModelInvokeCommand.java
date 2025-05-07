@@ -1,18 +1,30 @@
 package com.aixone.llm.application.command.invoke;
 
-import lombok.Builder;
+import com.aixone.llm.domain.models.values.config.ModelRequest;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
 import java.util.List;
 import java.util.Map;
 
 @Data
-@Builder
-public class ModelInvokeCommand {
+@NoArgsConstructor
+@AllArgsConstructor
+public class ModelInvokeCommand extends ModelRequest {
     private String userId;
     private String modelId;
-    private String prompt;
-    private List<Map<String, Object>> messages;  // 用于对话模型
-    private Map<String, Object> parameters;      // 模型参数
-    private boolean stream;                      // 是否使用流式响应
+    private boolean stream;
+
+    public ModelRequest toModelRequest() {
+        return ModelRequest.builder()
+                .model(getModel())
+                .messages(getMessages())
+                .prompt(getPrompt())
+                .maxTokens(getMaxTokens())
+                .temperature(getTemperature())
+                .topP(getTopP())
+                .stream(getStream())
+                .extraParams(getExtraParams())
+                .build();
+    }
 } 

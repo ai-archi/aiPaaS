@@ -1,4 +1,4 @@
-package com.aixone.llm.infrastructure.repository.assistant;
+package com.aixone.llm.infrastructure.repositories.assistant;
 
 import com.aixone.llm.domain.models.entities.thread.Thread;
 import com.aixone.llm.domain.repositories.assistant.ThreadRepository;
@@ -17,8 +17,14 @@ public class ThreadRepositoryR2dbcImpl implements ThreadRepository {
 
     @Override
     public Mono<Thread> save(Thread thread) {
-        return template.insert(Thread.class).using(thread)
-                .onErrorResume(e -> template.update(Thread.class).using(thread));
+        if (thread.getId() == null) {
+            return template.insert(Thread.class).using(thread);
+        } else {
+            return template.update(Thread.class)
+                .matching(Query.query(Criteria.where("id").is(thread.getId())))
+                .apply(org.springframework.data.relational.core.query.Update.update("title", thread.getTitle()))
+                .then(findById(thread.getId()));
+        }
     }
 
     @Override
@@ -35,4 +41,4 @@ public class ThreadRepositoryR2dbcImpl implements ThreadRepository {
     public Mono<Void> deleteById(String id) {
         return template.delete(Query.query(Criteria.where("id").is(id)), Thread.class).then();
     }
-} 
+}

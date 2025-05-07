@@ -79,10 +79,15 @@ resilience4j:
 logging:
   level:
     root: INFO
-    com.aixone.llm: DEBUG
-    org.springframework.r2dbc: INFO
+    org.springframework.r2dbc: DEBUG
     org.springframework.data.r2dbc: DEBUG
-    org.flywaydb: DEBUG
+    org.springframework.r2dbc.core: DEBUG
+    io.r2dbc.postgresql.QUERY: DEBUG
+    io.r2dbc.postgresql.PARAM: DEBUG
+    io.r2dbc.postgresql: DEBUG
+    org.springframework.r2dbc.connection: DEBUG
+    org.springframework.r2dbc.connection.ConnectionFactoryUtils: TRACE
+    org.springframework.r2dbc.core.DefaultDatabaseClient: TRACE
 
 llm:
   deepseek:

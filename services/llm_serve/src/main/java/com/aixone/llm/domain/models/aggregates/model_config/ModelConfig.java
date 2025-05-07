@@ -4,32 +4,32 @@ import lombok.Data;
 import lombok.Builder;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
-import org.springframework.data.relational.core.mapping.Table;
 import com.aixone.llm.domain.models.values.config.ProviderInfo;
 import com.aixone.llm.domain.models.values.config.ModelCapability;
 import com.aixone.llm.domain.models.values.config.RuntimeConfig;
 import com.aixone.llm.domain.models.values.config.BillingRule;
-
+import java.time.LocalDateTime;
 @Data
 @Builder
-@Table("model_configs")
 public class ModelConfig {
     @Id
     private String id;
+    private String name;
     
     @Version
     private Long version;
     
-    private String modelId;
-    private String name;
+
     private String description;
     private ProviderInfo providerInfo;
     private ModelCapability capability;
     private RuntimeConfig runtimeConfig;
     private BillingRule billingRule;
     private boolean active;
-    private Long createdAt;
-    private Long updatedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private String tenantId;
+    private boolean deleted;
     
     public void validate() {
         if (providerInfo == null || !providerInfo.isValid()) {

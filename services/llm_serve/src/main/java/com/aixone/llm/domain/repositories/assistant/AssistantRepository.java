@@ -1,7 +1,7 @@
 package com.aixone.llm.domain.repositories.assistant;
 
 import com.aixone.llm.domain.models.aggregates.assistant.Assistant;
-import com.aixone.llm.domain.models.entities.Thread;
+import com.aixone.llm.domain.models.entities.thread.Thread;
 import com.aixone.llm.domain.models.values.config.ToolConfig;
 import com.aixone.llm.domain.repositories.Repository;
 import reactor.core.publisher.Flux;

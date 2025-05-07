@@ -1,16 +1,16 @@
 package com.aixone.llm.application.command.completion;
 
+import com.aixone.llm.domain.models.values.config.ModelRequest;
 import java.util.List;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+import lombok.experimental.SuperBuilder;
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CompletionCommand {
+public class CompletionCommand extends ModelRequest {
     private String model;
     private String prompt;
     private boolean stream;
@@ -26,5 +26,18 @@ public class CompletionCommand {
 
     public String getProvider() {
         return provider;
+    }
+
+    public ModelRequest toModelRequest() {
+        return  ModelRequest.builder()
+                .model(getModel())
+                .messages(getMessages())
+                .prompt(getPrompt())
+                .maxTokens(getMaxTokens())
+                .temperature(getTemperature())
+                .topP(getTopP())
+                .stream(getStream())
+                .extraParams(getExtraParams())
+                .build();
     }
 } 

@@ -12,5 +12,8 @@ public class UserQuota {
     private long usage;
     private long limit;
     private LocalDateTime expiresAt;
-    // 可扩展更多字段
+    private String tenantId;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private boolean deleted;
 } 

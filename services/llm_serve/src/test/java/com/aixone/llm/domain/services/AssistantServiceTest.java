@@ -1,9 +1,10 @@
 package com.aixone.llm.domain.services;
 
-import com.aixone.llm.domain.services.impl.AssistantServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import com.aixone.llm.domain.services.impl.AssistantServiceImpl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

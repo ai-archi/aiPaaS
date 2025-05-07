@@ -11,18 +11,12 @@ import reactor.core.publisher.Mono;
 
 @Service
 @RequiredArgsConstructor
-public class ModelInvokeHandler {
+public class ModelInvokeCommandHandler {
     private final ModelInvokeService modelInvokeService;
     private final QuotaService quotaService;
 
     public Mono<ModelResponse> handleInvoke(ModelInvokeCommand command) {
-        ModelRequest request = ModelRequest.builder()
-                .model(command.getModelId())
-                .prompt(command.getPrompt())
-                .messages(command.getMessages())
-                .extraParams(command.getParameters())
-                .stream(command.isStream())
-                .build();
+        ModelRequest request = command.toModelRequest();
         return quotaService.checkAndReserveQuota(command.getUserId(), command.getModelId())
             .then(modelInvokeService.invoke(request))
             .doOnSuccess(response -> {
@@ -36,13 +30,7 @@ public class ModelInvokeHandler {
     }
 
     public Flux<ModelResponse> handleStreamInvoke(ModelInvokeCommand command) {
-        ModelRequest request = ModelRequest.builder()
-                .model(command.getModelId())
-                .prompt(command.getPrompt())
-                .messages(command.getMessages())
-                .extraParams(command.getParameters())
-                .stream(command.isStream())
-                .build();
+        ModelRequest request = command.toModelRequest();
         return quotaService.checkAndReserveQuota(command.getUserId(), command.getModelId())
             .thenMany(modelInvokeService.streamInvoke(request))
             .doOnComplete(() ->

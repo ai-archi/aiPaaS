@@ -1,7 +1,6 @@
 package com.aixone.llm.infrastructure.entity;
 
-import com.aixone.llm.domain.models.entities.Thread;
-import com.aixone.llm.domain.models.entities.ThreadStatus;
+import com.aixone.llm.domain.models.entities.thread.ThreadStatus;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;

@@ -2,6 +2,7 @@ package com.aixone.llm.application.command.completion;
 
 import com.aixone.llm.domain.services.CompletionService;
 import com.aixone.llm.domain.models.values.config.ModelResponse;
+import com.aixone.llm.domain.models.values.config.ModelRequest;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -15,6 +16,7 @@ public class CompletionCommandHandler {
     }
 
     public Mono<ModelResponse> handle(CompletionCommand command) {
-        return completionService.completion(command);
+        ModelRequest request = command.toModelRequest();
+        return completionService.completion(request);
     }
 } 

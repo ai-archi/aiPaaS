@@ -1,7 +1,6 @@
-package com.aixone.llm.domain.repositories.assistant;
+package com.aixone.llm.domain.repositories.model;
 
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Flux;
 import java.time.LocalDateTime;
 import com.aixone.llm.domain.models.values.config.ModelResponse;
 

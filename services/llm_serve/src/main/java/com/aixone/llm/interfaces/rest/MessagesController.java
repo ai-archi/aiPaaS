@@ -1,41 +1,52 @@
 package com.aixone.llm.interfaces.rest;
 
 import com.aixone.llm.domain.models.entities.message.Message;
+import com.aixone.llm.domain.services.AssistantService;
 import com.aixone.llm.application.command.message.MessageCommand;
-import com.aixone.llm.application.facade.AssistantFacade;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/v1/messages")
+@RequestMapping("/v1/{tenantId}/messages")
 @RequiredArgsConstructor
 public class MessagesController {
-    private final AssistantFacade assistantFacade;
+    private final AssistantService assistantService;
 
     @PostMapping
     public Mono<Message> create(@RequestParam String assistantId, @RequestParam String threadId, @RequestBody MessageCommand command) {
-        return assistantFacade.createMessage(assistantId, threadId, command);
+        Message message = new Message();
+        message.setRole(command.getRole());
+        message.setContent(command.getContent());
+        message.setTimestamp(java.time.LocalDateTime.now());
+        return assistantService.createMessage(assistantId, threadId, message);
     }
 
     @GetMapping
     public Flux<Message> list(@RequestParam String assistantId, @RequestParam String threadId) {
-        return assistantFacade.listMessages(assistantId, threadId);
+        return assistantService.listMessages(assistantId, threadId);
     }
 
     @GetMapping("/{messageId}")
     public Mono<Message> get(@RequestParam String assistantId, @RequestParam String threadId, @PathVariable String messageId) {
-        return assistantFacade.getMessage(assistantId, threadId, messageId);
+        return assistantService.getMessage(assistantId, threadId, messageId);
     }
 
     @PutMapping("/{messageId}")
     public Mono<Message> update(@RequestParam String assistantId, @RequestParam String threadId, @PathVariable String messageId, @RequestBody MessageCommand command) {
-        return assistantFacade.updateMessage(assistantId, threadId, messageId, command);
+        Message message = new Message();
+        message.setId(messageId);
+        message.setThreadId(threadId);
+        message.setRole(command.getRole());
+        message.setContent(command.getContent());
+        message.setTimestamp(java.time.LocalDateTime.now());
+        return assistantService.updateMessage(assistantId, threadId, messageId, message);
     }
 
     @DeleteMapping("/{messageId}")
     public Mono<Void> delete(@RequestParam String assistantId, @RequestParam String threadId, @PathVariable String messageId) {
-        return assistantFacade.deleteMessage(assistantId, threadId, messageId);
+        return assistantService.deleteMessage(assistantId, threadId, messageId);
     }
 } 

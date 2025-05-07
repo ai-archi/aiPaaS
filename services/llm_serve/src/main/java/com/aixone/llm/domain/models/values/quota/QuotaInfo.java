@@ -17,7 +17,8 @@ public class QuotaInfo {
     private String quotaType;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
+    private String tenantId;
+    private boolean deleted;
     public boolean isValid() {
         return expiresAt == null || expiresAt.isAfter(LocalDateTime.now());
     }

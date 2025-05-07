@@ -10,9 +10,11 @@ import lombok.Data;
 
 import jakarta.validation.constraints.NotNull;
 import java.util.Set;
-
+import java.time.LocalDateTime;
 @Data
 public class UpdateModelCommand {
+    private String id;
+    private String tenantId;
     @NotNull
     private ProviderInfo providerInfo;
     
@@ -46,7 +48,7 @@ public class UpdateModelCommand {
                 .build())
             .runtimeConfig(runtimeConfig)
             .billingRule(billingRule)
-            .updatedAt(System.currentTimeMillis())
+            .updatedAt(LocalDateTime.now())
             .build();
     }
 } 

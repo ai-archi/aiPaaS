@@ -6,18 +6,19 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 import java.util.Map;
 import com.aixone.llm.domain.services.ModerationService;
-
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 @Component
 @RequiredArgsConstructor
 public class ModerationCommandHandler {
     private final ModerationService moderationService;
 
-    public Mono<Map<String, Object>> handle(Map<String, Object> request) {
-        String input = (String) request.getOrDefault("input", "");
+    public Mono<Map<String, Object>> handle(ModerationCommand command   ) {
+        String input = command.getInput();
         return moderationService.moderate(input)
                 .map(result -> Map.of(
-                        "id", "modr-" + System.currentTimeMillis(),
-                        "model", "moderation-test",
+                        "id", "modr-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
+                        "model", command.getModel(),
                         "results", List.of(result)
                 ));
     }

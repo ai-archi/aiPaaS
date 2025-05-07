@@ -14,11 +14,16 @@ import java.util.List;
 public class Assistant {
     private String id;
     private String name;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
     private String userId;
+    
     private String modelId;
     private List<ToolConfig> toolConfigs;
     private AssistantCapability capability;
+    private String description;
+    private boolean active;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private String tenantId;
+    private boolean deleted;
     // 可扩展更多字段
 } 

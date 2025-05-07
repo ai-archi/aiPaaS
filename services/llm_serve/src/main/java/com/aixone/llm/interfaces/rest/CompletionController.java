@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/v1")
+@RequestMapping("/v1/{tenantId}")
 @RequiredArgsConstructor
 public class CompletionController {
     

@@ -7,7 +7,7 @@ import reactor.core.publisher.Mono;
 public interface ModelService {
     // 模型配置管理
     Mono<ModelConfig> createModel(ModelConfig modelConfig);
-    Mono<ModelConfig> updateModel(String modelId, ModelConfig modelConfig);
+    Mono<ModelConfig> updateModel(ModelConfig modelConfig);
     Mono<Void> deleteModel(String modelId);
     
     // 模型状态管理

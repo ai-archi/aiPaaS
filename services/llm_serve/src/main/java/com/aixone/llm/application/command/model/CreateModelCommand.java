@@ -11,12 +11,13 @@ import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Set;
-
+import java.time.LocalDateTime;     
 @Data
 public class CreateModelCommand {
     @NotBlank
-    private String modelId;
-    
+    private String id;
+    @NotBlank
+    private String name;
     @NotNull
     private ProviderInfo providerInfo;
     
@@ -36,9 +37,14 @@ public class CreateModelCommand {
     @NotNull
     private BillingRule billingRule;
     
+    private String tenantId;
+    
+    private boolean active;
+    
     public ModelConfig toModelConfig() {
         return ModelConfig.builder()
-            .modelId(modelId)
+            .id(id)
+            .name(name)
             .providerInfo(providerInfo)
             .capability(ModelCapability.builder()
                 .capabilityTypes(capabilityTypes)
@@ -51,9 +57,11 @@ public class CreateModelCommand {
                 .build())
             .runtimeConfig(runtimeConfig)
             .billingRule(billingRule)
-            .active(false)
-            .createdAt(System.currentTimeMillis())
-            .updatedAt(System.currentTimeMillis())
+            .active(active)
+            .tenantId(tenantId)
+            .deleted(false)
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
             .build();
     }
 } 

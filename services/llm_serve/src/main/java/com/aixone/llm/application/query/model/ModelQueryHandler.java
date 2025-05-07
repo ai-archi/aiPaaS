@@ -30,4 +30,18 @@ public class ModelQueryHandler {
         return modelService.listModels()
             .filter(model -> model.getProviderInfo().getProviderId().equals(providerId));
     }
+
+    public Flux<ModelConfig> handleQuery(ModelQuery query) {
+        return modelService.listModels()
+            .filter(model -> {
+                boolean match = true;
+                if (query.getActive() != null) {
+                    match = match && (model.isActive() == query.getActive());
+                }
+                if (query.getProviderId() != null) {
+                    match = match && query.getProviderId().equals(model.getProviderInfo().getProviderId());
+                }
+                return match;
+            });
+    }
 } 

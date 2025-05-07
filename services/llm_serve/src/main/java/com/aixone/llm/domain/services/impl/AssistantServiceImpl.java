@@ -5,8 +5,9 @@ import com.aixone.llm.domain.models.entities.thread.Thread;
 import com.aixone.llm.domain.models.entities.message.Message;
 import com.aixone.llm.domain.repositories.assistant.AssistantRepository;
 import com.aixone.llm.domain.repositories.assistant.ThreadRepository;
-import com.aixone.llm.domain.repositories.assistant.MessageRepository;
 import com.aixone.llm.domain.services.AssistantService;
+import com.aixone.llm.domain.repositories.assistant.MessageRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -146,5 +147,35 @@ public class AssistantServiceImpl implements AssistantService {
         // 预留：可集成外部工具服务
         log.info("invokeTool: assistantId={}, threadId={}, messageId={}, toolName={}, params={}", assistantId, threadId, messageId, toolName, params);
         return Mono.empty();
+    }
+
+    @Override
+    public Mono<Assistant> createAssistant(Assistant assistant, String tenantId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'createAssistant'");
+    }
+
+    @Override
+    public Mono<Assistant> updateAssistant(String tenantId, String assistantId, Assistant assistant) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'updateAssistant'");
+    }
+
+    @Override
+    public Mono<Void> deleteAssistant(String tenantId, String assistantId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'deleteAssistant'");
+    }
+
+    @Override
+    public Mono<Assistant> getAssistant(String tenantId, String assistantId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getAssistant'");
+    }
+
+    @Override
+    public Flux<Assistant> listAssistants(String tenantId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'listAssistants'");
     }
 } 

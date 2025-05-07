@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -18,7 +19,10 @@ public class ModelResponse {
     private List<Choice> choices;
     private Usage usage;
     private String result; // 兼容原有简单返回
-
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private String tenantId;
+    private boolean deleted;
     @Data
     @Builder
     @NoArgsConstructor

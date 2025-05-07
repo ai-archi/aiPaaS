@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
-
+import com.aixone.llm.application.command.moderation.ModerationCommand;
 public class ModerationControllerTest {
     @Test
     public void testModerate() {
@@ -28,8 +28,9 @@ public class ModerationControllerTest {
                         )
                 ))
         )));
-        Map<String, Object> request = Map.of("input", "test text");
-        Map<String, Object> response = controller.moderate(request).block();
+        ModerationCommand command = new ModerationCommand();
+        command.setInput("test text");
+        Map<String, Object> response = controller.moderate(command).block();
         assertNotNull(response);
         assertEquals("modr-123456", response.get("id"));
         assertEquals("moderation-test", response.get("model"));

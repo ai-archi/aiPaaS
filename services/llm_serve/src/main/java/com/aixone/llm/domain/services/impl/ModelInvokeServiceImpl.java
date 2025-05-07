@@ -1,8 +1,8 @@
 package com.aixone.llm.domain.services.impl;
 
 import com.aixone.llm.domain.models.values.config.ModelResponse;
+import com.aixone.llm.domain.repositories.model.ModelInvokeRepository;
 import com.aixone.llm.domain.models.values.config.ModelRequest;
-import com.aixone.llm.domain.repositories.assistant.ModelInvokeRepository;
 import com.aixone.llm.domain.services.ModelInvokeService;
 import com.aixone.llm.domain.services.ModelService;
 import com.aixone.llm.domain.services.ModelAdapterFactory;

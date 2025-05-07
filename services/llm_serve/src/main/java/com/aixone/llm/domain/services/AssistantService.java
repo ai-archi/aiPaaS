@@ -17,6 +17,13 @@ public interface AssistantService {
     Mono<Assistant> getAssistant(String assistantId);
     Flux<Assistant> listAssistants();
 
+    // 多租户重载
+    Mono<Assistant> createAssistant(Assistant assistant, String tenantId);
+    Mono<Assistant> updateAssistant(String tenantId, String assistantId, Assistant assistant);
+    Mono<Void> deleteAssistant(String tenantId, String assistantId);
+    Mono<Assistant> getAssistant(String tenantId, String assistantId);
+    Flux<Assistant> listAssistants(String tenantId);
+
     // 对话线程处理
     Mono<Thread> createThread(String assistantId, Thread thread);
     Mono<Thread> updateThread(String assistantId, String threadId, Thread thread);

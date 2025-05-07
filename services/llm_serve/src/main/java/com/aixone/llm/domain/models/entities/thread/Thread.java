@@ -16,5 +16,6 @@ public class Thread {
     private ThreadStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    // 可扩展更多字段
+    private String tenantId;
+    private boolean deleted;
 } 

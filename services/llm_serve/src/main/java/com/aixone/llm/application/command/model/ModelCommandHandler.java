@@ -19,12 +19,12 @@ public class ModelCommandHandler {
             .then(modelService.createModel(modelConfig));
     }
     
-    public Mono<ModelConfig> handleUpdateModel(String modelId, UpdateModelCommand command) {
+    public Mono<ModelConfig> handleUpdateModel(UpdateModelCommand command) {
         ModelConfig modelConfig = command.toModelConfig();
         return modelService.validateModel(modelConfig)
             .filter(valid -> valid)
             .switchIfEmpty(Mono.error(new IllegalArgumentException("Invalid model configuration")))
-            .then(modelService.updateModel(modelId, modelConfig));
+            .then(modelService.updateModel( modelConfig));
     }
     
     public Mono<Void> handleDeleteModel(String modelId) {

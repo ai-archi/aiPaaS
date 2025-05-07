@@ -9,7 +9,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/v1/audio")
+@RequestMapping("/v1/{tenantId}/audio")
 @RequiredArgsConstructor
 public class AudioController {
     private final com.aixone.llm.application.command.audio.AudioCommandHandler audioCommandHandler;
