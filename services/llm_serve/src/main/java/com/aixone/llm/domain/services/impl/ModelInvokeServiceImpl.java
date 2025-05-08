@@ -57,7 +57,7 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
         LocalDateTime invokeTime = LocalDateTime.now();
         String modelId = request.getModel();
         return modelService.getModel(modelId)
-            .filter(model -> model.isAvailable())
+            .filter(model -> model.isActive())
             .switchIfEmpty(Mono.error(new IllegalStateException("Model is not available")))
             .flatMap(model -> {
                 String providerName = model.getProviderName();
@@ -78,7 +78,7 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
         LocalDateTime invokeTime = LocalDateTime.now();
         String modelId = request.getModel();
         return modelService.getModel(modelId)
-            .filter(model -> model.isAvailable())
+            .filter(model -> model.isActive())
             .switchIfEmpty(Mono.error(new IllegalStateException("Model is not available")))
             .flatMapMany(model -> {
                 Flux<ModelResponse> chunks = Flux.just(
@@ -126,7 +126,7 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
     @Override
     public Mono<Boolean> checkModelAvailability(String modelId) {
         return modelService.getModel(modelId)
-            .map(model -> model.isAvailable())
+            .map(model -> model.isActive())
             .defaultIfEmpty(false);
     }
 

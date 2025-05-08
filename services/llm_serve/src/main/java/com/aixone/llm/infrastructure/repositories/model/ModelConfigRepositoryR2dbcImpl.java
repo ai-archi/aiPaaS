@@ -26,18 +26,25 @@ public class ModelConfigRepositoryR2dbcImpl implements ModelConfigRepository {
             return template.insert(ModelConfigEntity.class).using(entity)
             .map(ModelConfigEntity::toDomain);
         } else {
-            // 这里只更新name和description等简单字段，复杂字段如有变动建议全量更新
+            // 只更新必要字段
             return template.update(ModelConfigEntity.class)
                     .matching(Query.query(Criteria.where("id").is(entity.getId())))
                     .apply(org.springframework.data.relational.core.query.Update.update("name", entity.getName())
-                            .set("description", entity.getDescription())
-                            .set("provider_info_json", entity.getProviderInfoJson())
-                            .set("capability_json", entity.getCapabilityJson())
-                            .set("runtime_config_json", entity.getRuntimeConfigJson())
-                            .set("billing_rule_json", entity.getBillingRuleJson())
+                            .set("endpoint", entity.getEndpoint())
+                            .set("api_key", entity.getApiKey())
+                            .set("max_tokens", entity.getMaxTokens())
+                            .set("min_input_price", entity.getMinInputPrice())
+                            .set("min_output_price", entity.getMinOutputPrice())
+                            .set("support_text_generation", entity.getSupportTextGeneration())
+                            .set("support_image_generation", entity.getSupportImageGeneration())
+                            .set("support_speech_generation", entity.getSupportSpeechGeneration())
+                            .set("support_video_generation", entity.getSupportVideoGeneration())
+                            .set("support_vector", entity.getSupportVector())
                             .set("active", entity.getActive())
+                            .set("description", entity.getDescription())
                             .set("tenant_id", entity.getTenantId())
-                            .set("deleted", entity.getDeleted())
+                            .set("is_system_preset", entity.getIsSystemPreset())
+                            .set("updated_at", entity.getUpdatedAt())
                     )
                     .then(findById(entity.getId()));
         }

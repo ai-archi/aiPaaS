@@ -57,7 +57,7 @@ public class ModelServiceImpl implements ModelService {
     public Mono<ModelConfig> activateModel(String modelId) {
         return modelRepository.findById(modelId)
                 .flatMap(config -> {
-                    config.activate();
+                    config.setActive(true);
                     return modelRepository.save(config);
                 });
     }
@@ -67,14 +67,20 @@ public class ModelServiceImpl implements ModelService {
     public Mono<ModelConfig> deactivateModel(String modelId) {
         return modelRepository.findById(modelId)
                 .flatMap(config -> {
-                    config.deactivate();
+                    config.setActive(false);
                     return modelRepository.save(config);
                 });
     }
     
     @Override
     public Mono<Boolean> validateModel(ModelConfig modelConfig) {
-        return Mono.just(modelConfig.isValid());
+        boolean valid = modelConfig.getName() != null && !modelConfig.getName().isEmpty()
+                && modelConfig.getEndpoint() != null && !modelConfig.getEndpoint().isEmpty()
+                && modelConfig.getApiKey() != null && !modelConfig.getApiKey().isEmpty()
+                && modelConfig.getMaxTokens() != null && modelConfig.getMaxTokens() > 0
+                && modelConfig.getMinInputPrice() != null && modelConfig.getMinInputPrice().compareTo(java.math.BigDecimal.ZERO) >= 0
+                && modelConfig.getMinOutputPrice() != null && modelConfig.getMinOutputPrice().compareTo(java.math.BigDecimal.ZERO) >= 0;
+        return Mono.just(valid);
     }
 
     @Override

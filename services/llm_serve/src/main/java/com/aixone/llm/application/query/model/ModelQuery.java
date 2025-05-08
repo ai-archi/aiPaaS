@@ -15,7 +15,8 @@ import lombok.Builder;
 public class ModelQuery {
     /** 是否激活 */
     private Boolean active;
-    /** 提供商ID */
-    private String providerId;
+    /** 提供商名称 */
+    private String providerName;
+    
     // 可扩展更多查询条件
 } 
