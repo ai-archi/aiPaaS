@@ -1,14 +1,11 @@
 package com.aixone.llm.domain.services.impl;
 
-import com.aixone.llm.domain.models.values.config.BillingRule;
-import com.aixone.llm.domain.models.values.quota.QuotaType;
 import com.aixone.llm.domain.models.values.quota.QuotaInfo;
 import com.aixone.llm.domain.repositories.quota.QuotaRepository;
 import com.aixone.llm.domain.services.QuotaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

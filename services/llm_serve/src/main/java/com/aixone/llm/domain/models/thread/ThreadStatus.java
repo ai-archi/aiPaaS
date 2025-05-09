@@ -1,4 +1,4 @@
-package com.aixone.llm.domain.models.entities.thread;
+package com.aixone.llm.domain.models.thread;
 
 public enum ThreadStatus {
     ACTIVE,

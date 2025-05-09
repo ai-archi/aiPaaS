@@ -1,6 +1,9 @@
 package com.aixone.llm.infrastructure.repositories.model;
 
-import com.aixone.llm.domain.models.values.config.ModelResponse;
+import com.aixone.llm.domain.models.BaseModelResponse;
+import com.aixone.llm.domain.models.chat.ChatResponse;
+import com.aixone.llm.domain.models.completion.CompletionResponse;
+import com.aixone.llm.domain.models.embedding.EmbeddingResponse;
 import com.aixone.llm.domain.repositories.model.ModelInvokeRepository;
 import com.aixone.llm.infrastructure.entity.ModelInvokeEntity;
 import lombok.RequiredArgsConstructor;
@@ -18,20 +21,41 @@ public class ModelInvokeRepositoryImpl implements ModelInvokeRepository {
     private final R2dbcEntityTemplate template;
 
     @Override
-    public Mono<Void> saveInvokeRecord(String userId, String modelId, ModelResponse response, LocalDateTime invokeTime) {
-        // 这里只做简单映射，实际可根据业务需求补充
+    public Mono<Void> saveInvokeRecord(String userId, String modelId, BaseModelResponse response, LocalDateTime invokeTime) {
         ModelInvokeEntity entity = new ModelInvokeEntity();
         entity.setUserId(userId);
         entity.setModelId(modelId);
-        entity.setRequestId(response.getId());
-        entity.setResponse(response.getResult());
-        entity.setPrompt(null); // 可根据需要补充
-        if (response.getUsage() != null) {
-            entity.setPromptTokens((long) response.getUsage().getPrompt_tokens());
-            entity.setCompletionTokens((long) response.getUsage().getCompletion_tokens());
-            entity.setUsedTokens((long) response.getUsage().getTotal_tokens());
+        if (response instanceof ChatResponse) {
+            ChatResponse chat = (ChatResponse) response;
+            entity.setRequestId(chat.getId());
+            entity.setResponse(chat.getResult());
+            if (chat.getUsage() != null) {
+                entity.setPromptTokens((long) chat.getUsage().getPrompt_tokens());
+                entity.setCompletionTokens((long) chat.getUsage().getCompletion_tokens());
+                entity.setUsedTokens((long) chat.getUsage().getTotal_tokens());
+            }
+            entity.setFinishReason(chat.getChoices() != null && !chat.getChoices().isEmpty() ? chat.getChoices().get(0).getFinish_reason() : null);
+        } else if (response instanceof CompletionResponse) {
+            CompletionResponse comp = (CompletionResponse) response;
+            entity.setRequestId(comp.getId());
+            entity.setResponse(comp.getResult());
+            if (comp.getUsage() != null) {
+                entity.setPromptTokens((long) comp.getUsage().getPromptTokens());
+                entity.setCompletionTokens((long) comp.getUsage().getCompletionTokens());
+                entity.setUsedTokens((long) comp.getUsage().getTotalTokens());
+            }
+            entity.setFinishReason(comp.getChoices() != null && !comp.getChoices().isEmpty() ? comp.getChoices().get(0).getFinishReason() : null);
+        } else if (response instanceof EmbeddingResponse) {
+            EmbeddingResponse emb = (EmbeddingResponse) response;
+            entity.setRequestId(emb.getId());
+            entity.setResponse(null); // 可根据 EmbeddingResponse 结构补充
+            if (emb.getUsage() != null) {
+                entity.setPromptTokens((long) emb.getUsage().getPromptTokens());
+                entity.setUsedTokens((long) emb.getUsage().getTotalTokens());
+            }
+            entity.setFinishReason(null);
         }
-        entity.setFinishReason(response.getChoices() != null && !response.getChoices().isEmpty() ? response.getChoices().get(0).getFinish_reason() : null);
+        entity.setPrompt(null); // 可根据需要补充
         entity.setIsError(false); // 可根据业务补充
         entity.setErrorMessage(null);
         entity.setInvokeTime(invokeTime);

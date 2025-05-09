@@ -1,11 +1,9 @@
-package com.aixone.llm.domain.models.entities.message;
+package com.aixone.llm.domain.models.chat;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Builder;
 import lombok.experimental.SuperBuilder;
-import java.util.List;
 import com.fasterxml.jackson.databind.ObjectMapper;
 /**
  * 对应 DeepSeek API 消息结构

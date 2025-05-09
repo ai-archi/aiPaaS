@@ -1,14 +1,13 @@
 package com.aixone.llm.application.command.completion;
 
-import com.aixone.llm.domain.models.values.config.ModelResponse;
+import com.aixone.llm.domain.models.completion.CompletionResponse;
 import com.aixone.llm.domain.services.CompletionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import reactor.core.publisher.Mono;
+
+import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class CompletionCommandHandlerTest {
@@ -24,13 +23,13 @@ public class CompletionCommandHandlerTest {
     @Test
     public void testHandle_ReturnsModelResponse() {
         CompletionCommand command = mock(CompletionCommand.class);
-        ModelResponse expected = mock(ModelResponse.class);
-        when(completionService.completion(command)).thenReturn(Mono.just(expected));
+        CompletionResponse expected = mock(CompletionResponse.class);
+        when(completionService.completion(command.toCompletionRequest())).thenReturn(Flux.just(expected));
 
-        Mono<ModelResponse> result = handler.handle(command);
+        Flux<CompletionResponse> result = handler.handle(command);
         StepVerifier.create(result)
             .expectNext(expected)
             .verifyComplete();
-        verify(completionService, times(1)).completion(command);
+        verify(completionService, times(1)).completion(command.toCompletionRequest());
     }
 }

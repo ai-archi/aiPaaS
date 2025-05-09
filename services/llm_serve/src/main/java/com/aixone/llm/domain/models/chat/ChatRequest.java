@@ -1,11 +1,9 @@
-package com.aixone.llm.domain.models.values.config;
+package com.aixone.llm.domain.models.chat;
 
 import lombok.AllArgsConstructor;
-
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import com.aixone.llm.domain.models.entities.message.Message;
 import java.util.List;
 import java.util.Map;
 
@@ -13,7 +11,7 @@ import java.util.Map;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ModelRequest {
+public class ChatRequest {
     /**
      * 对话消息列表，必填
      */
@@ -92,11 +90,8 @@ public class ModelRequest {
     /**
      * 一个介于 0 到 20 之间的整数 N，指定每个输出位置返回输出概率 top N 的 token，且返回这些 token 的对数概率。指定此参数时，logprobs 必须为 true。
      */
-    private boolean topLogprobs;
+    private Integer topLogprobs;
     
     private String tenantId;
 
-    public boolean isStream() {
-        return Boolean.TRUE.equals(this.stream);
-    }
 } 

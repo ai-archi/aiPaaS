@@ -1,8 +1,8 @@
 package com.aixone.llm.domain.services;
 
-import com.aixone.llm.domain.models.aggregates.assistant.Assistant;
-import com.aixone.llm.domain.models.entities.thread.Thread;
-import com.aixone.llm.domain.models.entities.message.Message;
+import com.aixone.llm.domain.models.assistant.Assistant;
+import com.aixone.llm.application.command.thread.ThreadCommand;
+import com.aixone.llm.domain.models.chat.Message;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -25,11 +25,11 @@ public interface AssistantService {
     Flux<Assistant> listAssistants(String tenantId);
 
     // 对话线程处理
-    Mono<Thread> createThread(String assistantId, Thread thread);
-    Mono<Thread> updateThread(String assistantId, String threadId, Thread thread);
+    Mono<ThreadCommand> createThread(String assistantId, ThreadCommand command);
+    Mono<ThreadCommand> updateThread(String assistantId, String threadId, ThreadCommand command);
     Mono<Void> deleteThread(String assistantId, String threadId);
-    Mono<Thread> getThread(String assistantId, String threadId);
-    Flux<Thread> listThreads(String assistantId);
+    Mono<ThreadCommand> getThread(String assistantId, String threadId);
+    Flux<ThreadCommand> listThreads(String assistantId);
 
     // 消息处理和路由
     Mono<Message> createMessage(String assistantId, String threadId, Message message);

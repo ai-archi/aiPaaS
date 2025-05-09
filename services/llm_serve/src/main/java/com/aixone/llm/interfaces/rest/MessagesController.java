@@ -1,6 +1,6 @@
 package com.aixone.llm.interfaces.rest;
 
-import com.aixone.llm.domain.models.entities.message.Message;
+import com.aixone.llm.domain.models.chat.Message;
 import com.aixone.llm.domain.services.AssistantService;
 import com.aixone.llm.application.command.message.MessageCommand;
 

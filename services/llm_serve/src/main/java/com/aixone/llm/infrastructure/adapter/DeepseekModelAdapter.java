@@ -8,8 +8,10 @@ import reactor.core.publisher.Flux;
 import org.springframework.http.MediaType;
 
 import com.aixone.llm.domain.models.aggregates.model_config.ModelConfig;
-import com.aixone.llm.domain.models.values.config.ModelRequest;
-import com.aixone.llm.domain.models.values.config.ModelResponse;
+import com.aixone.llm.domain.models.chat.ChatRequest;
+import com.aixone.llm.domain.models.chat.ChatResponse;
+import com.aixone.llm.domain.models.completion.CompletionRequest;
+import com.aixone.llm.domain.models.completion.CompletionResponse;
 
 
 @Component
@@ -27,17 +29,17 @@ public class DeepseekModelAdapter implements ModelAdapter, ModelAdapterFactoryIm
     }
 
     @Override
-    public Mono<ModelResponse> invoke(ModelConfig model,ModelRequest request) {
+    public Mono<ChatResponse> invokeChat(ModelConfig model, ChatRequest request) {
         return webClient.post()
                 .uri("/chat/completions")
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + model.getApiKey())
                 .bodyValue(request)
                 .retrieve()
-                .bodyToMono(ModelResponse.class);
+                .bodyToMono(ChatResponse.class);
     }
     @Override
-    public Flux<ModelResponse> streamInvoke(ModelConfig model, ModelRequest request) {
+    public Flux<ChatResponse> invokeChatStream(ModelConfig model, ChatRequest request) {
         return webClient.post()
                 .uri("/chat/completions")
                 .header("Content-Type", "application/json")
@@ -53,10 +55,10 @@ public class DeepseekModelAdapter implements ModelAdapter, ModelAdapterFactoryIm
                         var mapper = com.fasterxml.jackson.databind.json.JsonMapper.builder().build();
                         String trimmed = raw.trim();
                         if (trimmed.startsWith("[")) {
-                            java.util.List<ModelResponse> list = mapper.readValue(trimmed, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<ModelResponse>>() {});
+                            java.util.List<ChatResponse> list = mapper.readValue(trimmed, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<ChatResponse>>() {});
                             return list.isEmpty() ? null : list.get(0);
                         } else {
-                            return mapper.readValue(trimmed, ModelResponse.class);
+                            return mapper.readValue(trimmed, ChatResponse.class);
                         }
                     } catch (Exception e) {
                         System.err.println("[Deepseek stream parse error]: " + e.getMessage());
@@ -65,6 +67,50 @@ public class DeepseekModelAdapter implements ModelAdapter, ModelAdapterFactoryIm
                 })
                 .filter(resp -> resp != null);
     }
+
+    @Override
+    public Mono<CompletionResponse> invokeCompletion(ModelConfig model, CompletionRequest request) {
+        WebClient webClient = WebClient.builder().baseUrl("https://api.deepseek.com/beta").build();
+        return webClient.post()
+        .uri("/completions")
+        .header("Content-Type", "application/json")
+        .header("Authorization", "Bearer " + model.getApiKey())
+        .bodyValue(request)
+        .retrieve()
+        .bodyToMono(CompletionResponse.class);
+    }
+
+    @Override
+    public Flux<CompletionResponse> invokeCompletionStream(ModelConfig model, CompletionRequest request) {
+        WebClient webClient = WebClient.builder().baseUrl("https://api.deepseek.com/beta").build();
+        return webClient.post()
+                .uri("/completions")
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + model.getApiKey())
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .doOnNext(raw -> System.out.println("[Deepseek completions stream raw chunk]: " + raw))
+                .filter(raw -> raw != null && !raw.trim().isEmpty() && !raw.trim().equals("[DONE]"))
+                .map(raw -> {
+                    try {
+                        var mapper = com.fasterxml.jackson.databind.json.JsonMapper.builder().build();
+                        String trimmed = raw.trim();
+                        if (trimmed.startsWith("[")) {
+                            java.util.List<CompletionResponse> list = mapper.readValue(trimmed, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<CompletionResponse>>() {});
+                            if (list.isEmpty()) throw new RuntimeException("Empty CompletionResponse list");
+                            return list.get(0);
+                        } else {
+                            return mapper.readValue(trimmed, CompletionResponse.class);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("[Deepseek completions stream parse error]: " + e.getMessage());
+                        throw new RuntimeException("[Deepseek completions stream parse error]", e);
+                    }
+                });
+    }
+    
     @Override
     public Mono<Long> getQuota(String modelName) {
         // 模拟返回剩余额度
@@ -82,6 +128,8 @@ public class DeepseekModelAdapter implements ModelAdapter, ModelAdapterFactoryIm
         // 模拟始终可用
         return Mono.just(true);
     }
+
+ 
 
 
 }

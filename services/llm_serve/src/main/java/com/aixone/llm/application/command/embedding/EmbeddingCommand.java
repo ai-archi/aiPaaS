@@ -1,21 +1,27 @@
 package com.aixone.llm.application.command.embedding;
 
-import com.aixone.llm.domain.models.values.config.ModelRequest;
+import com.aixone.llm.domain.models.embedding.EmbeddingRequest;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.util.List;
 
+/**
+ * 向量生成命令对象，作为接口层DTO，组合 EmbeddingRequest
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class EmbeddingCommand extends ModelRequest {
+public class EmbeddingCommand {
     private String user;
     private List<String> input;
     private String model;
 
-    public ModelRequest toModelRequest() {
-        return  ModelRequest.builder()
+    public EmbeddingRequest toEmbeddingRequest() {
+        return EmbeddingRequest.builder()
+                .user(user)
+                .input(input)
+                .model(model)
                 .build();
     }
 }

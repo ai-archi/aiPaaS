@@ -1,4 +1,4 @@
-package com.aixone.llm.domain.models.values.config;
+package com.aixone.llm.domain.models.assistant;
 
 import lombok.Builder;
 import lombok.Data;

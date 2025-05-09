@@ -1,6 +1,6 @@
 package com.aixone.llm.application.command.assistant;
 
-import com.aixone.llm.domain.models.aggregates.assistant.Assistant;
+import com.aixone.llm.domain.models.assistant.Assistant;
 import com.aixone.llm.domain.services.AssistantService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

@@ -1,4 +1,4 @@
-package com.aixone.llm.domain.models.values.config;
+package com.aixone.llm.domain.models.chat;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,13 +7,14 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.aixone.llm.domain.models.BaseModelResponse;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ModelResponse {
+public class ChatResponse implements BaseModelResponse {
     /**
      * 响应唯一ID
      */

@@ -1,6 +1,6 @@
 package com.aixone.llm.interfaces.rest;
 
-import com.aixone.llm.domain.models.aggregates.assistant.Assistant;
+import com.aixone.llm.domain.models.assistant.Assistant;
 import com.aixone.llm.domain.services.AssistantService;
 import com.aixone.llm.application.command.assistant.AssistantCommand;
 

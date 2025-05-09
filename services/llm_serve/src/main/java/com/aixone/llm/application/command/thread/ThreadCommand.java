@@ -1,6 +1,6 @@
 package com.aixone.llm.application.command.thread;
 
-import com.aixone.llm.domain.models.entities.thread.ThreadStatus;
+import com.aixone.llm.domain.models.thread.ThreadStatus;
 import lombok.Data;
 
 @Data

@@ -8,10 +8,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
-
 import com.aixone.llm.application.command.embedding.EmbeddingCommandHandler;
 import com.aixone.llm.application.command.embedding.EmbeddingCommand;
-import com.aixone.llm.domain.models.values.config.ModelResponse;
+import com.aixone.llm.domain.models.embedding.EmbeddingResponse;
 
 @RestController
 @RequestMapping("/v1/{tenantId}/embeddings")
@@ -20,7 +19,7 @@ public class EmbeddingController {
     private final EmbeddingCommandHandler embeddingCommandHandler;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ModelResponse> createEmbedding(@RequestBody EmbeddingCommand command) {
+    public Mono<EmbeddingResponse> createEmbedding(@RequestBody EmbeddingCommand command) {
         return embeddingCommandHandler.handle(command);
     }
 } 

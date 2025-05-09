@@ -1,12 +1,13 @@
 package com.aixone.llm.domain.services.impl;
 
-import com.aixone.llm.domain.models.aggregates.assistant.Assistant;
-import com.aixone.llm.domain.models.entities.thread.Thread;
-import com.aixone.llm.domain.models.entities.message.Message;
+import com.aixone.llm.domain.models.assistant.Assistant;
+import com.aixone.llm.domain.models.thread.Thread;
+import com.aixone.llm.domain.models.chat.Message;
 import com.aixone.llm.domain.repositories.assistant.AssistantRepository;
 import com.aixone.llm.domain.repositories.assistant.ThreadRepository;
 import com.aixone.llm.domain.services.AssistantService;
 import com.aixone.llm.domain.repositories.assistant.MessageRepository;
+import com.aixone.llm.application.command.thread.ThreadCommand;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,28 +62,30 @@ public class AssistantServiceImpl implements AssistantService {
 
     // 对话线程处理
     @Override
-    public Mono<Thread> createThread(String assistantId, Thread thread) {
+    public Mono<ThreadCommand> createThread(String assistantId, ThreadCommand command) {
+        Thread thread = toThread(command);
+        thread.setAssistantId(assistantId);
+        thread.setCreatedAt(LocalDateTime.now());
+        thread.setUpdatedAt(LocalDateTime.now());
         return assistantRepository.findById(assistantId)
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("助理不存在")))
-                .flatMap(a -> {
-                    thread.setAssistantId(assistantId);
-                    thread.setCreatedAt(LocalDateTime.now());
-                    thread.setUpdatedAt(LocalDateTime.now());
-                    return threadRepository.save(thread);
-                });
+                .flatMap(a -> threadRepository.save(thread))
+                .map(this::toThreadCommand);
     }
 
     @Override
-    public Mono<Thread> updateThread(String assistantId, String threadId, Thread thread) {
+    public Mono<ThreadCommand> updateThread(String assistantId, String threadId, ThreadCommand command) {
         return threadRepository.findById(threadId)
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("线程不存在")))
                 .flatMap(existing -> {
+                    Thread thread = toThread(command);
                     thread.setId(threadId);
                     thread.setAssistantId(assistantId);
                     thread.setCreatedAt(existing.getCreatedAt());
                     thread.setUpdatedAt(LocalDateTime.now());
                     return threadRepository.save(thread);
-                });
+                })
+                .map(this::toThreadCommand);
     }
 
     @Override
@@ -91,14 +94,33 @@ public class AssistantServiceImpl implements AssistantService {
     }
 
     @Override
-    public Mono<Thread> getThread(String assistantId, String threadId) {
+    public Mono<ThreadCommand> getThread(String assistantId, String threadId) {
         return threadRepository.findById(threadId)
-                .filter(thread -> assistantId.equals(thread.getAssistantId()));
+                .filter(thread -> assistantId.equals(thread.getAssistantId()))
+                .map(this::toThreadCommand);
     }
 
     @Override
-    public Flux<Thread> listThreads(String assistantId) {
-        return threadRepository.findByAssistantId(assistantId);
+    public Flux<ThreadCommand> listThreads(String assistantId) {
+        return threadRepository.findByAssistantId(assistantId)
+                .map(this::toThreadCommand);
+    }
+
+    // DTO <-> 领域模型转换
+    private Thread toThread(ThreadCommand command) {
+        Thread thread = new Thread();
+        thread.setTitle(command.getTitle());
+        thread.setStatus(command.getStatus());
+        thread.setUserId(command.getUserId());
+        return thread;
+    }
+
+    private ThreadCommand toThreadCommand(Thread thread) {
+        ThreadCommand command = new ThreadCommand();
+        command.setTitle(thread.getTitle());
+        command.setStatus(thread.getStatus());
+        command.setUserId(thread.getUserId());
+        return command;
     }
 
     // 消息处理和路由

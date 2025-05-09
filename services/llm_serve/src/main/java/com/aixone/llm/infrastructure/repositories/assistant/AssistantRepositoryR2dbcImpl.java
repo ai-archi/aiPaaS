@@ -1,6 +1,6 @@
 package com.aixone.llm.infrastructure.repositories.assistant;
 
-import com.aixone.llm.domain.models.aggregates.assistant.Assistant;
+import com.aixone.llm.domain.models.assistant.Assistant;
 import com.aixone.llm.domain.repositories.assistant.AssistantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
@@ -10,11 +10,8 @@ import org.springframework.data.relational.core.query.Update;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
-
-import com.aixone.llm.domain.models.values.config.ToolConfig;
-import com.aixone.llm.domain.models.entities.thread.Thread;
+import com.aixone.llm.domain.models.assistant.ToolConfig;
+import com.aixone.llm.domain.models.thread.Thread;
 
 @Repository
 @RequiredArgsConstructor
@@ -98,4 +95,4 @@ public class AssistantRepositoryR2dbcImpl implements AssistantRepository {
     }
 
     // 其余复杂方法可后续补充
-} 
+}

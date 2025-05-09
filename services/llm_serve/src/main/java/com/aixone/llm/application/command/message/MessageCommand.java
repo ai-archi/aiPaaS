@@ -1,10 +1,9 @@
 package com.aixone.llm.application.command.message;
 
-import com.aixone.llm.domain.models.values.config.ModelRequest;
 import lombok.Data;
 import java.util.List;
 import java.util.Map;
-import com.aixone.llm.domain.models.entities.message.Message;
+import com.aixone.llm.domain.models.chat.Message;
 
 @Data
 public class MessageCommand {
@@ -17,14 +16,4 @@ public class MessageCommand {
     private Double topP;
     private Boolean stream;
     private Map<String, Object> extraParams;
-    public ModelRequest toModelRequest() {
-        return  ModelRequest.builder()
-                .model(getModel())
-                .messages(getMessages())
-                .maxTokens(getMaxTokens())
-                .temperature(getTemperature())
-                .topP(getTopP())
-                .stream(getStream())
-                .build();
-    }
 } 

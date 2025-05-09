@@ -1,17 +1,18 @@
 package com.aixone.llm.application.command.assistant;
 
-import com.aixone.llm.domain.models.values.config.ModelRequest;
-import com.aixone.llm.domain.models.values.config.AssistantCapability;
-import com.aixone.llm.domain.models.values.config.ToolConfig;
+import com.aixone.llm.domain.models.assistant.Assistant;
+import com.aixone.llm.domain.models.assistant.AssistantCapability;
+import com.aixone.llm.domain.models.assistant.ToolConfig;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AssistantCommand extends ModelRequest {
+public class AssistantCommand {
     private String assistantId;
     private String action;
     private String user;
@@ -20,21 +21,11 @@ public class AssistantCommand extends ModelRequest {
     private String modelId;
     private List<ToolConfig> toolConfigs;
     private AssistantCapability capability;
+    private String description;
+    private boolean active;
 
-    public ModelRequest toModelRequest() {
-        return  ModelRequest.builder()
-                .model(getModel())
-                .messages(getMessages())
-                .maxTokens(getMaxTokens())
-                .temperature(getTemperature())
-                .topP(getTopP())
-                .stream(isStream())
-                .streamOptions(getStreamOptions())
-                .build();
-    }
-
-    public com.aixone.llm.domain.models.aggregates.assistant.Assistant toAssistant(String tenantId) {
-        com.aixone.llm.domain.models.aggregates.assistant.Assistant assistant = new com.aixone.llm.domain.models.aggregates.assistant.Assistant();
+    public Assistant toAssistant(String tenantId) {
+        Assistant assistant = new Assistant();
         assistant.setId(this.assistantId);
         assistant.setName(this.name);
         assistant.setUserId(this.userId);
@@ -42,8 +33,10 @@ public class AssistantCommand extends ModelRequest {
         assistant.setToolConfigs(this.toolConfigs);
         assistant.setCapability(this.capability);
         assistant.setTenantId(tenantId);
-        assistant.setCreatedAt(java.time.LocalDateTime.now());
-        assistant.setUpdatedAt(java.time.LocalDateTime.now());
+        assistant.setDescription(this.description);
+        assistant.setActive(this.active);
+        assistant.setCreatedAt(LocalDateTime.now());
+        assistant.setUpdatedAt(LocalDateTime.now());
         return assistant;
     }
 } 

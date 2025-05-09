@@ -1,7 +1,7 @@
 package com.aixone.llm.domain.services.impl;
 
-import com.aixone.llm.domain.models.values.config.ModelRequest;
-import com.aixone.llm.domain.models.values.config.ModelResponse;
+import com.aixone.llm.domain.models.chat.ChatRequest;
+import com.aixone.llm.domain.models.chat.ChatResponse;
 import com.aixone.llm.domain.services.ChatService;
 import com.aixone.llm.domain.services.ModelInvokeService;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +15,7 @@ public class ChatServiceImpl implements ChatService {
     private final ModelInvokeService modelInvokeService;
 
     @Override
-    public Flux<ModelResponse> chatCompletion(ModelRequest request) {
-        return modelInvokeService.invoke(request);
+    public Flux<ChatResponse> chatCompletion(ChatRequest request) {
+        return modelInvokeService.invokeChat(request);
     }
 } 

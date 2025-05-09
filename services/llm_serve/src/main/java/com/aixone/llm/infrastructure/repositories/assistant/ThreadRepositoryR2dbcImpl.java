@@ -1,6 +1,6 @@
 package com.aixone.llm.infrastructure.repositories.assistant;
 
-import com.aixone.llm.domain.models.entities.thread.Thread;
+import com.aixone.llm.domain.models.thread.Thread;
 import com.aixone.llm.domain.repositories.assistant.ThreadRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;

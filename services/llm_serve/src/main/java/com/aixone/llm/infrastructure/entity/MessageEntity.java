@@ -1,6 +1,6 @@
 package com.aixone.llm.infrastructure.entity;
 
-import com.aixone.llm.domain.models.entities.message.Message;
+import com.aixone.llm.domain.models.chat.Message;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;

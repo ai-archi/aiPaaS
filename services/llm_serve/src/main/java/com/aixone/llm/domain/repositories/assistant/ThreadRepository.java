@@ -1,6 +1,6 @@
 package com.aixone.llm.domain.repositories.assistant;
 
-import com.aixone.llm.domain.models.entities.thread.Thread;
+import com.aixone.llm.domain.models.thread.Thread;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
