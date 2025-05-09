@@ -25,7 +25,7 @@ public class MessageEntity {
     public static MessageEntity fromDomain(Message message) {
         return MessageEntity.builder()
                 .id(message.getId())
-                .content(message.getContent())
+                .content(message.getContentAsString())
                 .role(message.getRole())
                 .name(message.getName())
                 .toolCallId(message.getToolCallId())

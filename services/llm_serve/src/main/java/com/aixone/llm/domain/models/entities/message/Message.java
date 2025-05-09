@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Builder;
 import lombok.experimental.SuperBuilder;
 import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
 /**
  * 对应 DeepSeek API 消息结构
  */
@@ -20,7 +21,7 @@ public class Message {
     private String id;
 
     /**
-     * 消息内容，必填
+     * 消息内容，支持 String、List、Map 等多种类型
      */
     private Object content;
 
@@ -48,4 +49,20 @@ public class Message {
      * 创建时间，秒级时间戳
      */
     private Long createdAt;
+
+    /**
+     * 获取 content 的字符串表示
+     */
+    public String getContentAsString() {
+        if (content == null) return null;
+        if (content instanceof String) {
+            return (String) content;
+        }
+        try {
+            // 其它类型转为 JSON 字符串
+            return new ObjectMapper().writeValueAsString(content);
+        } catch (Exception e) {
+            return content.toString();
+        }
+    }
 } 
