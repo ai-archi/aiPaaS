@@ -88,7 +88,3 @@ logging:
     org.springframework.r2dbc.connection: DEBUG
     org.springframework.r2dbc.connection.ConnectionFactoryUtils: TRACE
     org.springframework.r2dbc.core.DefaultDatabaseClient: TRACE
-
-llm:
-  deepseek:
-    api-key: "sk-b3c80d381eb54480a4e3e1b9de1c2a51" 

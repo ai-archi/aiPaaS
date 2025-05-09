@@ -4,22 +4,21 @@ import com.aixone.llm.domain.services.ModelAdapter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-import org.springframework.beans.factory.annotation.Value;
+import reactor.core.publisher.Flux;
+import org.springframework.http.MediaType;
+
+import com.aixone.llm.domain.models.aggregates.model_config.ModelConfig;
 import com.aixone.llm.domain.models.values.config.ModelRequest;
 import com.aixone.llm.domain.models.values.config.ModelResponse;
-import java.time.Instant;
-import java.util.Collections;
+
 
 @Component
 public class DeepseekModelAdapter implements ModelAdapter, ModelAdapterFactoryImpl.ProviderNamed {
     private final WebClient webClient;
-    private final String apiKey;
 
-    public DeepseekModelAdapter(WebClient.Builder webClientBuilder,
-                                @Value("${llm.deepseek.api-key}") String apiKey) {
+    public DeepseekModelAdapter(WebClient.Builder webClientBuilder) {
         // Deepseek API base url 可通过配置中心注入
         this.webClient = webClientBuilder.baseUrl("https://api.deepseek.com/v1").build();
-        this.apiKey = apiKey;
     }
 
     @Override
@@ -28,60 +27,44 @@ public class DeepseekModelAdapter implements ModelAdapter, ModelAdapterFactoryIm
     }
 
     @Override
-    public Mono<ModelResponse> invoke(ModelRequest request) {
-        String modelName = request.getModel();
-        String prompt = request.getPrompt();
-        Integer maxTokens = request.getMaxTokens();
-        Double temperature = request.getTemperature();
-        Double topP = request.getTopP();
-        Boolean stream = request.getStream();
-        // 构造请求体
-        String body = "{" +
-                "\"model\": \"" + modelName + "\"," +
-                "\"messages\": [" +
-                "{\"role\": \"system\", \"content\": \"You are a helpful assistant.\"}," +
-                "{\"role\": \"user\", \"content\": \"" + prompt + "\"}]" +
-                (maxTokens != null ? ",\"max_tokens\": " + maxTokens : "") +
-                (temperature != null ? ",\"temperature\": " + temperature : "") +
-                (topP != null ? ",\"top_p\": " + topP : "") +
-                (stream != null ? ",\"stream\": " + stream : "") +
-                "}";
+    public Mono<ModelResponse> invoke(ModelConfig model,ModelRequest request) {
         return webClient.post()
                 .uri("/chat/completions")
                 .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + apiKey)
-                .bodyValue(body)
+                .header("Authorization", "Bearer " + model.getApiKey())
+                .bodyValue(request)
                 .retrieve()
-                .bodyToMono(String.class)
-                .map(json -> {
-                    // 这里只做简单解析，实际应用中建议用Jackson/Gson解析
-                    // 提取content和usage
-                    String content = prompt + " (mock response)";
-                    ModelResponse.Usage usage = ModelResponse.Usage.builder()
-                            .promptTokens(10)
-                            .completionTokens(10)
-                            .totalTokens(20)
-                            .build();
-                    ModelResponse.Message message = ModelResponse.Message.builder()
-                            .role("assistant")
-                            .content(content)
-                            .build();
-                    ModelResponse.Choice choice = ModelResponse.Choice.builder()
-                            .index(0)
-                            .message(message)
-                            .finishReason("stop")
-                            .build();
-                    return ModelResponse.builder()
-                            .id("mock-id")
-                            .object("chat.completion")
-                            .created(Instant.now().getEpochSecond())
-                            .model(modelName)
-                            .choices(Collections.singletonList(choice))
-                            .usage(usage)
-                            .build();
-                });
+                .bodyToMono(ModelResponse.class);
     }
-
+    @Override
+    public Flux<ModelResponse> streamInvoke(ModelConfig model, ModelRequest request) {
+        return webClient.post()
+                .uri("/chat/completions")
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + model.getApiKey())
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .doOnNext(raw -> System.out.println("[Deepseek stream raw chunk]: " + raw))
+                .filter(raw -> raw != null && !raw.trim().isEmpty() && !raw.trim().equals("[DONE]"))
+                .map(raw -> {
+                    try {
+                        var mapper = com.fasterxml.jackson.databind.json.JsonMapper.builder().build();
+                        String trimmed = raw.trim();
+                        if (trimmed.startsWith("[")) {
+                            java.util.List<ModelResponse> list = mapper.readValue(trimmed, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<ModelResponse>>() {});
+                            return list.isEmpty() ? null : list.get(0);
+                        } else {
+                            return mapper.readValue(trimmed, ModelResponse.class);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("[Deepseek stream parse error]: " + e.getMessage());
+                        return null;
+                    }
+                })
+                .filter(resp -> resp != null);
+    }
     @Override
     public Mono<Long> getQuota(String modelName) {
         // 模拟返回剩余额度
@@ -99,4 +82,6 @@ public class DeepseekModelAdapter implements ModelAdapter, ModelAdapterFactoryIm
         // 模拟始终可用
         return Mono.just(true);
     }
+
+
 }

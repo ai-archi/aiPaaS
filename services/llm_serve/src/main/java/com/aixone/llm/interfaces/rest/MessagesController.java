@@ -20,7 +20,7 @@ public class MessagesController {
         Message message = new Message();
         message.setRole(command.getRole());
         message.setContent(command.getContent());
-        message.setTimestamp(java.time.LocalDateTime.now());
+        message.setCreatedAt(System.currentTimeMillis() / 1000);
         return assistantService.createMessage(assistantId, threadId, message);
     }
 
@@ -38,10 +38,9 @@ public class MessagesController {
     public Mono<Message> update(@RequestParam String assistantId, @RequestParam String threadId, @PathVariable String messageId, @RequestBody MessageCommand command) {
         Message message = new Message();
         message.setId(messageId);
-        message.setThreadId(threadId);
         message.setRole(command.getRole());
         message.setContent(command.getContent());
-        message.setTimestamp(java.time.LocalDateTime.now());
+        message.setCreatedAt(System.currentTimeMillis() / 1000);
         return assistantService.updateMessage(assistantId, threadId, messageId, message);
     }
 

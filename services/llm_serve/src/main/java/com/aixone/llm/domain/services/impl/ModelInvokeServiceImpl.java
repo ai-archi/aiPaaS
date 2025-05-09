@@ -27,92 +27,32 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
     private final ModelAdapterFactory modelAdapterFactory;
     private static final int MONITORING_WINDOW_SECONDS = 60;
 
-    private ModelResponse createChunk(String content, String modelId) {
-        ModelResponse.Message message = ModelResponse.Message.builder()
-                .role("assistant")
-                .content(content)
-                .build();
-        ModelResponse.Choice choice = ModelResponse.Choice.builder()
-                .index(0)
-                .message(message)
-                .finishReason("stop")
-                .build();
-        ModelResponse.Usage usage = ModelResponse.Usage.builder()
-                .promptTokens(5)
-                .completionTokens(5)
-                .totalTokens(10)
-                .build();
-        return ModelResponse.builder()
-                .id(UUID.randomUUID().toString())
-                .object("chat.completion.chunk")
-                .created(Instant.now().getEpochSecond())
-                .model(modelId)
-                .choices(Collections.singletonList(choice))
-                .usage(usage)
-                .build();
-    }
-
     @Override
-    public Mono<ModelResponse> invoke(ModelRequest request) {
-        LocalDateTime invokeTime = LocalDateTime.now();
-        String modelId = request.getModel();
-        return modelService.getModel(modelId)
-            .filter(model -> model.isActive())
-            .switchIfEmpty(Mono.error(new IllegalStateException("Model is not available")))
-            .flatMap(model -> {
-                String providerName = model.getProviderName();
-                ModelAdapter adapter = modelAdapterFactory.getAdapter(providerName);
-                if (adapter == null) {
-                    return Mono.error(new IllegalStateException("No adapter found for provider: " + providerName));
-                }
-                return adapter.invoke(request);
-            })
-            .doOnSuccess(response ->
-                modelInvokeRepository.saveInvokeRecord("", modelId, response, invokeTime)
-                    .subscribe()
-            );
-    }
-
-    @Override
-    public Flux<ModelResponse> streamInvoke(ModelRequest request) {
-        LocalDateTime invokeTime = LocalDateTime.now();
-        String modelId = request.getModel();
-        return modelService.getModel(modelId)
+    public Flux<ModelResponse> invoke(ModelRequest request) {
+        String modelName = request.getModel();
+        return modelService.getModelByName(modelName)
             .filter(model -> model.isActive())
             .switchIfEmpty(Mono.error(new IllegalStateException("Model is not available")))
             .flatMapMany(model -> {
-                Flux<ModelResponse> chunks = Flux.just(
-                    createChunk("第一部分响应", modelId),
-                    createChunk("第二部分响应", modelId),
-                    createChunk("第三部分响应", modelId)
-                );
-                return chunks.concatWith(
-                    Mono.fromRunnable(() -> {
-                        ModelResponse.Message message = ModelResponse.Message.builder()
-                                .role("assistant")
-                                .content("最终响应")
-                                .build();
-                        ModelResponse.Choice choice = ModelResponse.Choice.builder()
-                                .index(0)
-                                .message(message)
-                                .finishReason("stop")
-                                .build();
-                        ModelResponse.Usage usage = ModelResponse.Usage.builder()
-                                .promptTokens(50)
-                                .completionTokens(50)
-                                .totalTokens(100)
-                                .build();
-                        ModelResponse finalResponse = ModelResponse.builder()
-                                .id(UUID.randomUUID().toString())
-                                .object("chat.completion")
-                                .created(Instant.now().getEpochSecond())
-                                .model(modelId)
-                                .choices(Collections.singletonList(choice))
-                                .usage(usage)
-                                .build();
-                        modelInvokeRepository.saveInvokeRecord("", modelId, finalResponse, invokeTime).subscribe();
-                    })
-                );
+                String providerName = model.getProviderName();
+                ModelAdapter adapter = modelAdapterFactory.getAdapter(providerName);
+                if (adapter == null) {
+                    return Flux.error(new IllegalStateException("No adapter found for provider: " + providerName));
+                }
+                if (request.isStream()) {
+                    // 流式返回
+                    return adapter.streamInvoke(model, request)
+                        .doOnComplete(() -> {
+                            // 可在此保存最终响应记录
+                        });
+                } else {
+                    // 非流式返回
+                    return adapter.invoke(model, request)
+                        .doOnSuccess(response -> {
+                            // 可在此保存响应记录
+                        })
+                        .flux(); // 转为Flux
+                }
             });
     }
 

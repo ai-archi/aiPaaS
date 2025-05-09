@@ -10,6 +10,8 @@ import org.springframework.data.relational.core.mapping.Table;
 import org.springframework.data.relational.core.mapping.Column;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 @Data
 @Builder
@@ -48,6 +50,22 @@ public class ModelConfigEntity {
     private Boolean supportVideoGeneration;
     @Column("support_vector")
     private Boolean supportVector;
+    @Column("provider_name")
+    private String providerName;
+    @Column("model_code")
+    private String modelCode;
+    @Column("price_unit")
+    private String priceUnit;
+    @Column("currency")
+    private String currency;
+    @Column("qps_limit")
+    private Integer qpsLimit;
+    @Column("region")
+    private String region;
+    @Column("tags")
+    private String tags;
+    @Column("status")
+    private String status;
 
     public static ModelConfigEntity fromDomain(ModelConfig modelConfig) {
         return ModelConfigEntity.builder()
@@ -70,6 +88,14 @@ public class ModelConfigEntity {
                 .supportSpeechGeneration(modelConfig.isSupportSpeechGeneration())
                 .supportVideoGeneration(modelConfig.isSupportVideoGeneration())
                 .supportVector(modelConfig.isSupportVector())
+                .providerName(modelConfig.getProviderName())
+                .modelCode(modelConfig.getModelCode())
+                .priceUnit(modelConfig.getPriceUnit())
+                .currency(modelConfig.getCurrency())
+                .qpsLimit(modelConfig.getQpsLimit())
+                .region(modelConfig.getRegion())
+                .tags(modelConfig.getTags() != null ? String.join(",", modelConfig.getTags()) : null)
+                .status(modelConfig.getStatus())
                 .build();
     }
 
@@ -94,6 +120,14 @@ public class ModelConfigEntity {
                 .supportSpeechGeneration(this.supportSpeechGeneration != null && this.supportSpeechGeneration)
                 .supportVideoGeneration(this.supportVideoGeneration != null && this.supportVideoGeneration)
                 .supportVector(this.supportVector != null && this.supportVector)
+                .providerName(this.providerName)
+                .modelCode(this.modelCode)
+                .priceUnit(this.priceUnit)
+                .currency(this.currency)
+                .qpsLimit(this.qpsLimit)
+                .region(this.region)
+                .tags(this.tags != null ? Arrays.asList(this.tags.split(",")) : null)
+                .status(this.status)
                 .build();
     }
 } 

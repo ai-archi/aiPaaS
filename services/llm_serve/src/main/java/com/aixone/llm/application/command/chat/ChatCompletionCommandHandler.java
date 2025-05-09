@@ -5,14 +5,14 @@ import com.aixone.llm.domain.models.values.config.ModelResponse;
 import com.aixone.llm.domain.models.values.config.ModelRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 
 @Component
 @RequiredArgsConstructor
 public class ChatCompletionCommandHandler {
     private final ChatService chatService;
 
-    public ModelResponse handle(ChatCompletionCommand command) {
-        // 检查模型是否可用
+    public Flux<ModelResponse> handle(ChatCompletionCommand command) {
         ModelRequest request = command.toModelRequest();
         return chatService.chatCompletion(request);
     }

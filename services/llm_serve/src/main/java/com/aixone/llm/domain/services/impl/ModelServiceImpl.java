@@ -40,6 +40,11 @@ public class ModelServiceImpl implements ModelService {
     public Mono<ModelConfig> getModel(String modelId) {
         return modelRepository.findById(modelId);
     }
+
+    @Override
+    public Mono<ModelConfig> getModelByName(String modelName) {
+        return modelRepository.findByName(modelName);
+    }
     
     @Override
     public Flux<ModelConfig> listModels() {

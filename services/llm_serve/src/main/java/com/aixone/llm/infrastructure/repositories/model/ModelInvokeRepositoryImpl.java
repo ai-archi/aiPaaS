@@ -27,11 +27,11 @@ public class ModelInvokeRepositoryImpl implements ModelInvokeRepository {
         entity.setResponse(response.getResult());
         entity.setPrompt(null); // 可根据需要补充
         if (response.getUsage() != null) {
-            entity.setPromptTokens((long) response.getUsage().getPromptTokens());
-            entity.setCompletionTokens((long) response.getUsage().getCompletionTokens());
-            entity.setUsedTokens((long) response.getUsage().getTotalTokens());
+            entity.setPromptTokens((long) response.getUsage().getPrompt_tokens());
+            entity.setCompletionTokens((long) response.getUsage().getCompletion_tokens());
+            entity.setUsedTokens((long) response.getUsage().getTotal_tokens());
         }
-        entity.setFinishReason(response.getChoices() != null && !response.getChoices().isEmpty() ? response.getChoices().get(0).getFinishReason() : null);
+        entity.setFinishReason(response.getChoices() != null && !response.getChoices().isEmpty() ? response.getChoices().get(0).getFinish_reason() : null);
         entity.setIsError(false); // 可根据业务补充
         entity.setErrorMessage(null);
         entity.setInvokeTime(invokeTime);

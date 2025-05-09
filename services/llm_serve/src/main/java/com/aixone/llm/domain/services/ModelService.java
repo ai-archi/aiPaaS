@@ -16,6 +16,7 @@ public interface ModelService {
     
     // 模型查询
     Mono<ModelConfig> getModel(String modelId);
+    Mono<ModelConfig> getModelByName(String modelName);
     Flux<ModelConfig> listModels();
     
     // 模型验证

@@ -30,14 +30,6 @@ public class CompletionCommand extends ModelRequest {
 
     public ModelRequest toModelRequest() {
         return  ModelRequest.builder()
-                .model(getModel())
-                .messages(getMessages())
-                .prompt(getPrompt())
-                .maxTokens(getMaxTokens())
-                .temperature(getTemperature())
-                .topP(getTopP())
-                .stream(getStream())
-                .extraParams(getExtraParams())
                 .build();
     }
 } 

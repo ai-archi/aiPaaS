@@ -7,12 +7,9 @@ import reactor.core.publisher.Mono;
 
 
 
-public interface ModelInvokeService {
-    // 同步调用模型
-    Mono<ModelResponse> invoke(ModelRequest request);
-    
-    // 流式调用模型
-    Flux<ModelResponse> streamInvoke(ModelRequest request);
+public interface    ModelInvokeService {
+    // 统一调用模型，支持流式和非流式
+    Flux<ModelResponse> invoke(ModelRequest request);
     
     // 获取已使用的Token数量
     Mono<Long> getUsedTokens(String userId, String modelId);

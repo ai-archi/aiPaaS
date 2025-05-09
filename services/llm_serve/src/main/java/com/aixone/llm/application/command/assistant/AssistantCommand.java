@@ -25,12 +25,11 @@ public class AssistantCommand extends ModelRequest {
         return  ModelRequest.builder()
                 .model(getModel())
                 .messages(getMessages())
-                .prompt(getPrompt())
                 .maxTokens(getMaxTokens())
                 .temperature(getTemperature())
                 .topP(getTopP())
-                .stream(getStream())
-                .extraParams(getExtraParams())
+                .stream(isStream())
+                .streamOptions(getStreamOptions())
                 .build();
     }
 

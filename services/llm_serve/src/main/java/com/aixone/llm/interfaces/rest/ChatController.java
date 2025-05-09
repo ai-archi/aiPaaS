@@ -5,6 +5,10 @@ import com.aixone.llm.application.command.chat.ChatCompletionCommand;
 import com.aixone.llm.domain.models.values.config.ModelResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.reactivestreams.Publisher;
+import org.springframework.http.MediaType;
+import org.springframework.http.server.reactive.ServerHttpResponse;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -13,10 +17,17 @@ import reactor.core.publisher.Mono;
 public class ChatController {
     private final ChatCompletionCommandHandler chatCommandHandler;
 
-    @PostMapping("/completions")
-    public Mono<ModelResponse> chatCompletions(@RequestBody ChatCompletionCommand command) {
-        // 这里直接调用命令处理器
-        // TODO: 调用流式命令处理器，返回流式响应
-        return Mono.fromSupplier(() -> chatCommandHandler.handle(command));
+    @PostMapping(value = "/completions", produces = {
+        MediaType.APPLICATION_JSON_VALUE, 
+        MediaType.TEXT_EVENT_STREAM_VALUE})
+    public Publisher<ModelResponse> chatCompletions(@PathVariable("tenantId") String tenantId, @RequestBody ChatCompletionCommand command, ServerHttpResponse response) {
+        command.setTenantId(tenantId);
+        if (command.isStream()) {
+            response.getHeaders().setContentType(MediaType.TEXT_EVENT_STREAM);
+            return chatCommandHandler.handle(command);
+        } else {
+            response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+            return chatCommandHandler.handle(command).next();
+        }
     }
 } 

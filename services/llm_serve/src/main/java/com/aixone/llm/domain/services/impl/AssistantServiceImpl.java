@@ -104,25 +104,17 @@ public class AssistantServiceImpl implements AssistantService {
     // 消息处理和路由
     @Override
     public Mono<Message> createMessage(String assistantId, String threadId, Message message) {
+        // 只保存Message，不再处理threadId、timestamp等
         return threadRepository.findById(threadId)
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("线程不存在")))
-                .flatMap(t -> {
-                    message.setThreadId(threadId);
-                    message.setTimestamp(LocalDateTime.now());
-                    return messageRepository.save(message);
-                });
+                .flatMap(t -> messageRepository.save(message));
     }
 
     @Override
     public Mono<Message> updateMessage(String assistantId, String threadId, String messageId, Message message) {
         return messageRepository.findById(messageId)
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("消息不存在")))
-                .flatMap(existing -> {
-                    message.setId(messageId);
-                    message.setThreadId(threadId);
-                    message.setTimestamp(LocalDateTime.now());
-                    return messageRepository.save(message);
-                });
+                .flatMap(existing -> messageRepository.save(message));
     }
 
     @Override
@@ -132,8 +124,7 @@ public class AssistantServiceImpl implements AssistantService {
 
     @Override
     public Mono<Message> getMessage(String assistantId, String threadId, String messageId) {
-        return messageRepository.findById(messageId)
-                .filter(msg -> threadId.equals(msg.getThreadId()));
+        return messageRepository.findById(messageId);
     }
 
     @Override

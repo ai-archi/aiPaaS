@@ -10,7 +10,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import static org.mockito.Mockito.*;
 import java.util.Collections;
-
+import reactor.core.publisher.Flux;
 @WebFluxTest(ChatController.class)
 public class ChatControllerTest {
     @Autowired
@@ -26,7 +26,7 @@ public class ChatControllerTest {
         ChatCompletionCommand command = ChatCompletionCommand.builder()
                 .model("test-model").messages(Collections.singletonList(msg)).build();
         ModelResponse mockResp = ModelResponse.builder().id("1").object("chat.completion").model("test-model").build();
-        when(chatCommandHandler.handle(any())).thenReturn(mockResp);
+        when(chatCommandHandler.handle(any(ChatCompletionCommand.class))).thenReturn(Flux.just(mockResp));
 
         webTestClient.post().uri("/v1/chat/completions")
                 .bodyValue(command)

@@ -12,7 +12,6 @@ public class MessageCommand {
     private String content;
     private String model;   
     private List<Message> messages;
-    private String prompt;
     private Integer maxTokens;
     private Double temperature;
     private Double topP;
@@ -22,12 +21,10 @@ public class MessageCommand {
         return  ModelRequest.builder()
                 .model(getModel())
                 .messages(getMessages())
-                .prompt(getPrompt())
                 .maxTokens(getMaxTokens())
                 .temperature(getTemperature())
                 .topP(getTopP())
                 .stream(getStream())
-                .extraParams(getExtraParams())
                 .build();
     }
 } 

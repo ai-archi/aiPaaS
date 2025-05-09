@@ -76,4 +76,10 @@ public class ModelConfigRepositoryR2dbcImpl implements ModelConfigRepository {
     public Mono<Boolean> existsById(String id) {
         return template.exists(Query.query(Criteria.where("id").is(id)), ModelConfigEntity.class);
     }
+
+    @Override
+    public Mono<ModelConfig> findByName(String name) {
+        return template.selectOne(Query.query(Criteria.where("name").is(name)), ModelConfigEntity.class)
+                .map(ModelConfigEntity::toDomain);
+    }
 }

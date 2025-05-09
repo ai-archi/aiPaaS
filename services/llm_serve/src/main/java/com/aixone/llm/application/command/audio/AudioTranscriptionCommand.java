@@ -9,10 +9,9 @@ import org.springframework.web.multipart.MultipartFile;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AudioTranscriptionCommand extends ModelRequest {
+public class AudioTranscriptionCommand  {
     private MultipartFile file;
     private String language;
-    private String prompt;
     private String responseFormat;
     private Double temperature;
     private Integer timestampGranularities;
@@ -21,13 +20,6 @@ public class AudioTranscriptionCommand extends ModelRequest {
     }
     public ModelRequest toModelRequest() {
         return  ModelRequest.builder()
-                .model(getModel())
-                .prompt(getPrompt())
-                .maxTokens(getMaxTokens())
-                .temperature(getTemperature())
-                .topP(getTopP())
-                .stream(getStream())
-                .extraParams(getExtraParams())
                 .build();
     }
 } 
