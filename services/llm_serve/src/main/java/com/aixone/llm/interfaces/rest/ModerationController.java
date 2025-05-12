@@ -1,15 +1,18 @@
 package com.aixone.llm.interfaces.rest;
 
-import lombok.RequiredArgsConstructor;
+import java.util.Map;
+
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.aixone.llm.application.moderation.ModerationCommand;
+import com.aixone.llm.application.moderation.ModerationCommandHandler;
+
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
-import java.util.Map;
-import com.aixone.llm.application.command.moderation.ModerationCommandHandler;
-import com.aixone.llm.application.command.moderation.ModerationCommand;
 @RestController
 @RequestMapping("/v1/{tenantId}/moderations")
 @RequiredArgsConstructor

@@ -1,11 +1,20 @@
 package com.aixone.llm.interfaces.rest;
 
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.aixone.llm.application.message.MessageCommand;
 import com.aixone.llm.domain.models.chat.Message;
 import com.aixone.llm.domain.services.AssistantService;
-import com.aixone.llm.application.command.message.MessageCommand;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

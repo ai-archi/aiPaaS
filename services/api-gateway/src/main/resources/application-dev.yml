@@ -15,7 +15,7 @@ spring:
         password: nacos
         access-key: serverIdentity
         secret-key: security
-        context-path: /nacos
+        # context-path: /nacos
       config:
         server-addr: 127.0.0.1:8848
         file-extension: yaml
@@ -25,7 +25,7 @@ spring:
         password: nacos
         access-key: serverIdentity
         secret-key: security
-        context-path: /nacos
+        # context-path: /nacos
     sentinel:
       transport:
         dashboard: 127.0.0.1:8858
@@ -73,8 +73,6 @@ management:
 logging:
   level:
     root: INFO
-    org.springframework.cloud.gateway: DEBUG
-    com.aixone.gateway: DEBUG
   file:
     name: logs/api-gateway.log
   pattern:

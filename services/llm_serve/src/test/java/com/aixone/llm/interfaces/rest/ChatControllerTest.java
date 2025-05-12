@@ -1,23 +1,31 @@
 package com.aixone.llm.interfaces.rest;
 
-import com.aixone.llm.application.command.chat.ChatCompletionCommand;
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
+import org.mockito.Mock;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.web.reactive.server.WebTestClient;
+
+import com.aixone.llm.application.chat.ChatCompletionCommand;
+import com.aixone.llm.application.chat.ChatCompletionCommandHandler;
 import com.aixone.llm.domain.models.chat.ChatResponse;
 import com.aixone.llm.domain.models.chat.Message;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.web.reactive.server.WebTestClient;
-import static org.mockito.Mockito.*;
-import java.util.Collections;
+
 import reactor.core.publisher.Flux;
-@WebFluxTest(ChatController.class)
+
+@ExtendWith(MockitoExtension.class)
 public class ChatControllerTest {
     @Autowired
     private WebTestClient webTestClient;
 
-    @MockBean
-    private com.aixone.llm.application.command.chat.ChatCompletionCommandHandler chatCommandHandler;
+    @Mock
+    private ChatCompletionCommandHandler chatCommandHandler;
+
 
     @Test
     void testChatCompletions() {

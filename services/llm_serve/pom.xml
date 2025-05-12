@@ -16,6 +16,12 @@
     <description>Unified LLM Service Platform</description>
 
     <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -52,9 +58,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.3</version>
         </dependency>
-
         <!-- Cache -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -65,8 +69,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.30</version>
-            <optional>true</optional>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.github.resilience4j</groupId>
@@ -112,7 +115,7 @@
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
-                            <version>1.18.30</version>
+                            <version>1.18.38</version>
                         </path>
                         <path>
                             <groupId>org.mapstruct</groupId>

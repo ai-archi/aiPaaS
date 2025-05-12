@@ -36,6 +36,11 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-actuator</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>            
             <!-- Spring Cloud Dependencies -->
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
@@ -44,6 +49,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            
             <!-- Spring Cloud Alibaba Dependencies -->
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
@@ -51,6 +57,12 @@
                 <version>${spring-cloud-alibaba.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>1.18.38</version>
+                <optional>true</optional>
             </dependency>
         </dependencies>
     </dependencyManagement>

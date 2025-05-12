@@ -1,8 +1,9 @@
 package com.aixone.llm.domain.services;
 
+import com.aixone.llm.application.thread.ThreadCommand;
 import com.aixone.llm.domain.models.assistant.Assistant;
-import com.aixone.llm.application.command.thread.ThreadCommand;
 import com.aixone.llm.domain.models.chat.Message;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

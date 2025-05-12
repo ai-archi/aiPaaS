@@ -1,10 +1,12 @@
 package com.aixone.llm.domain.models.chat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import com.fasterxml.jackson.databind.ObjectMapper;
 /**
  * 对应 DeepSeek API 消息结构
  */
@@ -53,13 +55,13 @@ public class Message {
      */
     public String getContentAsString() {
         if (content == null) return null;
-        if (content instanceof String) {
-            return (String) content;
+        if (content instanceof String string) {
+            return string;
         }
         try {
             // 其它类型转为 JSON 字符串
             return new ObjectMapper().writeValueAsString(content);
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             return content.toString();
         }
     }

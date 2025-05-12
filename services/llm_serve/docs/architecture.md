@@ -260,14 +260,14 @@ sequenceDiagram
 
 #### 4.1.5 图像处理接口
 - **Image Generation**
-  - 路径：`POST /v1/images/generations`
+  - 路径：`POST /v1/aigc/images/generations`
   - 功能：文本生成图片
   - 特性：
     * SSE：**不需要**，同步返回生成的图片
     * 响应格式：标准 JSON 或二进制图片数据
 
 - **Image Editing**
-  - 路径：`POST /v1/images/edits`
+  - 路径：`POST /v1/aigc/images/edits`
   - 功能：修改已有图像
   - 特性：
     * SSE：**不需要**，同步返回编辑后的图片

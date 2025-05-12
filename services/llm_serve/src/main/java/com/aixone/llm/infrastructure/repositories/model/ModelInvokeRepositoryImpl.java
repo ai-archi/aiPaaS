@@ -1,23 +1,26 @@
 package com.aixone.llm.infrastructure.repositories.model;
 
+import java.time.LocalDateTime;
+
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+import org.springframework.data.relational.core.query.Criteria;
+import org.springframework.data.relational.core.query.Query;
+import org.springframework.stereotype.Repository;
+
 import com.aixone.llm.domain.models.BaseModelResponse;
 import com.aixone.llm.domain.models.chat.ChatResponse;
 import com.aixone.llm.domain.models.completion.CompletionResponse;
 import com.aixone.llm.domain.models.embedding.EmbeddingResponse;
 import com.aixone.llm.domain.repositories.model.ModelInvokeRepository;
 import com.aixone.llm.infrastructure.entity.ModelInvokeEntity;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
-import org.springframework.data.relational.core.query.Criteria;
-import org.springframework.data.relational.core.query.Query;
-import org.springframework.stereotype.Repository;
-import reactor.core.publisher.Mono;
 
-import java.time.LocalDateTime;
+import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Mono;
 
 @Repository
 @RequiredArgsConstructor
 public class ModelInvokeRepositoryImpl implements ModelInvokeRepository {
+    
     private final R2dbcEntityTemplate template;
 
     @Override
@@ -25,35 +28,38 @@ public class ModelInvokeRepositoryImpl implements ModelInvokeRepository {
         ModelInvokeEntity entity = new ModelInvokeEntity();
         entity.setUserId(userId);
         entity.setModelId(modelId);
-        if (response instanceof ChatResponse) {
-            ChatResponse chat = (ChatResponse) response;
-            entity.setRequestId(chat.getId());
-            entity.setResponse(chat.getResult());
-            if (chat.getUsage() != null) {
-                entity.setPromptTokens((long) chat.getUsage().getPrompt_tokens());
-                entity.setCompletionTokens((long) chat.getUsage().getCompletion_tokens());
-                entity.setUsedTokens((long) chat.getUsage().getTotal_tokens());
+        switch (response) {
+            case ChatResponse chat -> {
+                entity.setRequestId(chat.getId());
+                entity.setResponse(chat.getResult());
+                if (chat.getUsage() != null) {
+                    entity.setPromptTokens((long) chat.getUsage().getPrompt_tokens());
+                    entity.setCompletionTokens((long) chat.getUsage().getCompletion_tokens());
+                    entity.setUsedTokens((long) chat.getUsage().getTotal_tokens());
+                }
+                entity.setFinishReason(chat.getChoices() != null && !chat.getChoices().isEmpty() ? chat.getChoices().get(0).getFinish_reason() : null);
             }
-            entity.setFinishReason(chat.getChoices() != null && !chat.getChoices().isEmpty() ? chat.getChoices().get(0).getFinish_reason() : null);
-        } else if (response instanceof CompletionResponse) {
-            CompletionResponse comp = (CompletionResponse) response;
-            entity.setRequestId(comp.getId());
-            entity.setResponse(comp.getResult());
-            if (comp.getUsage() != null) {
-                entity.setPromptTokens((long) comp.getUsage().getPromptTokens());
-                entity.setCompletionTokens((long) comp.getUsage().getCompletionTokens());
-                entity.setUsedTokens((long) comp.getUsage().getTotalTokens());
+            case CompletionResponse comp -> {
+                entity.setRequestId(comp.getId());
+                entity.setResponse(comp.getChoices() != null && !comp.getChoices().isEmpty() ? comp.getChoices().get(0).getText() : null);
+                if (comp.getUsage() != null) {
+                    entity.setPromptTokens((long) comp.getUsage().getPromptTokens());
+                    entity.setCompletionTokens((long) comp.getUsage().getCompletionTokens());
+                    entity.setUsedTokens((long) comp.getUsage().getTotalTokens());
+                }
+                entity.setFinishReason(comp.getChoices() != null && !comp.getChoices().isEmpty() ? comp.getChoices().get(0).getFinishReason() : null);
             }
-            entity.setFinishReason(comp.getChoices() != null && !comp.getChoices().isEmpty() ? comp.getChoices().get(0).getFinishReason() : null);
-        } else if (response instanceof EmbeddingResponse) {
-            EmbeddingResponse emb = (EmbeddingResponse) response;
-            entity.setRequestId(emb.getId());
-            entity.setResponse(null); // 可根据 EmbeddingResponse 结构补充
-            if (emb.getUsage() != null) {
-                entity.setPromptTokens((long) emb.getUsage().getPromptTokens());
-                entity.setUsedTokens((long) emb.getUsage().getTotalTokens());
+            case EmbeddingResponse emb -> {
+                entity.setRequestId(emb.getId());
+                entity.setResponse(null); // 可根据 EmbeddingResponse 结构补充
+                if (emb.getUsage() != null) {
+                    entity.setPromptTokens((long) emb.getUsage().getPromptTokens());
+                    entity.setUsedTokens((long) emb.getUsage().getTotalTokens());
+                }
+                entity.setFinishReason(null);
             }
-            entity.setFinishReason(null);
+            default -> {
+            }
         }
         entity.setPrompt(null); // 可根据需要补充
         entity.setIsError(false); // 可根据业务补充

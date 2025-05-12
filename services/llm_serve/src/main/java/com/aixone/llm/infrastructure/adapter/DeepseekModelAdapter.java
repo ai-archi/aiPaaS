@@ -1,6 +1,9 @@
 package com.aixone.llm.infrastructure.adapter;
 
 import com.aixone.llm.domain.services.ModelAdapter;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -12,6 +15,9 @@ import com.aixone.llm.domain.models.chat.ChatRequest;
 import com.aixone.llm.domain.models.chat.ChatResponse;
 import com.aixone.llm.domain.models.completion.CompletionRequest;
 import com.aixone.llm.domain.models.completion.CompletionResponse;
+import com.aixone.llm.domain.models.image.ImageRequest;
+import com.aixone.llm.domain.models.image.ImageResponse;
+import java.io.IOException;
 
 
 @Component
@@ -52,15 +58,15 @@ public class DeepseekModelAdapter implements ModelAdapter, ModelAdapterFactoryIm
                 .filter(raw -> raw != null && !raw.trim().isEmpty() && !raw.trim().equals("[DONE]"))
                 .map(raw -> {
                     try {
-                        var mapper = com.fasterxml.jackson.databind.json.JsonMapper.builder().build();
+                        var mapper = JsonMapper.builder().build();
                         String trimmed = raw.trim();
                         if (trimmed.startsWith("[")) {
-                            java.util.List<ChatResponse> list = mapper.readValue(trimmed, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<ChatResponse>>() {});
+                            java.util.List<ChatResponse> list = mapper.readValue(trimmed, new TypeReference<java.util.List<ChatResponse>>() {});
                             return list.isEmpty() ? null : list.get(0);
                         } else {
                             return mapper.readValue(trimmed, ChatResponse.class);
                         }
-                    } catch (Exception e) {
+                    } catch (IOException e) {
                         System.err.println("[Deepseek stream parse error]: " + e.getMessage());
                         return null;
                     }
@@ -70,8 +76,8 @@ public class DeepseekModelAdapter implements ModelAdapter, ModelAdapterFactoryIm
 
     @Override
     public Mono<CompletionResponse> invokeCompletion(ModelConfig model, CompletionRequest request) {
-        WebClient webClient = WebClient.builder().baseUrl("https://api.deepseek.com/beta").build();
-        return webClient.post()
+        WebClient webClientBeta = WebClient.builder().baseUrl("https://api.deepseek.com/beta").build();
+        return webClientBeta.post()
         .uri("/completions")
         .header("Content-Type", "application/json")
         .header("Authorization", "Bearer " + model.getApiKey())
@@ -82,8 +88,8 @@ public class DeepseekModelAdapter implements ModelAdapter, ModelAdapterFactoryIm
 
     @Override
     public Flux<CompletionResponse> invokeCompletionStream(ModelConfig model, CompletionRequest request) {
-        WebClient webClient = WebClient.builder().baseUrl("https://api.deepseek.com/beta").build();
-        return webClient.post()
+        WebClient webClientBeta = WebClient.builder().baseUrl("https://api.deepseek.com/beta").build();
+        return webClientBeta.post()
                 .uri("/completions")
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + model.getApiKey())
@@ -95,20 +101,31 @@ public class DeepseekModelAdapter implements ModelAdapter, ModelAdapterFactoryIm
                 .filter(raw -> raw != null && !raw.trim().isEmpty() && !raw.trim().equals("[DONE]"))
                 .map(raw -> {
                     try {
-                        var mapper = com.fasterxml.jackson.databind.json.JsonMapper.builder().build();
+                        var mapper = JsonMapper.builder().build();
                         String trimmed = raw.trim();
                         if (trimmed.startsWith("[")) {
-                            java.util.List<CompletionResponse> list = mapper.readValue(trimmed, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<CompletionResponse>>() {});
+                            java.util.List<CompletionResponse> list = mapper.readValue(trimmed, new TypeReference<java.util.List<CompletionResponse>>() {});
                             if (list.isEmpty()) throw new RuntimeException("Empty CompletionResponse list");
                             return list.get(0);
                         } else {
                             return mapper.readValue(trimmed, CompletionResponse.class);
                         }
-                    } catch (Exception e) {
+                    } catch (IOException e) {
                         System.err.println("[Deepseek completions stream parse error]: " + e.getMessage());
                         throw new RuntimeException("[Deepseek completions stream parse error]", e);
                     }
                 });
+    }
+    @Override
+    public Mono<ImageResponse> submitImageTask(ModelConfig model, ImageRequest request) {
+        // 不支持图片任务
+        return Mono.error(new UnsupportedOperationException("Not implemented yet"));
+    }
+
+    @Override
+    public Mono<ImageResponse> getImageTaskResult(ModelConfig model, String taskId) {
+        // 不支持图片任务
+        return Mono.error(new UnsupportedOperationException("Not implemented yet"));
     }
     
     @Override
@@ -129,7 +146,6 @@ public class DeepseekModelAdapter implements ModelAdapter, ModelAdapterFactoryIm
         return Mono.just(true);
     }
 
- 
 
 
 }

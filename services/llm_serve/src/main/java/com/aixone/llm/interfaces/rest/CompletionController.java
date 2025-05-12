@@ -1,13 +1,19 @@
 package com.aixone.llm.interfaces.rest;
 
-import com.aixone.llm.application.command.completion.CompletionCommandHandler;
-import com.aixone.llm.application.command.completion.CompletionCommand;
-import com.aixone.llm.domain.models.completion.CompletionResponse;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.reactivestreams.Publisher;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpResponse;
-import org.reactivestreams.Publisher;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.aixone.llm.application.completion.CompletionCommand;
+import com.aixone.llm.application.completion.CompletionCommandHandler;
+import com.aixone.llm.domain.models.completion.CompletionResponse;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/v1/{tenantId}")

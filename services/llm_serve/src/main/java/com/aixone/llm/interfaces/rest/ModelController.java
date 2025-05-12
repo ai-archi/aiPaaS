@@ -1,14 +1,25 @@
 package com.aixone.llm.interfaces.rest;
 
-import com.aixone.llm.application.command.model.ModelCommandHandler;
-import com.aixone.llm.application.command.model.CreateModelCommand;
-import com.aixone.llm.application.command.model.UpdateModelCommand;
-import com.aixone.llm.application.query.model.ModelQueryHandler;
-import com.aixone.llm.application.query.model.ModelQuery;
-import com.aixone.llm.domain.models.aggregates.model_config.ModelConfig;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.aixone.llm.application.model.CreateModelCommand;
+import com.aixone.llm.application.model.ModelCommandHandler;
+import com.aixone.llm.application.model.ModelQuery;
+import com.aixone.llm.application.model.ModelQueryHandler;
+import com.aixone.llm.application.model.UpdateModelCommand;
+import com.aixone.llm.domain.models.aggregates.model_config.ModelConfig;
+
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

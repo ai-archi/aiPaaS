@@ -29,19 +29,13 @@ spring:
     baseline-on-migrate: true
     
   # Redis Configuration
-  redis:
-    host: localhost
-    port: 6379
-    database: 0
-    timeout: 10s
-    lettuce:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 2
-        max-wait: -1ms
-  
-  # Nacos Configuration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 10s
+
   cloud:
     nacos:
       discovery:
@@ -49,7 +43,6 @@ spring:
         namespace: public
         access-key: serverIdentity
         secret-key: security
-        context-path: /nacos
       config:
         server-addr: 127.0.0.1:8848
         file-extension: yaml
@@ -57,7 +50,6 @@ spring:
         group: DEFAULT_GROUP
         access-key: serverIdentity
         secret-key: security
-        context-path: /nacos
 
 # Resilience4j Configuration
 resilience4j:

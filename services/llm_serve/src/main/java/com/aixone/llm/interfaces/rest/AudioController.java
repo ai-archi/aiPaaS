@@ -1,16 +1,23 @@
 package com.aixone.llm.interfaces.rest;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import reactor.core.publisher.Mono;
 
+import com.aixone.llm.application.audio.AudioCommandHandler;
+import com.aixone.llm.application.audio.AudioTranscriptionCommand;
+import com.aixone.llm.application.audio.AudioTranslationCommand;
+
+import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/v1/{tenantId}/audio")
 @RequiredArgsConstructor
 public class AudioController {
-    private final com.aixone.llm.application.command.audio.AudioCommandHandler audioCommandHandler;
+    private final AudioCommandHandler audioCommandHandler;
 
     /**
      * 音频转写接口
@@ -18,7 +25,7 @@ public class AudioController {
      */
     @PostMapping(value = "/transcriptions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Mono<String> transcribeAudio(@RequestPart("file") MultipartFile file) {
-        return audioCommandHandler.handleTranscription(new com.aixone.llm.application.command.audio.AudioTranscriptionCommand(file));
+        return audioCommandHandler.handleTranscription(new AudioTranscriptionCommand(file));
     }
 
     /**
@@ -27,7 +34,7 @@ public class AudioController {
      */
     @PostMapping(value = "/translations", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Mono<String> translateAudio(@RequestPart("file") MultipartFile file) {
-        return audioCommandHandler.handleTranslation(new com.aixone.llm.application.command.audio.AudioTranslationCommand(file));
+        return audioCommandHandler.handleTranslation(new AudioTranslationCommand(file));
     }
 
     // 可扩展SSE接口，后续根据业务需求实现

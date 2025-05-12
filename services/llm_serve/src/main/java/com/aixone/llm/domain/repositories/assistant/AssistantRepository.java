@@ -1,13 +1,14 @@
 package com.aixone.llm.domain.repositories.assistant;
 
+import java.util.List;
+
 import com.aixone.llm.domain.models.assistant.Assistant;
-import com.aixone.llm.domain.models.thread.Thread;
 import com.aixone.llm.domain.models.assistant.ToolConfig;
+import com.aixone.llm.domain.models.thread.Thread;
 import com.aixone.llm.domain.repositories.Repository;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
 
 /**
  * 助理仓储接口
@@ -43,8 +44,12 @@ public interface AssistantRepository extends Repository<Assistant, String> {
      */
     Mono<Long> countActiveThreads(String assistantId);
 
+    @Override
     Mono<Assistant> save(Assistant assistant);
+    @Override
     Mono<Assistant> findById(String id);
+    @Override
     Flux<Assistant> findAll();
+    @Override
     Mono<Void> deleteById(String id);
 } 

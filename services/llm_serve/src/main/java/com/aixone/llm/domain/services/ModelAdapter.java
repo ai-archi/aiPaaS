@@ -1,13 +1,15 @@
 package com.aixone.llm.domain.services;
 
-import reactor.core.publisher.Mono;
-import reactor.core.publisher.Flux;
-
 import com.aixone.llm.domain.models.aggregates.model_config.ModelConfig;
 import com.aixone.llm.domain.models.chat.ChatRequest;
 import com.aixone.llm.domain.models.chat.ChatResponse;
 import com.aixone.llm.domain.models.completion.CompletionRequest;
 import com.aixone.llm.domain.models.completion.CompletionResponse;
+import com.aixone.llm.domain.models.image.ImageRequest;
+import com.aixone.llm.domain.models.image.ImageResponse;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface ModelAdapter {
     /**
@@ -48,4 +50,17 @@ public interface ModelAdapter {
      * @return 是否可用
      */
     Mono<Boolean> checkAvailability(String modelName);
+
+    /**
+     * 发起图片生成/编辑异步请求，返回任务ID等初步信息。
+     */
+    Mono<ImageResponse> submitImageTask(ModelConfig model, ImageRequest request);
+
+    /**
+     * 根据任务ID获取图片处理结果。
+     * @param model 模型配置
+     * @param taskId 任务ID
+     * @return 图片处理结果
+     */
+    Mono<ImageResponse> getImageTaskResult(ModelConfig model, String taskId);
 } 

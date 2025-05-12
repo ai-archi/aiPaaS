@@ -1,11 +1,19 @@
 package com.aixone.llm.interfaces.rest;
 
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.aixone.llm.application.assistant.AssistantCommand;
 import com.aixone.llm.domain.models.assistant.Assistant;
 import com.aixone.llm.domain.services.AssistantService;
-import com.aixone.llm.application.command.assistant.AssistantCommand;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

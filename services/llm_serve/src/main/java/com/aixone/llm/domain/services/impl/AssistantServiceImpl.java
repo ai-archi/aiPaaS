@@ -1,21 +1,22 @@
 package com.aixone.llm.domain.services.impl;
 
+import java.time.LocalDateTime;
+
+import org.springframework.stereotype.Service;
+
+import com.aixone.llm.application.thread.ThreadCommand;
 import com.aixone.llm.domain.models.assistant.Assistant;
-import com.aixone.llm.domain.models.thread.Thread;
 import com.aixone.llm.domain.models.chat.Message;
+import com.aixone.llm.domain.models.thread.Thread;
 import com.aixone.llm.domain.repositories.assistant.AssistantRepository;
+import com.aixone.llm.domain.repositories.assistant.MessageRepository;
 import com.aixone.llm.domain.repositories.assistant.ThreadRepository;
 import com.aixone.llm.domain.services.AssistantService;
-import com.aixone.llm.domain.repositories.assistant.MessageRepository;
-import com.aixone.llm.application.command.thread.ThreadCommand;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.time.LocalDateTime;
 
 @Slf4j
 @Service

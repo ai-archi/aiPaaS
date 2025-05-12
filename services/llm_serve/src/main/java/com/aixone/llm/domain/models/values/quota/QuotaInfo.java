@@ -1,8 +1,9 @@
 package com.aixone.llm.domain.models.values.quota;
 
+import java.time.LocalDateTime;
+
 import lombok.Builder;
 import lombok.Data;
-import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -29,9 +30,9 @@ public class QuotaInfo {
         return requestLimit == null || requestUsed < requestLimit;
     }
     public long getRemainingTokens() {
-        return tokenLimit == null ? Long.MAX_VALUE : tokenLimit - (tokenUsed == null ? 0 : tokenUsed);
+        return tokenLimit == null ? Long.MAX_VALUE : tokenLimit - tokenUsed;
     }
     public long getRemainingRequests() {
-        return requestLimit == null ? Long.MAX_VALUE : requestLimit - (requestUsed == null ? 0 : requestUsed);
+        return requestLimit == null ? Long.MAX_VALUE : requestLimit - requestUsed;
     }
 } 

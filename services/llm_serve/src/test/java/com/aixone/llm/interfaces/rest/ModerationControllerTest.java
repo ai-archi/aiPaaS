@@ -1,13 +1,19 @@
 package com.aixone.llm.interfaces.rest;
 
-import com.aixone.llm.application.command.moderation.ModerationCommandHandler;
-import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
 import java.util.List;
 import java.util.Map;
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-import com.aixone.llm.application.command.moderation.ModerationCommand;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.aixone.llm.application.moderation.ModerationCommand;
+import com.aixone.llm.application.moderation.ModerationCommandHandler;
+
+import reactor.core.publisher.Mono;
 public class ModerationControllerTest {
     @Test
     public void testModerate() {
