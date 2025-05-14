@@ -8,10 +8,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.aixone.llm.application.audio.AudioASRCommand;
 import com.aixone.llm.application.audio.AudioCommandHandler;
-import com.aixone.llm.application.audio.AudioTTSCommand;
+import com.aixone.llm.domain.models.audio.ASRRequest;
 import com.aixone.llm.domain.models.audio.AudioResponse;
+import com.aixone.llm.domain.models.audio.TTSRequest;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -30,18 +30,16 @@ public class AudioController {
             MediaType.TEXT_EVENT_STREAM_VALUE})
     public Flux<AudioResponse> createSpeech(
         @PathVariable("tenantId") String tenantId,
-        @RequestBody AudioTTSCommand command,
+        @RequestBody TTSRequest req,
         ServerHttpResponse response
     ) {
-        command.setType("tts");
-        command.setUserId(tenantId);
-        if (command.isStream()) {
+        req.setUserId(tenantId);
+        if (req.isStream()) {
             response.getHeaders().setContentType(MediaType.TEXT_EVENT_STREAM);
         } else {
             response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         }
-        // 无论流式与否，都返回Flux
-        return audioCommandHandler.handleTTS(command);
+        return audioCommandHandler.handleTTS(req);
     }
 
     /**
@@ -52,17 +50,15 @@ public class AudioController {
             MediaType.TEXT_EVENT_STREAM_VALUE})
     public Flux<AudioResponse> createTranscription(
         @PathVariable("tenantId") String tenantId,
-        @RequestBody AudioASRCommand command,
+        @RequestBody ASRRequest req,
         ServerHttpResponse response
     ) {
-        command.setUserId(tenantId);
-        command.setType("asr");
-        if (command.isStream()) {
+        req.setUserId(tenantId);
+        if (req.isStream()) {
             response.getHeaders().setContentType(MediaType.TEXT_EVENT_STREAM);
         } else {
             response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         }
-        // 无论流式与否，都返回Flux
-        return audioCommandHandler.handleASR(command);
+        return audioCommandHandler.handleASR(req);
     }
 } 

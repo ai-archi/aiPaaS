@@ -7,8 +7,9 @@ import java.util.List;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.aixone.llm.domain.models.audio.AudioRequest;
 import com.aixone.llm.domain.models.audio.AudioResponse;
+import com.aixone.llm.domain.models.audio.TTSRequest;
+import com.aixone.llm.domain.models.audio.ASRRequest;
 import com.aixone.llm.domain.models.chat.ChatRequest;
 import com.aixone.llm.domain.models.chat.ChatResponse;
 import com.aixone.llm.domain.models.completion.CompletionRequest;
@@ -169,22 +170,22 @@ public class OpenAIModelAdapter implements ModelAdapter, ModelAdapterFactoryImpl
 
 
     @Override
-    public Mono<AudioResponse> invokeASR(ModelConfig model, AudioRequest request, UserModelKey key) {
+    public Mono<AudioResponse> invokeASR(ModelConfig model, ASRRequest request, UserModelKey key) {
         throw new UnsupportedOperationException("Unimplemented method 'invokeASR'");
     }
 
     @Override
-    public Mono<AudioResponse> invokeTTS(ModelConfig model, AudioRequest request, UserModelKey key) {
+    public Mono<AudioResponse> invokeTTS(ModelConfig model, TTSRequest request, UserModelKey key) {
         throw new UnsupportedOperationException("Unimplemented method 'invokeTTS'");
     }
 
     @Override
-    public Flux<AudioResponse> invokeASRStream(ModelConfig model, AudioRequest request, UserModelKey key) {
+    public Flux<AudioResponse> invokeASRStream(ModelConfig model, ASRRequest request, UserModelKey key) {
         throw new UnsupportedOperationException("Unimplemented method 'invokeASRStream'");
     }
 
     @Override
-    public Flux<AudioResponse> invokeTTSStream(ModelConfig model, AudioRequest request, UserModelKey key) {
+    public Flux<AudioResponse> invokeTTSStream(ModelConfig model, TTSRequest request, UserModelKey key) {
         throw new UnsupportedOperationException("Unimplemented method 'invokeTTSStream'");
     }
 

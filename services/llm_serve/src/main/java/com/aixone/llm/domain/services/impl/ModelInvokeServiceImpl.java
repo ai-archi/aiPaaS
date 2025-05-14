@@ -4,8 +4,9 @@ import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
 
-import com.aixone.llm.domain.models.audio.AudioRequest;
+import com.aixone.llm.domain.models.audio.ASRRequest;
 import com.aixone.llm.domain.models.audio.AudioResponse;
+import com.aixone.llm.domain.models.audio.TTSRequest;
 import com.aixone.llm.domain.models.chat.ChatRequest;
 import com.aixone.llm.domain.models.chat.ChatResponse;
 import com.aixone.llm.domain.models.completion.CompletionRequest;
@@ -185,7 +186,7 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
     }
 
     @Override
-    public Flux<AudioResponse> invokeASR(AudioRequest request) {
+    public Flux<AudioResponse> invokeASR(ASRRequest request) {
         String modelName = request.getModel();
         String keyId = request.getKeyId();
         Mono<UserModelKey> keyMono;
@@ -219,8 +220,9 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
                 })
             );
     }
+
     @Override
-    public Flux<AudioResponse> invokeTTS(AudioRequest request) {
+    public Flux<AudioResponse> invokeTTS(TTSRequest request) {
         String modelName = request.getModel();
         String keyId = request.getKeyId();
         Mono<UserModelKey> keyMono;
@@ -251,7 +253,7 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
                             })
                             .flux();
                     }
-                    })
-                );
+                })
+            );
     }
 } 

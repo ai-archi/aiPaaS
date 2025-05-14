@@ -3,6 +3,8 @@ package com.aixone.llm.domain.models.audio;
 import java.io.Serializable;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -42,6 +44,12 @@ public class AudioResponse implements Serializable {
     public static class Output implements Serializable {
         private String finishReason;
         private Audio audio;
+
+        // 兼容ASR异步返回
+        @JsonProperty("task_id")
+        private String taskId;
+        @JsonProperty("task_status")
+        private String taskStatus;
     }
 
     @Data

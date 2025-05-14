@@ -11,9 +11,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.aixone.llm.domain.models.audio.ASRRequest;
 import com.aixone.llm.domain.models.audio.AudioMessage;
-import com.aixone.llm.domain.models.audio.AudioRequest;
 import com.aixone.llm.domain.models.audio.AudioResponse;
+import com.aixone.llm.domain.models.audio.TTSRequest;
 import com.aixone.llm.domain.models.image.ImageRequest;
 import com.aixone.llm.domain.models.image.ImageResponse;
 import com.aixone.llm.domain.models.image.ImageTaskResponse;
@@ -42,7 +43,7 @@ public class TongyiModelAdapter extends OpenAIModelAdapter {
     public List<String> getModelNames() {
         return Arrays.asList("wanx2.1-imageedit","wanx2.1-imageedit-v2",
         "wanx2.1-t2i-turbo","wanx2.1-t2i-plus","wanx2.0-t2i-turbo","wanx-style-repaint-v1",
-        "qwen-tts",
+        "qwen-tts","paraformer-v2",
         "stable-diffusion-3.5-large","stable-diffusion-3.5-large-turbo");
     }
     @Data
@@ -235,17 +236,29 @@ public class TongyiModelAdapter extends OpenAIModelAdapter {
                 });
     }
 
+    /**
+     * 调用阿里云Paraformer录音文件识别API，file_urls为公网可访问音频URL数组，详见官方文档：
+     * https://help.aliyun.com/zh/model-studio/paraformer-recorded-speech-recognition-restful-api
+     */
     @Override
-    public Mono<AudioResponse> invokeASR(ModelConfig model, AudioRequest request, UserModelKey key) {
-        String url = "/services/aigc/speech2text/speech-recognition";
+    public Mono<AudioResponse> invokeASR(ModelConfig model, ASRRequest request, UserModelKey key) {
+        String url = "/services/audio/asr/transcription";
         String authHeader = "Bearer " + key.getApiKey();
-        String audioBase64 = request.getAudio();
+        List<String> fileUrls = request.getFileUrls();
+        if (fileUrls == null || fileUrls.isEmpty()) {
+            log.error("[TongyiModelAdapter][invokeASR] fileUrls不能为空，且必须为公网可访问的音频URL");
+            return Mono.error(new IllegalArgumentException("fileUrls不能为空，且必须为公网可访问的音频URL"));
+        }
+        if (model.getName() == null || model.getName().isEmpty()) {
+            log.error("[TongyiModelAdapter][invokeASR] model不能为空");
+            return Mono.error(new IllegalArgumentException("model不能为空"));
+        }
         Map<String, Object> body = new HashMap<>();
         body.put("model", model.getName());
         Map<String, Object> input = new HashMap<>();
-        input.put("audio", audioBase64);
-        input.put("audio_format", "wav");
-        input.put("language", request.getLanguage() != null ? request.getLanguage() : "zh");
+        input.put("file_urls", fileUrls);
+        if (request.getAudioFormat() != null) input.put("audio_format", request.getAudioFormat());
+        if (request.getLanguage() != null) input.put("language", request.getLanguage());
         body.put("input", input);
         log.info("[TongyiModelAdapter][invokeASR] Header: Authorization: {}", authHeader);
         log.info("[TongyiModelAdapter][invokeASR] Header: Content-Type: application/json");
@@ -259,9 +272,25 @@ public class TongyiModelAdapter extends OpenAIModelAdapter {
                 .uri(url)
                 .header("Authorization", authHeader)
                 .header("Content-Type", "application/json")
+                .header("X-DashScope-Async", "enable")
                 .bodyValue(body)
                 .retrieve()
+                .onStatus(
+                    status -> status.is4xxClientError() || status.is5xxServerError(),
+                    clientResponse -> clientResponse.bodyToMono(String.class).flatMap(errorBody -> {
+                        log.error("[TongyiModelAdapter][invokeASR] 阿里云ASR接口失败响应: {}", errorBody);
+                        return Mono.error(new RuntimeException("Aliyun ASR error: " + errorBody));
+                    })
+                )
                 .bodyToMono(Map.class)
+                .doOnNext(resp -> {
+                    try {
+                        String json = com.fasterxml.jackson.databind.json.JsonMapper.builder().build().writeValueAsString(resp);
+                        log.info("[TongyiModelAdapter][invokeASR] 响应内容: {}", json);
+                    } catch (JsonProcessingException e) {
+                        log.warn("[TongyiModelAdapter][invokeASR] 响应内容序列化失败: {}", e.getMessage());
+                    }
+                })
                 .map(resp -> {
                     AudioResponse response = new AudioResponse();
                     response.setType("asr");
@@ -278,7 +307,7 @@ public class TongyiModelAdapter extends OpenAIModelAdapter {
     }
 
     @Override
-    public Mono<AudioResponse> invokeTTS(ModelConfig model, AudioRequest request, UserModelKey key) {
+    public Mono<AudioResponse> invokeTTS(ModelConfig model, TTSRequest request, UserModelKey key) {
         String url = "/services/aigc/multimodal-generation/generation";
         String authHeader = "Bearer " + key.getApiKey();
         String text = request.getText();
@@ -309,7 +338,7 @@ public class TongyiModelAdapter extends OpenAIModelAdapter {
     }
 
     @Override
-    public Flux<AudioResponse> invokeTTSStream(ModelConfig model, AudioRequest request, UserModelKey key) {
+    public Flux<AudioResponse> invokeTTSStream(ModelConfig model, TTSRequest request, UserModelKey key) {
         String url = "/services/aigc/multimodal-generation/generation";
         String authHeader = "Bearer " + key.getApiKey();
         String text = request.getText();
@@ -375,7 +404,7 @@ public class TongyiModelAdapter extends OpenAIModelAdapter {
     }
 
     @Override
-    public Flux<AudioResponse> invokeASRStream(ModelConfig model, AudioRequest request, UserModelKey key) {
+    public Flux<AudioResponse> invokeASRStream(ModelConfig model, ASRRequest request, UserModelKey key) {
         // 目前API不支持流式，直接用单次Mono包装为Flux
         return invokeASR(model, request, key).flux();
     }
