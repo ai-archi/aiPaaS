@@ -1,11 +1,12 @@
 package com.aixone.llm.domain.models.chat;
 
+import java.util.List;
+import java.util.Map;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import java.util.List;
-import java.util.Map;
 
 @Data
 @SuperBuilder
@@ -93,5 +94,10 @@ public class ChatRequest {
     private Integer topLogprobs;
     
     private String tenantId;
+
+    /**
+     * 用户可选指定的KeyId（如未指定则自动路由最优Key）。
+     */
+    private String keyId;
 
 } 

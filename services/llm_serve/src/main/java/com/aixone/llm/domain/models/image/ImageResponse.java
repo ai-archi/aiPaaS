@@ -2,69 +2,51 @@ package com.aixone.llm.domain.models.image;
 
 import java.util.List;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 /**
- * 图片生成/编辑响应领域模型。
- * 包含图片结果、任务状态、错误信息等。
+ * OpenAI 图片接口兼容响应模型。
+ * created: 时间戳
+ * data: 图片结果列表（url或b64_json）
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ImageResponse {
     /**
-     * 任务ID。
+     * 创建时间戳
+     */
+    private long created;
+    /**
+     * 图片结果数据
+     */
+    private List<ImageData> data;
+    /**
+     * 任务ID（阿里云等异步任务场景）
      */
     private String taskId;
-
     /**
-     * 任务状态（如 pending、success、failed 等）。
+     * 请求ID（阿里云等异步任务场景）
+     */
+    private String requestId;
+    /**
+     * 任务状态（如PENDING、SUCCEEDED等，阿里云等异步任务场景）
      */
     private String status;
 
-    /**
-     * 生成或编辑后的图片URL列表。
-     */
-    private List<String> imageUrls;
-
-    /**
-     * 错误信息（如有）。
-     */
-    private String errorMessage;
-
-    public ImageResponse() {}
-
-    public ImageResponse(String taskId, String status, List<String> imageUrls, String errorMessage) {
-        this.taskId = taskId;
-        this.status = status;
-        this.imageUrls = imageUrls;
-        this.errorMessage = errorMessage;
-    }
-
-    public String getTaskId() {
-        return taskId;
-    }
-
-    public void setTaskId(String taskId) {
-        this.taskId = taskId;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public List<String> getImageUrls() {
-        return imageUrls;
-    }
-
-    public void setImageUrls(List<String> imageUrls) {
-        this.imageUrls = imageUrls;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ImageData {
+        /**
+         * 图片URL（response_format为url时）
+         */
+        private String url;
+        /**
+         * 图片base64内容（response_format为b64_json时）
+         */
+        private String b64_json;
     }
 } 

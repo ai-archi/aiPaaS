@@ -2,6 +2,7 @@ package com.aixone.llm.domain.services;
 
 import com.aixone.llm.domain.models.image.ImageRequest;
 import com.aixone.llm.domain.models.image.ImageResponse;
+import com.aixone.llm.domain.models.image.ImageTaskResponse;
 
 import reactor.core.publisher.Mono;
 
@@ -20,5 +21,5 @@ public interface ImageService {
      * @param taskId 任务ID
      * @return 图片处理结果
      */
-    Mono<ImageResponse> getImageTaskResult(String taskId);
+    Mono<ImageTaskResponse> getImageTaskResult(String taskId, String model);
 } 

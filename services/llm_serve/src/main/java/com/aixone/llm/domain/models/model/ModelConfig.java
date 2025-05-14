@@ -1,16 +1,18 @@
-package com.aixone.llm.domain.models.aggregates.model_config;
+package com.aixone.llm.domain.models.model;
 
-import lombok.Data;
-import lombok.Builder;
-import org.springframework.data.annotation.Id;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import java.util.List;
 
+import org.springframework.data.annotation.Id;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ModelConfig {
@@ -18,7 +20,6 @@ public class ModelConfig {
     private String id;
     private String name;
     private String endpoint;
-    private String apiKey;
     private Integer maxTokens;
     private boolean active;
     private String description;
@@ -29,6 +30,7 @@ public class ModelConfig {
     private LocalDateTime updatedAt;
     private BigDecimal minInputPrice;
     private BigDecimal minOutputPrice;
+    private String chargeType; // "token" or "count"
 
     // 能力描述
     private boolean supportTextGeneration;
@@ -39,7 +41,6 @@ public class ModelConfig {
 
     // 可选扩展
     private String providerName;   // 厂商名
-    private String modelCode;      // 型号
     private String priceUnit;      // 计费单位
     private String currency;       // 币种
     private Integer qpsLimit;      // QPS限制

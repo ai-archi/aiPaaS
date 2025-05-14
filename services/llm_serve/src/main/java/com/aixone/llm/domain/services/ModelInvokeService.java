@@ -4,6 +4,10 @@ import com.aixone.llm.domain.models.chat.ChatRequest;
 import com.aixone.llm.domain.models.chat.ChatResponse;
 import com.aixone.llm.domain.models.completion.CompletionRequest;
 import com.aixone.llm.domain.models.completion.CompletionResponse;
+import com.aixone.llm.domain.models.image.ImageRequest;
+import com.aixone.llm.domain.models.image.ImageResponse;
+import com.aixone.llm.domain.models.image.ImageTaskResponse;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -14,8 +18,6 @@ public interface ModelInvokeService {
     // Completion 能力
     Flux<CompletionResponse> invokeCompletion(CompletionRequest request);
 
-
-    
     // 获取已使用的Token数量
     Mono<Long> getUsedTokens(String userId, String modelId);
     
@@ -27,4 +29,7 @@ public interface ModelInvokeService {
     
     // 获取模型的错误率
     Mono<Double> getModelErrorRate(String modelId);
+
+    Mono<ImageResponse> invokeImage(ImageRequest request);
+    Mono<ImageTaskResponse> getImageTaskResult(String taskId, String modelName);
 } 

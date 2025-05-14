@@ -2,7 +2,7 @@ package com.aixone.llm.application.model;
 
 import org.springframework.stereotype.Service;
 
-import com.aixone.llm.domain.models.aggregates.model_config.ModelConfig;
+import com.aixone.llm.domain.models.model.ModelConfig;
 import com.aixone.llm.domain.services.ModelService;
 
 import lombok.RequiredArgsConstructor;

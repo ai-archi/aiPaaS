@@ -1,5 +1,7 @@
 package com.aixone.llm.application.image;
 
+import org.springframework.stereotype.Component;
+
 import com.aixone.llm.domain.models.image.ImageRequest;
 import com.aixone.llm.domain.models.image.ImageResponse;
 import com.aixone.llm.domain.services.ImageService;
@@ -10,6 +12,7 @@ import reactor.core.publisher.Mono;
  * 图片处理命令处理器。
  * 负责调用领域服务提交任务和获取结果。
  */
+@Component
 public class ImageCommandHandler {
     private final ImageService imageService;
 

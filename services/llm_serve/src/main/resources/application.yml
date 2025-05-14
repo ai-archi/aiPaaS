@@ -71,6 +71,7 @@ resilience4j:
 logging:
   level:
     root: INFO
+    com.aixone.llm.infrastructure: DEBUG
     org.springframework.r2dbc: DEBUG
     org.springframework.data.r2dbc: DEBUG
     org.springframework.r2dbc.core: DEBUG

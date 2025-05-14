@@ -1,6 +1,7 @@
 package com.aixone.llm.domain.services;
 
-import com.aixone.llm.domain.models.aggregates.model_config.ModelConfig;
+import com.aixone.llm.domain.models.model.ModelConfig;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

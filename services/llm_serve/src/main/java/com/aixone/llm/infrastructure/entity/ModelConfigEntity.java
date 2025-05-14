@@ -1,16 +1,19 @@
 package com.aixone.llm.infrastructure.entity;
 
-import com.aixone.llm.domain.models.aggregates.model_config.ModelConfig;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
+
+import com.aixone.llm.domain.models.model.ModelConfig;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
-import org.springframework.data.relational.core.mapping.Column;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.Arrays;
 
 @Data
 @Builder
@@ -22,7 +25,6 @@ public class ModelConfigEntity {
     private String id;
     private String name;
     private String endpoint;
-    private String apiKey;
     private Integer maxTokens;
     private Boolean active;
     private String description;
@@ -39,6 +41,8 @@ public class ModelConfigEntity {
     private BigDecimal minInputPrice;
     @Column("min_output_price")
     private BigDecimal minOutputPrice;
+    @Column("charge_type")
+    private String chargeType;
     @Column("support_text_generation")
     private Boolean supportTextGeneration;
     @Column("support_image_generation")
@@ -51,8 +55,6 @@ public class ModelConfigEntity {
     private Boolean supportVector;
     @Column("provider_name")
     private String providerName;
-    @Column("model_code")
-    private String modelCode;
     @Column("price_unit")
     private String priceUnit;
     @Column("currency")
@@ -71,7 +73,6 @@ public class ModelConfigEntity {
                 .id(modelConfig.getId())
                 .name(modelConfig.getName())
                 .endpoint(modelConfig.getEndpoint())
-                .apiKey(modelConfig.getApiKey())
                 .maxTokens(modelConfig.getMaxTokens())
                 .active(modelConfig.isActive())
                 .description(modelConfig.getDescription())
@@ -82,13 +83,13 @@ public class ModelConfigEntity {
                 .updatedAt(modelConfig.getUpdatedAt())
                 .minInputPrice(modelConfig.getMinInputPrice())
                 .minOutputPrice(modelConfig.getMinOutputPrice())
+                .chargeType(modelConfig.getChargeType())
                 .supportTextGeneration(modelConfig.isSupportTextGeneration())
                 .supportImageGeneration(modelConfig.isSupportImageGeneration())
                 .supportSpeechGeneration(modelConfig.isSupportSpeechGeneration())
                 .supportVideoGeneration(modelConfig.isSupportVideoGeneration())
                 .supportVector(modelConfig.isSupportVector())
                 .providerName(modelConfig.getProviderName())
-                .modelCode(modelConfig.getModelCode())
                 .priceUnit(modelConfig.getPriceUnit())
                 .currency(modelConfig.getCurrency())
                 .qpsLimit(modelConfig.getQpsLimit())
@@ -103,7 +104,6 @@ public class ModelConfigEntity {
                 .id(this.id)
                 .name(this.name)
                 .endpoint(this.endpoint)
-                .apiKey(this.apiKey)
                 .maxTokens(this.maxTokens)
                 .active(this.active != null && this.active)
                 .description(this.description)
@@ -114,13 +114,13 @@ public class ModelConfigEntity {
                 .updatedAt(this.updatedAt)
                 .minInputPrice(this.minInputPrice)
                 .minOutputPrice(this.minOutputPrice)
+                .chargeType(this.chargeType)
                 .supportTextGeneration(this.supportTextGeneration != null && this.supportTextGeneration)
                 .supportImageGeneration(this.supportImageGeneration != null && this.supportImageGeneration)
                 .supportSpeechGeneration(this.supportSpeechGeneration != null && this.supportSpeechGeneration)
                 .supportVideoGeneration(this.supportVideoGeneration != null && this.supportVideoGeneration)
                 .supportVector(this.supportVector != null && this.supportVector)
                 .providerName(this.providerName)
-                .modelCode(this.modelCode)
                 .priceUnit(this.priceUnit)
                 .currency(this.currency)
                 .qpsLimit(this.qpsLimit)

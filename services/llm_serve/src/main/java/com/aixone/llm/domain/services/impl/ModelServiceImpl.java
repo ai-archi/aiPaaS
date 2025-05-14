@@ -1,17 +1,19 @@
 package com.aixone.llm.domain.services.impl;
 
-import com.aixone.llm.domain.models.aggregates.model_config.ModelConfig;
-import com.aixone.llm.domain.repositories.model.ModelInvokeRepository;
-import com.aixone.llm.domain.repositories.model.ModelConfigRepository;
-import com.aixone.llm.domain.services.ModelService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.aixone.llm.domain.models.model.ModelConfig;
+import com.aixone.llm.domain.repositories.model.ModelConfigRepository;
+import com.aixone.llm.domain.repositories.model.ModelInvokeRepository;
+import com.aixone.llm.domain.services.ModelService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -79,7 +81,6 @@ public class ModelServiceImpl implements ModelService {
     public Mono<Boolean> validateModel(ModelConfig modelConfig) {
         boolean valid = modelConfig.getName() != null && !modelConfig.getName().isEmpty()
                 && modelConfig.getEndpoint() != null && !modelConfig.getEndpoint().isEmpty()
-                && modelConfig.getApiKey() != null && !modelConfig.getApiKey().isEmpty()
                 && modelConfig.getMaxTokens() != null && modelConfig.getMaxTokens() > 0
                 && modelConfig.getMinInputPrice() != null && modelConfig.getMinInputPrice().compareTo(java.math.BigDecimal.ZERO) >= 0
                 && modelConfig.getMinOutputPrice() != null && modelConfig.getMinOutputPrice().compareTo(java.math.BigDecimal.ZERO) >= 0;

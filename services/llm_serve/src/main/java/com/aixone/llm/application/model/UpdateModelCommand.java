@@ -3,7 +3,7 @@ package com.aixone.llm.application.model;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.aixone.llm.domain.models.aggregates.model_config.ModelConfig;
+import com.aixone.llm.domain.models.model.ModelConfig;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -40,7 +40,6 @@ public class UpdateModelCommand {
             .id(id)
             .name(name)
             .endpoint(endpoint)
-            .apiKey(apiKey)
             .maxTokens(maxTokens)
             .minInputPrice(minInputPrice)
             .minOutputPrice(minOutputPrice)

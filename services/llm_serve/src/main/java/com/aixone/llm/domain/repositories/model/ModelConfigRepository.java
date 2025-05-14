@@ -1,7 +1,8 @@
 package com.aixone.llm.domain.repositories.model;
 
-import com.aixone.llm.domain.models.aggregates.model_config.ModelConfig;
+import com.aixone.llm.domain.models.model.ModelConfig;
 import com.aixone.llm.domain.repositories.Repository;
+
 import reactor.core.publisher.Mono;
 
 /**

@@ -16,22 +16,24 @@ public class ModelAdapterFactoryImpl implements ModelAdapterFactory {
     
     public ModelAdapterFactoryImpl(List<ModelAdapter> adapters) {
         for (ModelAdapter adapter : adapters) {
-            if (adapter instanceof ProviderNamed providerNamed) {
-                String provider = providerNamed.getProviderName();
-                adapterMap.put(provider, adapter);
+            if (adapter instanceof ModelNamed modelNamed) {
+                List<String> modelNames = modelNamed.getModelNames();
+                for (String modelName : modelNames) {
+                    adapterMap.put(modelName, adapter);
+                }
             }
         }
     }
 
     @Override
-    public ModelAdapter getAdapter(String providerName) {
-        return adapterMap.get(providerName);
+    public ModelAdapter getAdapter(String modelName) {
+        return adapterMap.get(modelName);
     }
 
     /**
      * 适配器需实现该接口以声明自身providerName
      */
-    public interface ProviderNamed {
-        String getProviderName();
+    public interface ModelNamed {
+        List<String> getModelNames();
     }
-} 
+}

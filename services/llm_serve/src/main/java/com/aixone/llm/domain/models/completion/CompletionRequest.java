@@ -1,13 +1,15 @@
 package com.aixone.llm.domain.models.completion;
 
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import java.util.List;
-import java.util.Map;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 @Data
 @SuperBuilder
 @NoArgsConstructor
@@ -84,10 +86,10 @@ public class CompletionRequest {
      */
     private Double topP;
 
-
-
-
-
+    /**
+     * 用户可选指定的KeyId（如未指定则自动路由最优Key）。
+     */
+    private String keyId;
 
     /**
      * 租户ID，可选

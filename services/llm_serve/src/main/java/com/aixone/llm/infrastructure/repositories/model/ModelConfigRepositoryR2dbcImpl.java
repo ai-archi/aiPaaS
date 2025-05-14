@@ -1,16 +1,19 @@
 package com.aixone.llm.infrastructure.repositories.model;
 
-import com.aixone.llm.domain.models.aggregates.model_config.ModelConfig;
-import com.aixone.llm.domain.repositories.model.ModelConfigRepository;
-import com.aixone.llm.infrastructure.entity.ModelConfigEntity;
-import lombok.RequiredArgsConstructor;
+import java.util.UUID;
+
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
 import org.springframework.stereotype.Repository;
+
+import com.aixone.llm.domain.models.model.ModelConfig;
+import com.aixone.llm.domain.repositories.model.ModelConfigRepository;
+import com.aixone.llm.infrastructure.entity.ModelConfigEntity;
+
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import java.util.UUID;
 
 
 @Repository
@@ -31,10 +34,10 @@ public class ModelConfigRepositoryR2dbcImpl implements ModelConfigRepository {
                     .matching(Query.query(Criteria.where("id").is(entity.getId())))
                     .apply(org.springframework.data.relational.core.query.Update.update("name", entity.getName())
                             .set("endpoint", entity.getEndpoint())
-                            .set("api_key", entity.getApiKey())
                             .set("max_tokens", entity.getMaxTokens())
                             .set("min_input_price", entity.getMinInputPrice())
                             .set("min_output_price", entity.getMinOutputPrice())
+                            .set("charge_type", entity.getChargeType())
                             .set("support_text_generation", entity.getSupportTextGeneration())
                             .set("support_image_generation", entity.getSupportImageGeneration())
                             .set("support_speech_generation", entity.getSupportSpeechGeneration())
@@ -45,6 +48,13 @@ public class ModelConfigRepositoryR2dbcImpl implements ModelConfigRepository {
                             .set("tenant_id", entity.getTenantId())
                             .set("is_system_preset", entity.getIsSystemPreset())
                             .set("updated_at", entity.getUpdatedAt())
+                            .set("provider_name", entity.getProviderName())
+                            .set("price_unit", entity.getPriceUnit())
+                            .set("currency", entity.getCurrency())
+                            .set("qps_limit", entity.getQpsLimit())
+                            .set("region", entity.getRegion())
+                            .set("tags", entity.getTags())
+                            .set("status", entity.getStatus())
                     )
                     .then(findById(entity.getId()));
         }

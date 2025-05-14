@@ -15,4 +15,5 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode
 public class GetImageTaskResultQuery {
     private String taskId;
+    private String model;
 } 

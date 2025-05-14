@@ -17,7 +17,7 @@ import com.aixone.llm.application.model.ModelCommandHandler;
 import com.aixone.llm.application.model.ModelQuery;
 import com.aixone.llm.application.model.ModelQueryHandler;
 import com.aixone.llm.application.model.UpdateModelCommand;
-import com.aixone.llm.domain.models.aggregates.model_config.ModelConfig;
+import com.aixone.llm.domain.models.model.ModelConfig;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
