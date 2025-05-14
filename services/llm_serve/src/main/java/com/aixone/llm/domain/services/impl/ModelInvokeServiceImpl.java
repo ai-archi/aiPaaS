@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
 
+import com.aixone.llm.domain.models.audio.AudioRequest;
+import com.aixone.llm.domain.models.audio.AudioResponse;
 import com.aixone.llm.domain.models.chat.ChatRequest;
 import com.aixone.llm.domain.models.chat.ChatResponse;
 import com.aixone.llm.domain.models.completion.CompletionRequest;
@@ -131,11 +133,7 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
 
     @Override
     public Mono<ImageResponse> invokeImage(ImageRequest request) {
-        String typeTmp = null;
-        if (request instanceof com.aixone.llm.application.image.SubmitImageTaskCommand) {
-            typeTmp = ((com.aixone.llm.application.image.SubmitImageTaskCommand) request).getType();
-        }
-        final String type = (typeTmp == null) ? "generation" : typeTmp;
+        final String type = (request.getType() == null) ? "generation" : request.getType();
         String modelName = request.getModel(); // 或自定义字段
         String keyId = request.getKeyId();
         // 用户可选指定keyId，未指定则自动路由
@@ -182,6 +180,77 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
                             return Mono.error(new IllegalStateException("No adapter found for model: " + modelName));
                         }
                         return adapter.getImageTaskResult(model, taskId, key);
+                    })
+                );
+    }
+
+    @Override
+    public Flux<AudioResponse> invokeASR(AudioRequest request) {
+        String modelName = request.getModel();
+        String keyId = request.getKeyId();
+        Mono<UserModelKey> keyMono;
+        if (keyId != null && !keyId.isEmpty()) {
+            keyMono = userModelKeyRepository.findById(keyId)
+                .filter(key -> key != null && key.getModelName().equals(modelName));
+        } else {
+            keyMono = userModelKeyRepository.findByModelName(modelName).next();
+        }
+        return modelService.getModelByName(modelName)
+            .filter(ModelConfig::isActive)
+            .switchIfEmpty(Mono.error(new IllegalStateException("Model is not available")))
+            .flatMapMany(model -> keyMono.switchIfEmpty(Mono.error(new IllegalStateException("No available key for model: " + modelName)))
+                .flatMapMany(key -> {
+                    ModelAdapter adapter = modelAdapterFactory.getAdapter(modelName);
+                    if (adapter == null) {
+                        return Flux.error(new IllegalStateException("No adapter found for model: " + modelName));
+                    }
+                    if (request.isStream()) {
+                        return adapter.invokeASRStream(model, request, key)
+                            .doOnComplete(() -> {
+                                // 可在此保存最终响应记录
+                            });
+                    } else {
+                        return adapter.invokeASR(model, request, key)
+                            .doOnSuccess(response -> {
+                                // 可在此保存响应记录
+                            })
+                            .flux();
+                    }
+                })
+            );
+    }
+    @Override
+    public Flux<AudioResponse> invokeTTS(AudioRequest request) {
+        String modelName = request.getModel();
+        String keyId = request.getKeyId();
+        Mono<UserModelKey> keyMono;
+        if (keyId != null && !keyId.isEmpty()) {
+            keyMono = userModelKeyRepository.findById(keyId)
+                .filter(key -> key != null && key.getModelName().equals(modelName));
+        } else {
+            keyMono = userModelKeyRepository.findByModelName(modelName).next();
+        }
+        return modelService.getModelByName(modelName)
+            .filter(ModelConfig::isActive)
+            .switchIfEmpty(Mono.error(new IllegalStateException("Model is not available")))
+            .flatMapMany(model -> keyMono.switchIfEmpty(Mono.error(new IllegalStateException("No available key for model: " + modelName)))
+                .flatMapMany(key -> {
+                    ModelAdapter adapter = modelAdapterFactory.getAdapter(modelName);
+                    if (adapter == null) {
+                        return Flux.error(new IllegalStateException("No adapter found for model: " + modelName));
+                    }
+                    if (request.isStream()) {
+                        return adapter.invokeTTSStream(model, request, key)
+                            .doOnComplete(() -> {
+                                // 可在此保存最终响应记录
+                            });
+                    } else {
+                        return adapter.invokeTTS(model, request, key)
+                            .doOnSuccess(response -> {
+                                // 可在此保存响应记录
+                            })
+                            .flux();
+                    }
                     })
                 );
     }

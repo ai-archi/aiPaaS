@@ -2,21 +2,25 @@ package com.aixone.llm.application.audio;
 
 import org.springframework.stereotype.Component;
 
-import com.aixone.llm.domain.services.AudioService;
+import com.aixone.llm.domain.models.audio.AudioRequest;
+import com.aixone.llm.domain.models.audio.AudioResponse;
+import com.aixone.llm.domain.services.ModelInvokeService;
 
 import lombok.RequiredArgsConstructor;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 @Component
 @RequiredArgsConstructor
 public class AudioCommandHandler {
-    private final AudioService audioService;
+    private final ModelInvokeService modelInvokeService;
 
-    public Mono<String> handleTranscription(AudioTranscriptionCommand command) {
-        return audioService.transcribe(command.getFile());
+    public Flux<AudioResponse> handleASR(AudioASRCommand command) {
+        AudioRequest request = command.toAudioRequest();
+        return modelInvokeService.invokeASR(request);
     }
 
-    public Mono<String> handleTranslation(AudioTranslationCommand command) {
-        return audioService.translate(command.getFile());
+    public Flux<AudioResponse> handleTTS(AudioTTSCommand command) {
+        AudioRequest request = command.toAudioRequest();
+        return modelInvokeService.invokeTTS(request);
     }
 } 

@@ -5,9 +5,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.aixone.llm.domain.models.audio.AudioRequest;
+import com.aixone.llm.domain.models.audio.AudioResponse;
 import com.aixone.llm.domain.models.chat.ChatRequest;
 import com.aixone.llm.domain.models.chat.ChatResponse;
 import com.aixone.llm.domain.models.completion.CompletionRequest;
@@ -164,6 +165,27 @@ public class OpenAIModelAdapter implements ModelAdapter, ModelAdapterFactoryImpl
     @Override
     public Mono<ImageTaskResponse> getImageTaskResult(ModelConfig model, String taskId, UserModelKey key) {
         throw new UnsupportedOperationException("Deepseek暂不支持图片任务查询");
+    }
+
+
+    @Override
+    public Mono<AudioResponse> invokeASR(ModelConfig model, AudioRequest request, UserModelKey key) {
+        throw new UnsupportedOperationException("Unimplemented method 'invokeASR'");
+    }
+
+    @Override
+    public Mono<AudioResponse> invokeTTS(ModelConfig model, AudioRequest request, UserModelKey key) {
+        throw new UnsupportedOperationException("Unimplemented method 'invokeTTS'");
+    }
+
+    @Override
+    public Flux<AudioResponse> invokeASRStream(ModelConfig model, AudioRequest request, UserModelKey key) {
+        throw new UnsupportedOperationException("Unimplemented method 'invokeASRStream'");
+    }
+
+    @Override
+    public Flux<AudioResponse> invokeTTSStream(ModelConfig model, AudioRequest request, UserModelKey key) {
+        throw new UnsupportedOperationException("Unimplemented method 'invokeTTSStream'");
     }
 
 }
