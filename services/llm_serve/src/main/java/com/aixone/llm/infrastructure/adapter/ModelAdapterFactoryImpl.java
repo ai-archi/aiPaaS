@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.aixone.llm.domain.services.AudioModelSTTAdapter;
 import com.aixone.llm.domain.services.AudioModelTTSAdapter;
 import com.aixone.llm.domain.services.ModelAdapter;
 import com.aixone.llm.domain.services.ModelAdapterFactory;
@@ -14,10 +15,10 @@ import com.aixone.llm.domain.services.ModelAdapterFactory;
 @Component
 public class ModelAdapterFactoryImpl implements ModelAdapterFactory {
     private final Map<String, ModelAdapter> adapterMap = new HashMap<>();
-    private final Map<String, AudioModelTTSAdapter> wsAdapterMap = new HashMap<>();
-    
+    private final Map<String, AudioModelTTSAdapter> ttsAdapterMap = new HashMap<>();
+    private final Map<String, AudioModelSTTAdapter> sttAdapterMap = new HashMap<>();
     @Autowired
-    public ModelAdapterFactoryImpl(List<ModelAdapter> adapters, List<AudioModelTTSAdapter> wsAdapters) {
+    public ModelAdapterFactoryImpl(List<ModelAdapter> adapters, List<AudioModelTTSAdapter> ttsAdapters, List<AudioModelSTTAdapter> sttAdapters) {
         // 统一注册 ModelAdapter
         for (ModelAdapter adapter : adapters) {
             if (adapter instanceof ModelNamed modelNamed) {
@@ -27,12 +28,21 @@ public class ModelAdapterFactoryImpl implements ModelAdapterFactory {
                 }
             }
         }
-        // 统一注册 wsAdapter
-        for (AudioModelTTSAdapter wsAdapter : wsAdapters) {
-            if (wsAdapter instanceof ModelNamed modelNamed) {
+        // 统一注册 ttsAdapter
+        for (AudioModelTTSAdapter ttsAdapter : ttsAdapters) {
+            if (ttsAdapter instanceof ModelNamed modelNamed) {
                 List<String> modelNames = modelNamed.getModelNames();
                 for (String modelName : modelNames) {
-                    wsAdapterMap.put(modelName, wsAdapter);
+                    ttsAdapterMap.put(modelName, ttsAdapter);
+                }
+            }
+        }
+        // 统一注册 sttAdapter
+        for (AudioModelSTTAdapter sttAdapter : sttAdapters) {
+            if (sttAdapter instanceof ModelNamed modelNamed) {
+                List<String> modelNames = modelNamed.getModelNames();
+                for (String modelName : modelNames) {
+                    sttAdapterMap.put(modelName, sttAdapter);
                 }
             }
         }
@@ -44,8 +54,13 @@ public class ModelAdapterFactoryImpl implements ModelAdapterFactory {
     }
 
     @Override
-    public AudioModelTTSAdapter getSpeechRecognitionWebSocketAdapter(String modelName) {
-        return wsAdapterMap.get(modelName);
+    public AudioModelTTSAdapter getAudioModelTTSAdapter(String modelName) {
+        return ttsAdapterMap.get(modelName);
+    }
+
+    @Override
+    public AudioModelSTTAdapter getAudioModelSTTAdapter(String modelName) {
+        return sttAdapterMap.get(modelName);
     }
 
     /**

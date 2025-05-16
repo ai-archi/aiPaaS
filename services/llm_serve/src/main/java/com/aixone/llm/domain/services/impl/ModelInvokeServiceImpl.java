@@ -21,6 +21,8 @@ import com.aixone.llm.domain.models.model.ModelConfig;
 import com.aixone.llm.domain.models.model.UserModelKey;
 import com.aixone.llm.domain.repositories.model.ModelInvokeRepository;
 import com.aixone.llm.domain.repositories.model.UserModelKeyRepository;
+import com.aixone.llm.domain.services.AudioModelSTTAdapter;
+import com.aixone.llm.domain.services.AudioModelTTSAdapter;
 import com.aixone.llm.domain.services.ModelAdapter;
 import com.aixone.llm.domain.services.ModelAdapterFactory;
 import com.aixone.llm.domain.services.ModelInvokeService;
@@ -190,42 +192,43 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
 
     @Override
     public Flux<STTResponse> invokeSTT(STTRequest request) {
-        String modelName = request.getModel();
-        // 假设 STTRequest 增加了 InputStream audioStream 字段
-        final InputStream audioStream;
-        if (request instanceof com.aixone.llm.domain.models.audio.STTRequest) {
-            InputStream tmp = null;
-            try {
-                java.lang.reflect.Field f = request.getClass().getDeclaredField("audioStream");
-                f.setAccessible(true);
-                tmp = (InputStream) f.get(request);
-            } catch (Exception ignore) {}
-            audioStream = tmp;
-        } else {
-            audioStream = null;
-        }
-        if (audioStream == null) {
-            return Flux.error(new IllegalArgumentException("STTRequest 缺少音频流 audioStream 字段"));
-        }
-        return userModelKeyRepository.findByModelName(modelName).next()
-            .flatMapMany(key -> {
-                var wsAdapter = modelAdapterFactory.getSpeechRecognitionWebSocketAdapter(modelName);
-                if (wsAdapter == null) {
-                    return Flux.error(new IllegalStateException("No WebSocket STT adapter found for model: " + modelName));
-                }
-                return Flux.create(sink -> {
-                    wsAdapter.recognizeSTT(audioStream, key, result -> {
-                        STTResponse.Output output = new STTResponse.Output();
-                        output.setText(result);
-                        STTResponse resp = new STTResponse();
-                        resp.setOutput(output);
-                        sink.next(resp);
-                        sink.complete();
-                    }, error -> {
-                        sink.error(error);
-                    });
-                });
-            });
+        // String modelName = request.getModel();
+        // // 假设 STTRequest 增加了 InputStream audioStream 字段
+        // final InputStream audioStream;
+        // if (request instanceof com.aixone.llm.domain.models.audio.STTRequest) {
+        //     InputStream tmp = null;
+        //     try {
+        //         java.lang.reflect.Field f = request.getClass().getDeclaredField("audioStream");
+        //         f.setAccessible(true);
+        //         tmp = (InputStream) f.get(request);
+        //     } catch (Exception ignore) {}
+        //     audioStream = tmp;
+        // } else {
+        //     audioStream = null;
+        // }
+        // if (audioStream == null) {
+        //     return Flux.error(new IllegalArgumentException("STTRequest 缺少音频流 audioStream 字段"));
+        // }
+        // return userModelKeyRepository.findByModelName(modelName).next()
+        //     .flatMapMany(key -> {
+        //         AudioModelSTTAdapter sttAdapter = modelAdapterFactory.getAudioModelSTTAdapter(modelName);
+        //         if (sttAdapter == null) {
+        //             return Flux.error(new IllegalStateException("No WebSocket STT adapter found for model: " + modelName));
+        //         }
+        //         return Flux.create(sink -> {
+        //             sttAdapter.recognizeSTT(audioStream, key, result -> {
+        //                 STTResponse.Output output = new STTResponse.Output();
+        //                 output.setText(result);
+        //                 STTResponse resp = new STTResponse();
+        //                 resp.setOutput(output);
+        //                 sink.next(resp);
+        //                 sink.complete();
+        //             }, error -> {
+        //                 sink.error(error);
+        //             });
+        //         });
+        //     });
+        return null;
     }
 
     @Override
@@ -233,12 +236,12 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
         String modelName = request.getModel();
         return userModelKeyRepository.findByModelName(modelName).next()
             .flatMapMany(key -> {
-                var wsAdapter = modelAdapterFactory.getSpeechRecognitionWebSocketAdapter(modelName);
-                if (wsAdapter == null) {
+                AudioModelTTSAdapter ttsAdapter = modelAdapterFactory.getAudioModelTTSAdapter(modelName);
+                if (ttsAdapter == null) {
                     return Flux.error(new IllegalStateException("No WebSocket TTS adapter found for model: " + modelName));
                 }
                 try {
-                    return wsAdapter.recognizeTTS(request, key);
+                    return ttsAdapter.recognizeTTS(request, key);
                 } catch (Exception e) {
                     return Flux.error(e);
                 }
@@ -247,47 +250,47 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
 
     @Override
     public void invokeRealtimeSTT(String modelName, java.io.InputStream audioStream, java.util.function.Consumer<String> onResult, java.util.function.Consumer<Throwable> onError) {
-        var wsAdapter = modelAdapterFactory.getSpeechRecognitionWebSocketAdapter(modelName);
-        if (wsAdapter == null) {
-            onError.accept(new IllegalArgumentException("No WebSocket STT adapter found for model: " + modelName));
-            return;
-        }
-        // 查找模型key
-        userModelKeyRepository.findByModelName(modelName).next()
-            .doOnError(onError)
-            .subscribe(key -> {
-                if (key == null) {
-                    onError.accept(new IllegalStateException("No available key for model: " + modelName));
-                } else {
-                    wsAdapter.recognizeSTT(audioStream, key, onResult, onError);
-                }
-            }, onError);
+        // var wsAdapter = modelAdapterFactory.getSpeechRecognitionWebSocketAdapter(modelName);
+        // if (wsAdapter == null) {
+        //     onError.accept(new IllegalArgumentException("No WebSocket STT adapter found for model: " + modelName));
+        //     return;
+        // }
+        // // 查找模型key
+        // userModelKeyRepository.findByModelName(modelName).next()
+        //     .doOnError(onError)
+        //     .subscribe(key -> {
+        //         if (key == null) {
+        //             onError.accept(new IllegalStateException("No available key for model: " + modelName));
+        //         } else {
+        //             wsAdapter.recognizeSTT(audioStream, key, onResult, onError);
+        //         }
+        //     }, onError);
     }
 
     @Override
     public void invokeRealtimeTTS(String modelName, TTSRequest ttsRequest, java.util.function.Consumer<String> onResult, java.util.function.Consumer<Throwable> onError) {
-        var wsAdapter = modelAdapterFactory.getSpeechRecognitionWebSocketAdapter(modelName);
-        if (wsAdapter == null) {
-            onResult.accept("No WebSocket STT adapter found for model: " + modelName);
-            return;
-        }
-        // 查找模型key
-        userModelKeyRepository.findByModelName(modelName).next()
-            .doOnError(onError)
-            .subscribe(key -> {
-                if (key == null) {
-                    onError.accept(new IllegalStateException("No available key for model: " + modelName));
-                } else {
-                    try {
-                        wsAdapter.recognizeTTS(ttsRequest, key)
-                            .map(resp -> resp.getOutput() != null && resp.getOutput().getAudio() != null ? resp.getOutput().getAudio().getData() : null)
-                            .doOnNext(onResult)
-                            .doOnError(onError)
-                            .subscribe();
-                    } catch (Exception e) {
-                        onError.accept(e);
-                    }
-                }
-            }, onError);
+        // AudioModelTTSAdapter ttsAdapter = modelAdapterFactory.getAudioModelTTSAdapter(modelName);
+        // if (ttsAdapter == null) {
+        //     onResult.accept("No WebSocket STT adapter found for model: " + modelName);
+        //     return;
+        // }
+        // // 查找模型key
+        // userModelKeyRepository.findByModelName(modelName).next()
+        //     .doOnError(onError)
+        //     .subscribe(key -> {
+        //         if (key == null) {
+        //             onError.accept(new IllegalStateException("No available key for model: " + modelName));
+        //         } else {
+        //             try {
+        //                 ttsAdapter.recognizeTTS(ttsRequest, key)
+        //                     .map(resp -> resp.getOutput() != null && resp.getOutput().getAudio() != null ? resp.getOutput().getAudio().getData() : null)
+        //                     .doOnNext(onResult)
+        //                     .doOnError(onError)
+        //                     .subscribe();
+        //             } catch (Exception e) {
+        //                 onError.accept(e);
+        //             }
+        //         }
+        //     }, onError);
     }
 } 

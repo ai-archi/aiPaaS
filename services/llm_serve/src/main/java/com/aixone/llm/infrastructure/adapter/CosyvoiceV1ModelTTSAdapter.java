@@ -11,70 +11,17 @@ import com.aixone.llm.domain.models.audio.TTSRequest;
 import com.aixone.llm.domain.models.audio.TTSResponse;
 import com.aixone.llm.domain.models.model.UserModelKey;
 import com.aixone.llm.domain.services.AudioModelTTSAdapter;
-import com.alibaba.dashscope.audio.asr.recognition.Recognition;
-import com.alibaba.dashscope.audio.asr.recognition.RecognitionParam;
 import com.alibaba.dashscope.audio.tts.SpeechSynthesisResult;
 import com.alibaba.dashscope.audio.ttsv2.SpeechSynthesisParam;
 import com.alibaba.dashscope.audio.ttsv2.SpeechSynthesizer;
 import com.alibaba.dashscope.common.ResultCallback;
-import com.alibaba.dashscope.exception.ApiException;
-import com.alibaba.dashscope.exception.NoApiKeyException;
 
-import io.reactivex.BackpressureStrategy;
-import io.reactivex.Flowable;
 import reactor.core.publisher.Flux;
 @Component
 public class CosyvoiceV1ModelTTSAdapter implements AudioModelTTSAdapter, ModelAdapterFactoryImpl.ModelNamed {
 
     @Override
-    public void recognizeSTT(InputStream audioStream, UserModelKey key, Consumer<String> onResult, Consumer<Throwable> onError) {
-        try {
-            // InputStream 转 Flowable<ByteBuffer>
-            Flowable<ByteBuffer> audioSource = Flowable.create(emitter -> {
-                byte[] buffer = new byte[1024];
-                int len;
-                try {
-                    while ((len = audioStream.read(buffer)) != -1) {
-                        ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, len);
-                        emitter.onNext(byteBuffer);
-                    }
-                    emitter.onComplete();
-                } catch (IOException e) {
-                    emitter.onError(e);
-                }
-            }, BackpressureStrategy.BUFFER);
-
-            // 构建识别参数
-            RecognitionParam param = RecognitionParam.builder()
-                .model("paraformer-realtime-v2") // 可根据业务动态指定
-                .format("pcm")
-                .sampleRate(16000)
-                .apiKey(key.getApiKey()) // 推荐从环境变量获取
-                .parameter("semantic_punctuation_enabled", false)
-                .build();
-
-            Recognition recognizer = new Recognition();
-            StringBuilder allText = new StringBuilder();
-            recognizer.streamCall(param, audioSource)
-                .blockingForEach(result -> {
-                    if (result.getSentence() != null && result.getSentence().getText() != null) {
-                        allText.append(result.getSentence().getText());
-                    }
-                });
-            String finalText = allText.toString();
-            System.out.println("[GummySDK][STT] Sync Final Result: " + finalText);
-            onResult.accept(finalText);
-        } catch (NoApiKeyException e) {
-            System.out.println("[GummySDK][STT] No API key found: " + e.getMessage());
-            onError.accept(e);
-        } catch (ApiException e) {
-            System.out.println("[GummySDK][STT] error: " + e.getMessage());
-            onError.accept(e);
-        }
-    }
-
-    @Override
-    public Flux<TTSResponse> recognizeTTS(TTSRequest ttsRequest, UserModelKey key) throws Exception {
+    public Flux<TTSResponse> recognizeTTS(TTSRequest ttsRequest, UserModelKey key) {
         boolean isStream = ttsRequest.getStream() != null && ttsRequest.getStream();
         // 统一校验text参数
         String text = ttsRequest.getInput() != null ? ttsRequest.getInput().getText() : null;
