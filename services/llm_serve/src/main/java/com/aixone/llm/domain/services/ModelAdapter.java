@@ -1,8 +1,9 @@
 package com.aixone.llm.domain.services;
 
-import com.aixone.llm.domain.models.audio.ASRRequest;
-import com.aixone.llm.domain.models.audio.AudioResponse;
+import com.aixone.llm.domain.models.audio.STTRequest;
+import com.aixone.llm.domain.models.audio.STTResponse;
 import com.aixone.llm.domain.models.audio.TTSRequest;
+import com.aixone.llm.domain.models.audio.TTSResponse;
 import com.aixone.llm.domain.models.chat.ChatRequest;
 import com.aixone.llm.domain.models.chat.ChatResponse;
 import com.aixone.llm.domain.models.completion.CompletionRequest;
@@ -77,21 +78,4 @@ public interface ModelAdapter {
      * @return 图片处理结果
      */
     Mono<ImageTaskResponse> getImageTaskResult(ModelConfig model, String taskId, UserModelKey key);
-
-    /**
-     * 调用大模型的语音转文本（ASR）能力
-     */
-    Mono<AudioResponse> invokeASR(ModelConfig model, ASRRequest request, UserModelKey key);
-    /**
-     * 调用大模型的文本转语音（TTS）能力
-     */
-    Mono<AudioResponse> invokeTTS(ModelConfig model, TTSRequest request, UserModelKey key);
-    /**
-     * 流式调用大模型的语音转文本（ASR）能力
-     */
-    Flux<AudioResponse> invokeASRStream(ModelConfig model, ASRRequest request, UserModelKey key);
-    /**
-     * 流式调用大模型的文本转语音（TTS）能力
-     */
-    Flux<AudioResponse> invokeTTSStream(ModelConfig model, TTSRequest request, UserModelKey key);
 } 

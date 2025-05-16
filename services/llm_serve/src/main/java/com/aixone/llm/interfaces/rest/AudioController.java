@@ -9,9 +9,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.aixone.llm.application.audio.AudioCommandHandler;
-import com.aixone.llm.domain.models.audio.ASRRequest;
-import com.aixone.llm.domain.models.audio.AudioResponse;
+import com.aixone.llm.domain.models.audio.STTRequest;
+import com.aixone.llm.domain.models.audio.STTResponse;
 import com.aixone.llm.domain.models.audio.TTSRequest;
+import com.aixone.llm.domain.models.audio.TTSResponse;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -23,18 +24,18 @@ public class AudioController {
     private final AudioCommandHandler audioCommandHandler;
 
     /**
-     * 文本转语音（TTS Text-to-Voice），支持流式和非流式，统一返回AudioResponse
+     * 文本转语音（TTS Text-to-Voice），支持流式和非流式，统一返回TTSResponse
      */
-    @PostMapping(value = "/speech", produces = {
+    @PostMapping(value = "/tts", produces = {
             MediaType.APPLICATION_JSON_VALUE,
             MediaType.TEXT_EVENT_STREAM_VALUE})
-    public Flux<AudioResponse> createSpeech(
+    public Flux<TTSResponse> createSpeech(
         @PathVariable("tenantId") String tenantId,
         @RequestBody TTSRequest req,
         ServerHttpResponse response
     ) {
         req.setUserId(tenantId);
-        if (req.isStream()) {
+        if (req.getStream() != null && req.getStream()) {
             response.getHeaders().setContentType(MediaType.TEXT_EVENT_STREAM);
         } else {
             response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
@@ -43,14 +44,14 @@ public class AudioController {
     }
 
     /**
-     * 语音转文本（ASR），支持流式和非流式，统一返回AudioResponse
+     * 语音转文本（STT），支持流式和非流式，统一返回STTResponse
      */
-    @PostMapping(value = "/transcriptions", produces = {
+    @PostMapping(value = "/stt", produces = {
             MediaType.APPLICATION_JSON_VALUE,
             MediaType.TEXT_EVENT_STREAM_VALUE})
-    public Flux<AudioResponse> createTranscription(
+    public Flux<STTResponse> createTranscription(
         @PathVariable("tenantId") String tenantId,
-        @RequestBody ASRRequest req,
+        @RequestBody STTRequest req,
         ServerHttpResponse response
     ) {
         req.setUserId(tenantId);
@@ -59,6 +60,6 @@ public class AudioController {
         } else {
             response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         }
-        return audioCommandHandler.handleASR(req);
+        return audioCommandHandler.handleSTT(req);
     }
 } 

@@ -1,12 +1,15 @@
 package com.aixone.llm.domain.services.impl;
 
 import java.time.LocalDateTime;
+import java.util.function.Consumer;
+import java.io.InputStream;
 
 import org.springframework.stereotype.Service;
 
-import com.aixone.llm.domain.models.audio.ASRRequest;
-import com.aixone.llm.domain.models.audio.AudioResponse;
+import com.aixone.llm.domain.models.audio.STTRequest;
+import com.aixone.llm.domain.models.audio.STTResponse;
 import com.aixone.llm.domain.models.audio.TTSRequest;
+import com.aixone.llm.domain.models.audio.TTSResponse;
 import com.aixone.llm.domain.models.chat.ChatRequest;
 import com.aixone.llm.domain.models.chat.ChatResponse;
 import com.aixone.llm.domain.models.completion.CompletionRequest;
@@ -186,74 +189,105 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
     }
 
     @Override
-    public Flux<AudioResponse> invokeASR(ASRRequest request) {
+    public Flux<STTResponse> invokeSTT(STTRequest request) {
         String modelName = request.getModel();
-        String keyId = request.getKeyId();
-        Mono<UserModelKey> keyMono;
-        if (keyId != null && !keyId.isEmpty()) {
-            keyMono = userModelKeyRepository.findById(keyId)
-                .filter(key -> key != null && key.getModelName().equals(modelName));
+        // 假设 STTRequest 增加了 InputStream audioStream 字段
+        final InputStream audioStream;
+        if (request instanceof com.aixone.llm.domain.models.audio.STTRequest) {
+            InputStream tmp = null;
+            try {
+                java.lang.reflect.Field f = request.getClass().getDeclaredField("audioStream");
+                f.setAccessible(true);
+                tmp = (InputStream) f.get(request);
+            } catch (Exception ignore) {}
+            audioStream = tmp;
         } else {
-            keyMono = userModelKeyRepository.findByModelName(modelName).next();
+            audioStream = null;
         }
-        return modelService.getModelByName(modelName)
-            .filter(ModelConfig::isActive)
-            .switchIfEmpty(Mono.error(new IllegalStateException("Model is not available")))
-            .flatMapMany(model -> keyMono.switchIfEmpty(Mono.error(new IllegalStateException("No available key for model: " + modelName)))
-                .flatMapMany(key -> {
-                    ModelAdapter adapter = modelAdapterFactory.getAdapter(modelName);
-                    if (adapter == null) {
-                        return Flux.error(new IllegalStateException("No adapter found for model: " + modelName));
-                    }
-                    if (request.isStream()) {
-                        return adapter.invokeASRStream(model, request, key)
-                            .doOnComplete(() -> {
-                                // 可在此保存最终响应记录
-                            });
-                    } else {
-                        return adapter.invokeASR(model, request, key)
-                            .doOnSuccess(response -> {
-                                // 可在此保存响应记录
-                            })
-                            .flux();
-                    }
-                })
-            );
+        if (audioStream == null) {
+            return Flux.error(new IllegalArgumentException("STTRequest 缺少音频流 audioStream 字段"));
+        }
+        return userModelKeyRepository.findByModelName(modelName).next()
+            .flatMapMany(key -> {
+                var wsAdapter = modelAdapterFactory.getSpeechRecognitionWebSocketAdapter(modelName);
+                if (wsAdapter == null) {
+                    return Flux.error(new IllegalStateException("No WebSocket STT adapter found for model: " + modelName));
+                }
+                return Flux.create(sink -> {
+                    wsAdapter.recognizeSTT(audioStream, key, result -> {
+                        STTResponse.Output output = new STTResponse.Output();
+                        output.setText(result);
+                        STTResponse resp = new STTResponse();
+                        resp.setOutput(output);
+                        sink.next(resp);
+                        sink.complete();
+                    }, error -> {
+                        sink.error(error);
+                    });
+                });
+            });
     }
 
     @Override
-    public Flux<AudioResponse> invokeTTS(TTSRequest request) {
+    public Flux<TTSResponse> invokeTTS(TTSRequest request) {
         String modelName = request.getModel();
-        String keyId = request.getKeyId();
-        Mono<UserModelKey> keyMono;
-        if (keyId != null && !keyId.isEmpty()) {
-            keyMono = userModelKeyRepository.findById(keyId)
-                .filter(key -> key != null && key.getModelName().equals(modelName));
-        } else {
-            keyMono = userModelKeyRepository.findByModelName(modelName).next();
+        return userModelKeyRepository.findByModelName(modelName).next()
+            .flatMapMany(key -> {
+                var wsAdapter = modelAdapterFactory.getSpeechRecognitionWebSocketAdapter(modelName);
+                if (wsAdapter == null) {
+                    return Flux.error(new IllegalStateException("No WebSocket TTS adapter found for model: " + modelName));
+                }
+                try {
+                    return wsAdapter.recognizeTTS(request, key);
+                } catch (Exception e) {
+                    return Flux.error(e);
+                }
+            });
+    }
+
+    @Override
+    public void invokeRealtimeSTT(String modelName, java.io.InputStream audioStream, java.util.function.Consumer<String> onResult, java.util.function.Consumer<Throwable> onError) {
+        var wsAdapter = modelAdapterFactory.getSpeechRecognitionWebSocketAdapter(modelName);
+        if (wsAdapter == null) {
+            onError.accept(new IllegalArgumentException("No WebSocket STT adapter found for model: " + modelName));
+            return;
         }
-        return modelService.getModelByName(modelName)
-            .filter(ModelConfig::isActive)
-            .switchIfEmpty(Mono.error(new IllegalStateException("Model is not available")))
-            .flatMapMany(model -> keyMono.switchIfEmpty(Mono.error(new IllegalStateException("No available key for model: " + modelName)))
-                .flatMapMany(key -> {
-                    ModelAdapter adapter = modelAdapterFactory.getAdapter(modelName);
-                    if (adapter == null) {
-                        return Flux.error(new IllegalStateException("No adapter found for model: " + modelName));
+        // 查找模型key
+        userModelKeyRepository.findByModelName(modelName).next()
+            .doOnError(onError)
+            .subscribe(key -> {
+                if (key == null) {
+                    onError.accept(new IllegalStateException("No available key for model: " + modelName));
+                } else {
+                    wsAdapter.recognizeSTT(audioStream, key, onResult, onError);
+                }
+            }, onError);
+    }
+
+    @Override
+    public void invokeRealtimeTTS(String modelName, TTSRequest ttsRequest, java.util.function.Consumer<String> onResult, java.util.function.Consumer<Throwable> onError) {
+        var wsAdapter = modelAdapterFactory.getSpeechRecognitionWebSocketAdapter(modelName);
+        if (wsAdapter == null) {
+            onResult.accept("No WebSocket STT adapter found for model: " + modelName);
+            return;
+        }
+        // 查找模型key
+        userModelKeyRepository.findByModelName(modelName).next()
+            .doOnError(onError)
+            .subscribe(key -> {
+                if (key == null) {
+                    onError.accept(new IllegalStateException("No available key for model: " + modelName));
+                } else {
+                    try {
+                        wsAdapter.recognizeTTS(ttsRequest, key)
+                            .map(resp -> resp.getOutput() != null && resp.getOutput().getAudio() != null ? resp.getOutput().getAudio().getData() : null)
+                            .doOnNext(onResult)
+                            .doOnError(onError)
+                            .subscribe();
+                    } catch (Exception e) {
+                        onError.accept(e);
                     }
-                    if (request.isStream()) {
-                        return adapter.invokeTTSStream(model, request, key)
-                            .doOnComplete(() -> {
-                                // 可在此保存最终响应记录
-                            });
-                    } else {
-                        return adapter.invokeTTS(model, request, key)
-                            .doOnSuccess(response -> {
-                                // 可在此保存响应记录
-                            })
-                            .flux();
-                    }
-                })
-            );
+                }
+            }, onError);
     }
 } 

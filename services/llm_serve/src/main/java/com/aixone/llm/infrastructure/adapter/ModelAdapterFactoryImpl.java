@@ -4,17 +4,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.aixone.llm.domain.services.AudioModelTTSAdapter;
 import com.aixone.llm.domain.services.ModelAdapter;
 import com.aixone.llm.domain.services.ModelAdapterFactory;
 
 @Component
 public class ModelAdapterFactoryImpl implements ModelAdapterFactory {
     private final Map<String, ModelAdapter> adapterMap = new HashMap<>();
-
+    private final Map<String, AudioModelTTSAdapter> wsAdapterMap = new HashMap<>();
     
-    public ModelAdapterFactoryImpl(List<ModelAdapter> adapters) {
+    @Autowired
+    public ModelAdapterFactoryImpl(List<ModelAdapter> adapters, List<AudioModelTTSAdapter> wsAdapters) {
+        // 统一注册 ModelAdapter
         for (ModelAdapter adapter : adapters) {
             if (adapter instanceof ModelNamed modelNamed) {
                 List<String> modelNames = modelNamed.getModelNames();
@@ -23,11 +27,25 @@ public class ModelAdapterFactoryImpl implements ModelAdapterFactory {
                 }
             }
         }
+        // 统一注册 wsAdapter
+        for (AudioModelTTSAdapter wsAdapter : wsAdapters) {
+            if (wsAdapter instanceof ModelNamed modelNamed) {
+                List<String> modelNames = modelNamed.getModelNames();
+                for (String modelName : modelNames) {
+                    wsAdapterMap.put(modelName, wsAdapter);
+                }
+            }
+        }
     }
 
     @Override
     public ModelAdapter getAdapter(String modelName) {
         return adapterMap.get(modelName);
+    }
+
+    @Override
+    public AudioModelTTSAdapter getSpeechRecognitionWebSocketAdapter(String modelName) {
+        return wsAdapterMap.get(modelName);
     }
 
     /**

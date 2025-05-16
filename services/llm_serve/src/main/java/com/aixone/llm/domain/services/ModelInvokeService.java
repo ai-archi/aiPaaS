@@ -1,8 +1,12 @@
 package com.aixone.llm.domain.services;
 
-import com.aixone.llm.domain.models.audio.ASRRequest;
-import com.aixone.llm.domain.models.audio.AudioResponse;
+import java.io.InputStream;
+import java.util.function.Consumer;
+
+import com.aixone.llm.domain.models.audio.STTRequest;
+import com.aixone.llm.domain.models.audio.STTResponse;
 import com.aixone.llm.domain.models.audio.TTSRequest;
+import com.aixone.llm.domain.models.audio.TTSResponse;
 import com.aixone.llm.domain.models.chat.ChatRequest;
 import com.aixone.llm.domain.models.chat.ChatResponse;
 import com.aixone.llm.domain.models.completion.CompletionRequest;
@@ -36,9 +40,15 @@ public interface ModelInvokeService {
     Mono<ImageResponse> invokeImage(ImageRequest request);
     Mono<ImageTaskResponse> getImageTaskResult(String taskId, String modelName);
 
-    // 语音转文本（ASR）能力
-    Flux<AudioResponse> invokeASR(ASRRequest request);
+    // 语音转文本（STT）能力
+    Flux<STTResponse> invokeSTT(STTRequest request);
 
     // 文本转语音（TTS）能力
-    Flux<AudioResponse> invokeTTS(TTSRequest request);
+    Flux<TTSResponse> invokeTTS(TTSRequest request);
+
+    // 实时语音识别（WebSocket流式）能力
+    void invokeRealtimeSTT(String modelName, InputStream audioStream, Consumer<String> onResult, Consumer<Throwable> onError);
+
+    // 实时文本转语音（WebSocket流式）能力
+    void invokeRealtimeTTS(String modelName, TTSRequest ttsRequest, Consumer<String> onResult, Consumer<Throwable> onError);
 } 
