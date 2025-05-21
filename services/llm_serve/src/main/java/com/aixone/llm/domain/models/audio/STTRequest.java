@@ -1,5 +1,6 @@
 package com.aixone.llm.domain.models.audio;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.List;
 
@@ -9,7 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
- * ASRRequest 表示语音转文本请求参数，精简为阿里云ASR接口所需字段。
+ * STTRequest 表示阿里云流式语音识别请求参数。
  */
 @Data
 @SuperBuilder
@@ -17,25 +18,18 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 public class STTRequest implements Serializable {
     /**
-     * 模型名称
+     * 模型名称，如 "gummy-realtime-v1"
      */
     private String model;
+
     /**
-     * input参数，包含file_urls、audio_format、language等
+     * 识别参数
      */
     private Input input;
     /**
-     * 是否为流式请求
+     * 是否开启流式识别
      */
     private boolean stream;
-    /**
-     * 用户模型Key
-     */
-    private String keyId;
-    /**
-     * 用户ID
-     */
-    private String userId;
 
     @Data
     @SuperBuilder
@@ -43,16 +37,28 @@ public class STTRequest implements Serializable {
     @NoArgsConstructor
     public static class Input implements Serializable {
         /**
-         * 语音文件公网URL列表（阿里云ASR要求file_urls）
+         * 音频格式，如 "pcm"、"wav" 等
          */
-        private List<String> file_urls;
+        private String format;
         /**
-         * 语种，如zh、en等
+         * 采样率，如 16000
          */
-        private String language;
+        private Integer sampleRate;
         /**
-         * 音频格式，如wav、mp3等
+         * 源语言，如 "auto"、"zh"、"en" 等
          */
-        private String audio_format;
+        private String sourceLanguage;
+        /**
+         * 是否开启实时翻译
+         */
+        private Boolean translationEnabled;
+        /**
+         * 目标翻译语言列表，如 ["en"]
+         */
+        private List<String> translationLanguages;
+        
+        private File audioFile;
+        
+
     }
 } 

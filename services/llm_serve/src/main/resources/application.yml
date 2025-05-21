@@ -81,3 +81,9 @@ logging:
     org.springframework.r2dbc.connection: DEBUG
     org.springframework.r2dbc.connection.ConnectionFactoryUtils: TRACE
     org.springframework.r2dbc.core.DefaultDatabaseClient: TRACE
+    org.springframework.web: DEBUG
+    org.springframework.http: DEBUG
+    org.springframework.web.server.adapter.HttpWebHandlerAdapter: DEBUG
+    org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerAdapter: DEBUG
+    org.springframework.web.reactive.function.server: DEBUG
+    reactor.netty.http.server: DEBUG

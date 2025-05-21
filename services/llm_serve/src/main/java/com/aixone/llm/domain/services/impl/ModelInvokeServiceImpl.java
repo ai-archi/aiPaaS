@@ -1,8 +1,6 @@
 package com.aixone.llm.domain.services.impl;
 
 import java.time.LocalDateTime;
-import java.util.function.Consumer;
-import java.io.InputStream;
 
 import org.springframework.stereotype.Service;
 
@@ -192,43 +190,19 @@ public class ModelInvokeServiceImpl implements ModelInvokeService {
 
     @Override
     public Flux<STTResponse> invokeSTT(STTRequest request) {
-        // String modelName = request.getModel();
-        // // 假设 STTRequest 增加了 InputStream audioStream 字段
-        // final InputStream audioStream;
-        // if (request instanceof com.aixone.llm.domain.models.audio.STTRequest) {
-        //     InputStream tmp = null;
-        //     try {
-        //         java.lang.reflect.Field f = request.getClass().getDeclaredField("audioStream");
-        //         f.setAccessible(true);
-        //         tmp = (InputStream) f.get(request);
-        //     } catch (Exception ignore) {}
-        //     audioStream = tmp;
-        // } else {
-        //     audioStream = null;
-        // }
-        // if (audioStream == null) {
-        //     return Flux.error(new IllegalArgumentException("STTRequest 缺少音频流 audioStream 字段"));
-        // }
-        // return userModelKeyRepository.findByModelName(modelName).next()
-        //     .flatMapMany(key -> {
-        //         AudioModelSTTAdapter sttAdapter = modelAdapterFactory.getAudioModelSTTAdapter(modelName);
-        //         if (sttAdapter == null) {
-        //             return Flux.error(new IllegalStateException("No WebSocket STT adapter found for model: " + modelName));
-        //         }
-        //         return Flux.create(sink -> {
-        //             sttAdapter.recognizeSTT(audioStream, key, result -> {
-        //                 STTResponse.Output output = new STTResponse.Output();
-        //                 output.setText(result);
-        //                 STTResponse resp = new STTResponse();
-        //                 resp.setOutput(output);
-        //                 sink.next(resp);
-        //                 sink.complete();
-        //             }, error -> {
-        //                 sink.error(error);
-        //             });
-        //         });
-        //     });
-        return null;
+        String modelName = request.getModel();
+        return userModelKeyRepository.findByModelName(modelName).next()
+            .flatMapMany(key -> {
+                AudioModelSTTAdapter sttAdapter = modelAdapterFactory.getAudioModelSTTAdapter(modelName);
+                if (sttAdapter == null) {
+                    return Flux.error(new IllegalStateException("No WebSocket STT adapter found for model: " + modelName));
+                }
+                try {
+                    return sttAdapter.recognizeSTT(request, key);
+                } catch (Exception e) {
+                    return Flux.error(e);
+                }
+            });
     }
 
     @Override
