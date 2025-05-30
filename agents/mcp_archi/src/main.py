@@ -16,40 +16,6 @@ logging.basicConfig(
 
 mcp = FastMCP("FastMCP Demo Server")
 
-@mcp.tool()
-def todo_list() -> List[TodoItem]:
-    """查询 TODO 列表"""
-    return load_todos()
-
-@mcp.tool()
-def todo_add(todo: TodoItem, workflow: Optional[Workflow] = None) -> Dict[str, Any]:
-    """添加 TODO，可指定已有 workflow 或直接生成新的临时 workflow 并绑定"""
-    todos = load_todos()
-    workflows = load_workflows()
-    todo_id = str(uuid.uuid4())
-    todo_dict = todo.model_dump()
-    todo_dict['id'] = todo_id
-    if workflow is not None:
-        workflow_id = str(uuid.uuid4())
-        workflow_dict = workflow.model_dump()
-        workflow_dict['id'] = workflow_id
-        workflows.append(Workflow(**workflow_dict))
-        save_workflows(workflows)
-        todo_dict['workflow_id'] = workflow_id
-    new_todo = TodoItem(**todo_dict)
-    todos.append(new_todo)
-    save_todos(todos)
-    return {"todo": new_todo.model_dump(), "result": "success"}
-
-@mcp.tool()
-def todo_run(todo_id: str) -> Dict[str, Any]:
-    """运行指定 TODO。如果绑定 workflow，则自动调用 workflow_run。"""
-    todos = load_todos()
-    todo = next((t for t in todos if t.id == todo_id), None)
-    if todo and todo.workflow_id:
-        workflow_result = workflow_run(todo.workflow_id)
-        return {"todo_id": todo_id, "status": "workflow_executed", "workflow_result": workflow_result}
-    return {"todo_id": todo_id, "status": "executed"}
 
 @mcp.tool()
 def workflow_list(random_string: Optional[str] = None) -> List[Workflow]:
@@ -149,23 +115,28 @@ def workflow_run(
 
     # 优先通过名称查找
     if workflow_name:
-        matches = [wf for wf in workflows if wf.name == workflow_name]
+        # 忽略大小写并只要包含即可
+        matches = [wf for wf in workflows if workflow_name.lower() in wf.name.lower()]
         if len(matches) == 1:
             workflow = matches[0]
         elif len(matches) > 1:
             return {
                 "status": "ambiguous",
-                "message": f"存在多个名为'{workflow_name}'的工作流，请指定id。",
+                "message": f"存在多个名称包含'{workflow_name}'的工作流，请指定id。",
                 "candidates": [wf.id for wf in matches]
             }
         else:
-            return {"status": "not_found", "message": f"未找到名为'{workflow_name}'的工作流"}
+            return {"status": "not_found", "message": f"未找到名称包含'{workflow_name}'的工作流"}
     elif workflow_id:
         workflow = next((wf for wf in workflows if wf.id == workflow_id), None)
         if not workflow:
             return {"status": "not_found", "message": f"未找到id为{workflow_id}的工作流"}
     else:
-        return {"status": "error", "message": "请提供工作流名称或id"}
+        return {
+            "status": "error",
+            "message": f"未找到匹配的工作流，请指定工作流。",
+            "candidates": [wf.name for wf in workflows]
+        }
 
     # 获取当前步骤序号，默认第一个
     current_order = 1
@@ -183,8 +154,8 @@ def workflow_run(
 
     # 指导大模型如何继续执行后续步骤
     continue_instruction = (
-        f"执行完本步骤后，如不需人工确认则自动调用下个步骤，如果需要人工确认则人工确认后调用下个步骤。调用下个步骤的方法： workflow_run，参数 current_order={current_order+1}，以推进到下一个步骤。"
-        if current_order < len(steps_sorted) else "本步骤为最后一步，执行完毕后无需继续。每个步骤的执行结果需要输出执行结果。"
+        f"每个步骤的执行如果没有说明需要人工确认的都自动执行并输出执行结果。执行完本步骤后，如不需人工确认则自动调用下个步骤，如果需要人工确认则人工确认后调用下个步骤。调用下个步骤的方法： workflow_run，参数 current_order={current_order+1}，以推进到下一个步骤。"
+        if current_order < len(steps_sorted) else "本步骤为最后一步，执行完毕后无需继续。"
     )
 
     # 拼接input，确保None安全

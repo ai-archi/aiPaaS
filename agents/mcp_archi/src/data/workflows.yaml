@@ -6,7 +6,7 @@
   steps:
   - context: 当前需要对GitLab项目的所有待审核Merge Request进行自动化审核流程。
     input: ''
-    instruction: 使用glab命令获取所有待审核的Merge Request列表。
+    instruction: 使用"glab mr list"命令获取所有待审核的Merge Request列表。
     name: 获取Merge Requests
     order: 1
     output: MR列表（包含每个MR的id、标题、源分支、目标分支等信息）
@@ -26,29 +26,37 @@
     order: 3
     output: 校验结果（是否满足分支要求，详细说明）
     params: null
-  - context: 需要对Merge Request变更的代码进行质量分析，确保符合Golang规范和团队要求。
+  - context: 需要对Merge Request变更的代码进行质量分析，确保符合最佳实践。不需要依赖其他工具，直接分析代码。
     input: 选定的MR
-    instruction: 1. 通过glab mr diff <MR-ID> 和  glab mr view <MR-ID> 获取变更的代码和MR信息 2. 进行代码风格分析（命名规范、注释规范、格式化、代码结构、异常处理等，符合Golang规范）。3. 进行复杂度分析（代码重复率、代码复杂度等）。3.
+    instruction: 1. 通过glab mr diff <MR-ID> 和  glab mr view <MR-ID> 获取变更的代码和MR信息 2. 进行代码分析（命名规范、注释规范、格式化、代码结构、异常处理等）。3. 进行复杂度分析（代码重复率、代码复杂度等）。3.
       给出评分、代码优化建议、是否通过审核的建议。
-    name: 代码分析
+    name: 代码变更分析
     order: 4
     output: 评分、优化建议、是否通过审核建议
     params: null
+  - context: 需要发生变化的文件进行分析。不阻塞流程执行。不需要依赖其他工具，直接分析文件。
+    input: 选定的MR
+    instruction: 1. 获取哪些文件发生了变化 2. 进行文件分析（文件命名规范、注释规范、格式化、代码结构、异常处理等）。3. 进行复杂度分析（文件重复率、文件复杂度等）。4.
+      给出评分、文件优化建议。
+    name: 代码文件分析
+    order: 5
+    output: 评分、优化建议
+    params: null
   - context: 需要根据分析结果和分支依赖校验结果，由人工决定是否合并、拒绝或关闭Merge Request，并确保分支联动合并。
-    input: 
+    input:
     instruction: 1. 如果不合并，通过glab mr note <mr-id> -m "<分析结果>"反馈分析结果。 2. 如果合并，通过glab
-      mr note <mr-id> -m "<分析结果>"提供分析结果，并通过glab mr merge <mr-id> --rebase --yes合并代码，确保daily、develop分支的MR同步合并。3.
+      mr note <mr-id> -m "<分析结果>"提供分析结果，并通过glab mr merge <mr-id>  --yes合并代码，确保daily、develop分支的MR同步合并。3.
       如果关闭，通过glab mr note <mr-id> -m "<分析结果>"提交分析结果，并通过glab mr close <mr-id>关闭Merge
       Request。
     name: 人工确认并执行合并操作
-    order: 5
+    order: 6
     output: 合并/关闭结果
     params: null
   - context: MR审核流程已完成，需要记录流程结束状态。
     input: 上一步输出
     instruction: 记录流程结束，输出最终状态。
     name: 结束流程
-    order: 6
+    order: 7
     output: 流程完成标记
     params: null
   updated_at: '2025-05-30T09:23:06.673556'
