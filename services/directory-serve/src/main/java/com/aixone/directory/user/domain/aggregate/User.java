@@ -40,6 +40,7 @@ public class User {
     }
 
     public static User createUser(UUID tenantId, String email, String plainPassword, String username, PasswordEncoder passwordEncoder) {
+        System.out.println("[DEBUG] createUser email=" + email);
         Assert.notNull(email, "Email cannot be null");
         Assert.notNull(plainPassword, "Password cannot be null");
         Assert.notNull(username, "Username cannot be null");
