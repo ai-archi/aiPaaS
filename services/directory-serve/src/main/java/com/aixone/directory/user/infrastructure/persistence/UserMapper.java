@@ -6,6 +6,9 @@ import com.aixone.directory.user.domain.aggregate.Profile;
 import com.aixone.directory.user.domain.aggregate.User;
 import com.aixone.directory.user.infrastructure.persistence.dbo.UserDbo;
 
+import java.util.HashSet;
+import java.util.UUID;
+
 @Component
 public class UserMapper {
 
@@ -15,13 +18,18 @@ public class UserMapper {
         }
         Profile profile = new Profile(dbo.getUsername(), dbo.getAvatarUrl(), dbo.getBio());
 
+        // Note: roleIds and groupIds are not stored in UserDbo, they are managed
+        // in their respective tables (user_roles, group_members).
+        // They should be populated by the application service if needed.
         return new User(
             dbo.getId(),
-            dbo.getTenantId(),
+            UUID.fromString(dbo.getTenantId()),
             dbo.getEmail(),
             dbo.getHashedPassword(),
             profile,
             dbo.getStatus(),
+            new HashSet<>(), // roleIds
+            new HashSet<>(), // groupIds
             dbo.getCreatedAt(),
             dbo.getUpdatedAt()
         );
@@ -33,7 +41,7 @@ public class UserMapper {
         }
         UserDbo dbo = new UserDbo();
         dbo.setId(domain.getId());
-        dbo.setTenantId(domain.getTenantId());
+        dbo.setTenantId(domain.getTenantId().toString());
         dbo.setEmail(domain.getEmail());
         dbo.setHashedPassword(domain.getHashedPassword());
         dbo.setStatus(domain.getStatus());

@@ -10,7 +10,7 @@ import com.aixone.directory.organization.infrastructure.persistence.dbo.Departme
 
 @Repository
 public interface DepartmentJpaRepository extends JpaRepository<DepartmentDbo, UUID> {
-    List<DepartmentDbo> findByOrgId(UUID orgId);
+    List<DepartmentDbo> findByOrganizationId(UUID orgId);
     List<DepartmentDbo> findByParentId(UUID parentId);
-    void deleteByOrgId(UUID orgId);
+    void deleteByOrganizationId(UUID orgId);
 } 

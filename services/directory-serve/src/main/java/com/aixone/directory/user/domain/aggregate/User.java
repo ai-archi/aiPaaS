@@ -1,30 +1,45 @@
 package com.aixone.directory.user.domain.aggregate;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 @Getter
+@NoArgsConstructor
 @AllArgsConstructor
-@Builder(toBuilder = true)
 public class User {
 
-    private final UUID id;
-    private String tenantId;
+    private UUID id;
+    private UUID tenantId;
     private String email;
     private String hashedPassword;
     private Profile profile;
     private UserStatus status;
-    private final LocalDateTime createdAt;
+    private Set<UUID> roleIds = new HashSet<>();
+    private Set<UUID> groupIds = new HashSet<>();
+    private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static User createUser(String tenantId, String email, String plainPassword, String username, PasswordEncoder passwordEncoder) {
+    // Constructor for creating a new User
+    private User(UUID tenantId, String email, String hashedPassword, Profile profile) {
+        this.id = UUID.randomUUID();
+        this.tenantId = tenantId;
+        this.email = email;
+        this.hashedPassword = hashedPassword;
+        this.profile = profile;
+        this.status = UserStatus.ACTIVE;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public static User createUser(UUID tenantId, String email, String plainPassword, String username, PasswordEncoder passwordEncoder) {
         Assert.notNull(email, "Email cannot be null");
         Assert.notNull(plainPassword, "Password cannot be null");
         Assert.notNull(username, "Username cannot be null");
@@ -32,25 +47,17 @@ public class User {
 
         Profile initialProfile = Profile.builder().username(username).build();
 
-        return User.builder()
-                .id(UUID.randomUUID())
-                .tenantId(tenantId)
-                .email(email)
-                .hashedPassword(passwordEncoder.encode(plainPassword))
-                .profile(initialProfile)
-                .status(UserStatus.ACTIVE)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+        return new User(
+                tenantId,
+                email,
+                passwordEncoder.encode(plainPassword),
+                initialProfile
+        );
     }
 
     public void updateProfile(Profile newProfile) {
         Assert.notNull(newProfile, "New profile cannot be null");
-        this.profile = this.profile.toBuilder()
-            .username(newProfile.getUsername())
-            .avatarUrl(newProfile.getAvatarUrl())
-            .bio(newProfile.getBio())
-            .build();
+        this.profile = this.profile.updateWith(newProfile);
         this.touch();
     }
 
@@ -77,6 +84,26 @@ public class User {
             return;
         }
         this.status = UserStatus.ACTIVE;
+        this.touch();
+    }
+
+    public void assignToGroup(UUID groupId) {
+        this.groupIds.add(groupId);
+        this.touch();
+    }
+
+    public void removeFromGroup(UUID groupId) {
+        this.groupIds.remove(groupId);
+        this.touch();
+    }
+
+    public void grantRole(UUID roleId) {
+        this.roleIds.add(roleId);
+        this.touch();
+    }
+
+    public void revokeRole(UUID roleId) {
+        this.roleIds.remove(roleId);
         this.touch();
     }
 

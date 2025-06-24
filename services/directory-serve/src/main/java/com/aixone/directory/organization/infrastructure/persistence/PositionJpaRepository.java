@@ -10,6 +10,6 @@ import com.aixone.directory.organization.infrastructure.persistence.dbo.Position
 
 @Repository
 public interface PositionJpaRepository extends JpaRepository<PositionDbo, UUID> {
-    List<PositionDbo> findByOrgId(UUID orgId);
-    void deleteByOrgId(UUID orgId);
+    List<PositionDbo> findByOrganizationId(UUID orgId);
+    void deleteByOrganizationId(UUID orgId);
 } 

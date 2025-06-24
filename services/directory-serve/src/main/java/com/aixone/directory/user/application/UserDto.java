@@ -1,45 +1,78 @@
 package com.aixone.directory.user.application;
 
+import com.aixone.directory.user.domain.aggregate.UserStatus;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.Value;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import lombok.Builder;
-import lombok.Value;
 
-public final class UserDto {
-    private UserDto() {}
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserDto {
 
-    @Value
+    private UUID id;
+    private String tenantId;
+    private String username;
+    private String email;
+    private String avatarUrl;
+    private String bio;
+    private UserStatus status;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class CreateUserCommand {
-        String email;
-        String password;
-        String username;
+        private String email;
+        private String password;
+        private String username;
     }
 
-    @Value
+    @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class UpdateProfileCommand {
-        UUID userId;
-        String username;
-        String avatarUrl;
-        String bio;
+        private String username;
+        private String avatarUrl;
+        private String bio;
     }
 
-    @Value
+    @Data
     @Builder
-    public static class UserPublicView {
-        UUID id;
-        String username;
-        String avatarUrl;
-        LocalDateTime createdAt;
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ChangePasswordCommand {
+        private String newPassword;
     }
-    
-    @Value
+
+    @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UserPublicView {
+        private UUID id;
+        private String username;
+        private String avatarUrl;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class UserCredentialsView {
-        UUID id;
-        String hashedPassword;
-        boolean isActive;
+        private UUID id;
+        private String email;
+        private String hashedPassword;
+        private UserStatus status;
     }
 } 

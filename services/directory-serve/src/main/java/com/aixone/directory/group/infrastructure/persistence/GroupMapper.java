@@ -1,15 +1,14 @@
 package com.aixone.directory.group.infrastructure.persistence;
 
-import java.util.HashSet;
-
-import org.springframework.stereotype.Component;
-
 import com.aixone.directory.group.domain.aggregate.Group;
 import com.aixone.directory.group.infrastructure.persistence.dbo.GroupDbo;
+import org.springframework.stereotype.Component;
+
+import java.util.HashSet;
 
 @Component
 public class GroupMapper {
-
+/*
     public Group toDomain(GroupDbo dbo) {
         if (dbo == null) return null;
         return Group.builder()
@@ -28,9 +27,10 @@ public class GroupMapper {
         dbo.setId(domain.getId());
         dbo.setTenantId(domain.getTenantId());
         dbo.setName(domain.getName());
-        dbo.setMembers(new HashSet<>(domain.getMembers())); // Create a mutable copy
+        dbo.setMembers(new HashSet<>(domain.getMembers()));
         dbo.setCreatedAt(domain.getCreatedAt());
         dbo.setUpdatedAt(domain.getUpdatedAt());
         return dbo;
     }
+    */
 } 

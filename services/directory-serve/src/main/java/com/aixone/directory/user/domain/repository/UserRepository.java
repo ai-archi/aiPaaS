@@ -18,12 +18,11 @@ public interface UserRepository {
     void save(User user);
 
     /**
-     * Finds a user by their tenant ID and ID.
-     * @param tenantId The tenant ID of the user.
+     * Finds a user by their ID.
      * @param id The UUID of the user.
      * @return An Optional containing the user if found, or empty otherwise.
      */
-    Optional<User> findByTenantIdAndId(String tenantId, UUID id);
+    Optional<User> findById(UUID id);
 
     /**
      * Finds a user by their tenant ID and email address.
@@ -31,7 +30,15 @@ public interface UserRepository {
      * @param email The email address of the user.
      * @return An Optional containing the user if found, or empty otherwise.
      */
-    Optional<User> findByTenantIdAndEmail(String tenantId, String email);
+    Optional<User> findByTenantIdAndEmail(UUID tenantId, String email);
+
+    /**
+     * Finds a user by their tenant ID and ID.
+     * @param tenantId The tenant ID of the user.
+     * @param userId The UUID of the user.
+     * @return An Optional containing the user if found, or empty otherwise.
+     */
+    Optional<User> findByTenantIdAndId(UUID tenantId, UUID userId);
 
     /**
      * Checks if a user with the given email exists.

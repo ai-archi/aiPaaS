@@ -22,6 +22,9 @@ public class Group {
     @Builder.Default
     private Set<UUID> members = new HashSet<>();
 
+    @Builder.Default
+    private Set<UUID> roles = new HashSet<>();
+
     private final LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -31,6 +34,7 @@ public class Group {
                 .tenantId(tenantId)
                 .name(name)
                 .members(new HashSet<>())
+                .roles(new HashSet<>())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -48,6 +52,16 @@ public class Group {
 
     public void removeMember(UUID userId) {
         this.members.remove(userId);
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void addRole(UUID roleId) {
+        this.roles.add(roleId);
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void removeRole(UUID roleId) {
+        this.roles.remove(roleId);
         this.updatedAt = LocalDateTime.now();
     }
 } 

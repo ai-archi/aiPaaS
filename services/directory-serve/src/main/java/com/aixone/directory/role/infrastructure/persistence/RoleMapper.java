@@ -12,14 +12,15 @@ public class RoleMapper {
 
     public Role toDomain(RoleDbo dbo) {
         if (dbo == null) return null;
-        return Role.builder()
-                .id(dbo.getId())
-                .tenantId(dbo.getTenantId())
-                .name(dbo.getName())
-                .members(new HashSet<>(dbo.getMembers())) // Create a mutable copy
-                .createdAt(dbo.getCreatedAt())
-                .updatedAt(dbo.getUpdatedAt())
-                .build();
+        // The 'members' are part of the DBO's state but not directly part of the
+        // core Role domain object's construction. The domain object is simpler.
+        return new Role(
+                dbo.getId(),
+                dbo.getTenantId(),
+                dbo.getName(),
+                dbo.getCreatedAt(),
+                dbo.getUpdatedAt()
+        );
     }
 
     public RoleDbo toDbo(Role domain) {
@@ -28,7 +29,10 @@ public class RoleMapper {
         dbo.setId(domain.getId());
         dbo.setTenantId(domain.getTenantId());
         dbo.setName(domain.getName());
-        dbo.setMembers(new HashSet<>(domain.getMembers())); // Create a mutable copy
+        // 'members' are managed at the persistence level, so we don't map them from the domain object.
+        // The Dbo is typically loaded, modified, and then saved.
+        // If creating a new RoleDbo, the members set would be initialized as empty.
+        dbo.setMembers(new HashSet<>());
         dbo.setCreatedAt(domain.getCreatedAt());
         dbo.setUpdatedAt(domain.getUpdatedAt());
         return dbo;
