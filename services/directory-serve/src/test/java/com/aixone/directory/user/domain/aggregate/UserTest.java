@@ -5,11 +5,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 import java.lang.reflect.Method;
 
 public class UserTest extends AbstractExcelDrivenTest {
+
+    private static final Logger log = LoggerFactory.getLogger(UserTest.class);
 
     private static PasswordEncoder passwordEncoder;
 
@@ -24,7 +28,7 @@ public class UserTest extends AbstractExcelDrivenTest {
 
     @Test
     void testCreateUser() {
-        System.out.println("[DEBUG] testCreateUser 用例参数: " + allTestCases.stream().filter(c -> c.get("caseName").equals("正常创建用户")).findFirst().orElse(null));
+        log.debug("testCreateUser 用例参数: {}", allTestCases.stream().filter(c -> c.get("caseName").equals("正常创建用户")).findFirst().orElse(null));
         execute(new String[]{"正常创建用户","邮箱为空异常","密码为空异常","邮箱格式错误","密码长度不足"}, getMethod(User.class, "createUser", UUID.class, String.class, String.class, String.class, PasswordEncoder.class));
     }
 
@@ -104,7 +108,7 @@ public class UserTest extends AbstractExcelDrivenTest {
             default:
                 value = super.getMethodParamValue(paramName, caseData);
         }
-        System.out.println("[DEBUG] getMethodParamValue paramName=" + paramName + ", value=" + value);
+        log.debug("getMethodParamValue paramName={}, value={}", paramName, value);
         return value;
     }
 } 

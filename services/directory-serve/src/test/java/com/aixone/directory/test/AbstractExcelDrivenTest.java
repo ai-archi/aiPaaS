@@ -3,6 +3,8 @@ package com.aixone.directory.test;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.AfterAll;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * 负责执行方法调用和结果汇总
  */
 public abstract class AbstractExcelDrivenTest {
+    protected static final Logger log = LoggerFactory.getLogger(AbstractExcelDrivenTest.class);
     // 所有测试用例数据
     protected static List<Map<String, String>> allTestCases = new ArrayList<>();
     // 测试结果统计
@@ -44,7 +47,7 @@ public abstract class AbstractExcelDrivenTest {
                 Cell cell = headerRow.getCell(i);
                 headers.add(cell != null ? cell.getStringCellValue() : "");
             }
-            System.out.println("DEBUG: 表头: " + headers);
+            log.debug("表头: {}", headers);
             // 读取数据行
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
@@ -71,9 +74,9 @@ public abstract class AbstractExcelDrivenTest {
                     caseData.put(headers.get(j), value);
                 }
                 allTestCases.add(caseData);
-                System.out.println("DEBUG: 加载用例: " + caseData.get("caseName"));
+                log.debug("加载用例: {}", caseData.get("caseName"));
             }
-            System.out.println("DEBUG: 总共加载了 " + allTestCases.size() + " 个用例");
+            log.debug("总共加载了 {} 个用例", allTestCases.size());
             workbook.close();
         } catch (IOException e) {
             throw new RuntimeException("Failed to load Excel file: " + excelPath, e);
@@ -135,7 +138,7 @@ public abstract class AbstractExcelDrivenTest {
      * @throws Exception 执行异常
      */
     protected Object invokeTestMethod(Method method, Object... params) throws Exception {
-        System.out.println("[DEBUG] invokeTestMethod 调用: method=" + method.getName() + ", params=" + java.util.Arrays.toString(params));
+        log.debug("invokeTestMethod 调用: method={}, params={}", method.getName(), java.util.Arrays.toString(params));
         Object result;
         if ((method.getModifiers() & java.lang.reflect.Modifier.STATIC) != 0) {
             result = method.invoke(null, params);
@@ -166,7 +169,7 @@ public abstract class AbstractExcelDrivenTest {
             }
             result = method.invoke(instance, params);
         }
-        System.out.println("[DEBUG] invokeTestMethod 返回: result=" + result);
+        log.debug("invokeTestMethod 返回: result={}", result);
         return result;
     }
 
@@ -182,7 +185,7 @@ public abstract class AbstractExcelDrivenTest {
         for (int i = 0; i < paramNames.length; i++) {
             parameters[i] = getMethodParamValue(paramNames[i], caseData);
         }
-        System.out.println("[DEBUG] buildMethodParameters: method=" + method.getName() + ", paramNames=" + java.util.Arrays.toString(paramNames) + ", parameters=" + java.util.Arrays.toString(parameters));
+        log.debug("buildMethodParameters: method={}, paramNames={}, parameters={}", method.getName(), java.util.Arrays.toString(paramNames), java.util.Arrays.toString(parameters));
         return parameters;
     }
 
@@ -223,7 +226,7 @@ public abstract class AbstractExcelDrivenTest {
      */
     private void performAssertion(String caseType, String expectedResult, String expectedException, 
                                  Object result, Exception exception) {
-        System.out.println("[DEBUG] 用例类型: " + caseType + ", 期望结果: " + expectedResult + ", 实际结果: " + result + ", 异常: " + exception + ", 当前用例: " + (currentCase != null ? currentCase.get("caseName") : "null"));
+        log.debug("用例类型: {}, 期望结果: {}, 实际结果: {}, 异常: {}, 当前用例: {}", caseType, expectedResult, result, exception, (currentCase != null ? currentCase.get("caseName") : "null"));
         switch (caseType) {
             case "assertTrue":
                 boolean isSuccess = (result != null && !Boolean.FALSE.equals(result));
@@ -249,7 +252,7 @@ public abstract class AbstractExcelDrivenTest {
                 if (exception == null) {
                     assertNull(exception, "Expected no exception but got: " + exception);
                 } else if (exception instanceof NullPointerException && exception.getMessage() != null && exception.getMessage().contains("Cannot invoke \"Object.getClass()\"")) {
-                    System.out.println("[INFO] 忽略void方法返回null导致的NPE: " + exception.getMessage());
+                    log.info("忽略void方法返回null导致的NPE: {}", exception.getMessage());
                 } else {
                     assertNull(exception, "Expected no exception but got: " + exception);
                 }
@@ -283,14 +286,14 @@ public abstract class AbstractExcelDrivenTest {
      */
     @AfterAll
     static void outputTestResults() {
-        System.out.println("\n=== 测试结果汇总 ===");
-        System.out.println("总用例数: " + testResults.size());
+        log.info("\n=== 测试结果汇总 ===");
+        log.info("总用例数: {}", testResults.size());
         long successCount = testResults.values().stream()
                 .filter(TestResult::isSuccess)
                 .count();
-        System.out.println("成功用例数: " + successCount);
-        System.out.println("失败用例数: " + (testResults.size() - successCount));
-        System.out.println("\n=== 详细结果 ===");
+        log.info("成功用例数: {}", successCount);
+        log.info("失败用例数: {}", (testResults.size() - successCount));
+        log.info("\n=== 详细结果 ===");
         testResults.values().stream()
                 .sorted(Comparator.comparing(TestResult::getTimestamp))
                 .forEach(result -> {
@@ -318,7 +321,7 @@ public abstract class AbstractExcelDrivenTest {
                             detail = "断言失败【失败】";
                         }
                     }
-                    System.out.printf("%s %s - %s\n", status, result.getCaseName(), detail);
+                    log.info("{} {} - {}", status, result.getCaseName(), detail);
                 });
     }
 

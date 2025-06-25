@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -15,6 +17,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
+
+    private static final Logger log = LoggerFactory.getLogger(User.class);
 
     private UUID id;
     private UUID tenantId;
@@ -40,7 +44,7 @@ public class User {
     }
 
     public static User createUser(UUID tenantId, String email, String plainPassword, String username, PasswordEncoder passwordEncoder) {
-        System.out.println("[DEBUG] createUser 入参: tenantId=" + tenantId + ", email=" + email + ", plainPassword=" + plainPassword + ", username=" + username + ", passwordEncoder=" + (passwordEncoder != null));
+        log.debug("createUser 入参: tenantId={}, email={}, plainPassword={}, username={}, passwordEncoder={}", tenantId, email, plainPassword, username, passwordEncoder != null);
         Assert.hasText(email, "Email cannot be null or empty");
         Assert.hasText(plainPassword, "Password cannot be null or empty");
         Assert.hasText(username, "Username cannot be null or empty");
@@ -61,7 +65,7 @@ public class User {
                 passwordEncoder.encode(plainPassword),
                 initialProfile
         );
-        System.out.println("[DEBUG] createUser 返回: user=" + (user != null ? user.toString() : null));
+        log.debug("createUser 返回: user={}", user);
         return user;
     }
 
