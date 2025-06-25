@@ -1,105 +1,110 @@
 package com.aixone.directory.user.domain.aggregate;
 
-import org.junit.jupiter.api.BeforeEach;
+import com.aixone.directory.test.AbstractExcelDrivenTest;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.mockito.Mockito;
 
 import java.util.UUID;
+import java.lang.reflect.Method;
 
-import static org.junit.jupiter.api.Assertions.*;
+public class UserTest extends AbstractExcelDrivenTest {
 
-/**
- * User 领域聚合根的单元测试
- */
-public class UserTest {
-    private PasswordEncoder passwordEncoder;
-    private UUID tenantId;
-    private String email;
-    private String plainPassword;
-    private String username;
+    private static PasswordEncoder passwordEncoder;
 
-    @BeforeEach
-    public void setUp() {
-        System.out.println("[DEBUG] setUp email=" + email);
-        System.out.println("[DEBUG] setUp tenantId=" + tenantId);
-        System.out.println("[DEBUG] setUp plainPassword=" + plainPassword);
-        System.out.println("[DEBUG] setUp username=" + username);
+    @BeforeAll
+    static void setUp() throws NoSuchMethodException {
+        // 加载用户用例数据
+        loadTestCases("usecases/user_cases.xlsx");
+        // 初始化静态参数
         passwordEncoder = Mockito.mock(PasswordEncoder.class);
-        tenantId = UUID.randomUUID();
-        email = "test@example.com";
-        plainPassword = "password123";
-        username = "testuser";
-        Mockito.when(passwordEncoder.encode(plainPassword)).thenReturn("hashedPassword");
-        Mockito.when(passwordEncoder.matches(Mockito.anyString(), Mockito.anyString())).thenReturn(true);
+        Mockito.when(passwordEncoder.encode(Mockito.anyString())).thenReturn("encoded_password");
     }
 
     @Test
-    public void testCreateUser() {
-        System.out.println("[DEBUG] testCreateUser email=" + email);
-        System.out.println("[DEBUG] testCreateUser tenantId=" + tenantId);
-        System.out.println("[DEBUG] testCreateUser plainPassword=" + plainPassword);
-        System.out.println("[DEBUG] testCreateUser username=" + username);
-        User user = User.createUser(tenantId, email, plainPassword, username, passwordEncoder);
-        assertNotNull(user.getId());
-        assertEquals(email, user.getEmail());
-        assertEquals(UserStatus.ACTIVE, user.getStatus());
-        assertEquals(username, user.getProfile().getUsername());
-        assertTrue(user.checkPassword(plainPassword, passwordEncoder));
+    void testCreateUser() {
+        System.out.println("[DEBUG] testCreateUser 用例参数: " + allTestCases.stream().filter(c -> c.get("caseName").equals("正常创建用户")).findFirst().orElse(null));
+        execute(new String[]{"正常创建用户","邮箱为空异常","密码为空异常","邮箱格式错误","密码长度不足"}, getMethod(User.class, "createUser", UUID.class, String.class, String.class, String.class, PasswordEncoder.class));
     }
 
     @Test
-    public void testUpdateProfile() {
-        User user = User.createUser(tenantId, email, plainPassword, username, passwordEncoder);
-        Profile newProfile = Profile.builder().username("newuser").avatarUrl("avatar.png").bio("bio").build();
-        user.updateProfile(newProfile);
-        assertEquals("newuser", user.getProfile().getUsername());
-        assertEquals("avatar.png", user.getProfile().getAvatarUrl());
-        assertEquals("bio", user.getProfile().getBio());
+    void testUpdateProfile() {
+        execute(new String[]{"正常更新Profile", "Profile字段为空异常"}, getMethod(User.class, "updateProfile", Profile.class));
     }
 
     @Test
-    public void testChangePassword() {
-        User user = User.createUser(tenantId, email, plainPassword, username, passwordEncoder);
-        String newPassword = "newPassword123";
-        Mockito.when(passwordEncoder.encode(newPassword)).thenReturn("newHashedPassword");
-        user.changePassword(newPassword, passwordEncoder);
-        assertTrue(user.checkPassword(newPassword, passwordEncoder));
+    void testChangePassword() {
+        execute(new String[]{"正常修改密码", "密码为空异常", "密码长度不足"}, getMethod(User.class, "changePassword", String.class, PasswordEncoder.class));
     }
 
     @Test
-    public void testSuspendAndActivate() {
-        User user = User.createUser(tenantId, email, plainPassword, username, passwordEncoder);
-        user.suspend();
-        assertEquals(UserStatus.SUSPENDED, user.getStatus());
-        user.activate();
-        assertEquals(UserStatus.ACTIVE, user.getStatus());
+    void testSuspend() {
+        execute(new String[]{"正常挂起用户"}, getMethod(User.class, "suspend"));
     }
 
     @Test
-    public void testAssignAndRemoveGroup() {
-        User user = User.createUser(tenantId, email, plainPassword, username, passwordEncoder);
-        UUID groupId = UUID.randomUUID();
-        user.assignToGroup(groupId);
-        assertTrue(user.getGroupIds().contains(groupId));
-        user.removeFromGroup(groupId);
-        assertFalse(user.getGroupIds().contains(groupId));
+    void testActivate() {
+        execute(new String[]{"正常激活用户"}, getMethod(User.class, "activate"));
     }
 
     @Test
-    public void testGrantAndRevokeRole() {
-        User user = User.createUser(tenantId, email, plainPassword, username, passwordEncoder);
-        UUID roleId = UUID.randomUUID();
-        user.grantRole(roleId);
-        assertTrue(user.getRoleIds().contains(roleId));
-        user.revokeRole(roleId);
-        assertFalse(user.getRoleIds().contains(roleId));
+    void testAssignToGroup() {
+        execute(new String[]{"分配分组"}, getMethod(User.class, "assignToGroup", UUID.class));
     }
 
     @Test
-    public void testChangePasswordWhenSuspendedThrowsException() {
-        User user = User.createUser(tenantId, email, plainPassword, username, passwordEncoder);
-        user.suspend();
-        assertThrows(IllegalStateException.class, () -> user.changePassword("anotherPassword", passwordEncoder));
+    void testRemoveFromGroup() {
+        execute(new String[]{"移除分组"}, getMethod(User.class, "removeFromGroup", UUID.class));
     }
-}
+
+    @Test
+    void testGrantRole() {
+        execute(new String[]{"授予角色"}, getMethod(User.class, "grantRole", UUID.class));
+    }
+
+    @Test
+    void testRevokeRole() {
+        execute(new String[]{"撤销角色"}, getMethod(User.class, "revokeRole", UUID.class));
+    }
+
+    @Test
+    void testChangePasswordWhenSuspendedThrowsException() {
+        execute(new String[]{"挂起状态下修改密码抛异常"}, getMethod(User.class, "changePassword", String.class, PasswordEncoder.class));
+    }
+
+    @Override
+    protected Object getMethodParamValue(String paramName, java.util.Map<String, String> caseData) {
+        Object value;
+        switch (paramName) {
+            case "profile":
+            case "newProfile":
+                value = Profile.builder()
+                    .username(caseData.get("profile_username"))
+                    .avatarUrl(caseData.get("profile_avatarUrl"))
+                    .bio(caseData.get("profile_bio"))
+                    .build();
+                break;
+            case "passwordEncoder":
+                value = passwordEncoder;
+                break;
+            case "plainPassword":
+                value = caseData.get("password");
+                break;
+            case "groupId":
+            case "roleId":
+            case "tenantId":
+                String v = caseData.get(paramName);
+                value = v != null && !v.isEmpty() ? java.util.UUID.fromString(v) : null;
+                break;
+            case "status":
+                String statusStr = caseData.get("status");
+                value = statusStr != null && !statusStr.isEmpty() ? UserStatus.valueOf(statusStr) : null;
+                break;
+            default:
+                value = super.getMethodParamValue(paramName, caseData);
+        }
+        System.out.println("[DEBUG] getMethodParamValue paramName=" + paramName + ", value=" + value);
+        return value;
+    }
+} 

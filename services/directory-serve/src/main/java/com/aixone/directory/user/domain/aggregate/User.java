@@ -40,35 +40,34 @@ public class User {
     }
 
     public static User createUser(UUID tenantId, String email, String plainPassword, String username, PasswordEncoder passwordEncoder) {
-        System.out.println("[DEBUG] createUser email=" + email);
+        System.out.println("[DEBUG] createUser 入参: tenantId=" + tenantId + ", email=" + email + ", plainPassword=" + plainPassword + ", username=" + username + ", passwordEncoder=" + (passwordEncoder != null));
         Assert.hasText(email, "Email cannot be null or empty");
         Assert.hasText(plainPassword, "Password cannot be null or empty");
         Assert.hasText(username, "Username cannot be null or empty");
         Assert.notNull(passwordEncoder, "PasswordEncoder cannot be null");
-
         // 验证邮箱格式
         String emailRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
         if (!email.matches(emailRegex)) {
             throw new IllegalArgumentException("Invalid email format: " + email);
         }
-
         // 验证密码长度
         if (plainPassword.length() < 6) {
             throw new IllegalArgumentException("Password must be at least 6 characters long");
         }
-
         Profile initialProfile = Profile.builder().username(username).build();
-
-        return new User(
+        User user = new User(
                 tenantId,
                 email,
                 passwordEncoder.encode(plainPassword),
                 initialProfile
         );
+        System.out.println("[DEBUG] createUser 返回: user=" + (user != null ? user.toString() : null));
+        return user;
     }
 
     public void updateProfile(Profile newProfile) {
         Assert.notNull(newProfile, "New profile cannot be null");
+        Assert.hasText(newProfile.getUsername(), "Profile username cannot be null or empty");
         this.profile = this.profile.updateWith(newProfile);
         this.touch();
     }
@@ -79,13 +78,17 @@ public class User {
 
     public void changePassword(String newPassword, PasswordEncoder passwordEncoder) {
         Assert.state(this.status != UserStatus.SUSPENDED, "Cannot change password for a suspended user.");
+        Assert.hasText(newPassword, "New password cannot be null or empty");
+        if (newPassword.length() < 6) {
+            throw new IllegalArgumentException("Password must be at least 6 characters long");
+        }
         this.hashedPassword = passwordEncoder.encode(newPassword);
         this.touch();
     }
 
     public void suspend() {
         if (this.status == UserStatus.SUSPENDED) {
-            return;
+            throw new IllegalStateException("User is already suspended");
         }
         this.status = UserStatus.SUSPENDED;
         this.touch();
@@ -93,28 +96,32 @@ public class User {
 
     public void activate() {
         if (this.status == UserStatus.ACTIVE) {
-            return;
+            throw new IllegalStateException("User is already active");
         }
         this.status = UserStatus.ACTIVE;
         this.touch();
     }
 
     public void assignToGroup(UUID groupId) {
+        Assert.notNull(groupId, "GroupId cannot be null");
         this.groupIds.add(groupId);
         this.touch();
     }
 
     public void removeFromGroup(UUID groupId) {
+        Assert.notNull(groupId, "GroupId cannot be null");
         this.groupIds.remove(groupId);
         this.touch();
     }
 
     public void grantRole(UUID roleId) {
+        Assert.notNull(roleId, "RoleId cannot be null");
         this.roleIds.add(roleId);
         this.touch();
     }
 
     public void revokeRole(UUID roleId) {
+        Assert.notNull(roleId, "RoleId cannot be null");
         this.roleIds.remove(roleId);
         this.touch();
     }
