@@ -41,10 +41,21 @@ public class User {
 
     public static User createUser(UUID tenantId, String email, String plainPassword, String username, PasswordEncoder passwordEncoder) {
         System.out.println("[DEBUG] createUser email=" + email);
-        Assert.notNull(email, "Email cannot be null");
-        Assert.notNull(plainPassword, "Password cannot be null");
-        Assert.notNull(username, "Username cannot be null");
+        Assert.hasText(email, "Email cannot be null or empty");
+        Assert.hasText(plainPassword, "Password cannot be null or empty");
+        Assert.hasText(username, "Username cannot be null or empty");
         Assert.notNull(passwordEncoder, "PasswordEncoder cannot be null");
+
+        // 验证邮箱格式
+        String emailRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+        if (!email.matches(emailRegex)) {
+            throw new IllegalArgumentException("Invalid email format: " + email);
+        }
+
+        // 验证密码长度
+        if (plainPassword.length() < 6) {
+            throw new IllegalArgumentException("Password must be at least 6 characters long");
+        }
 
         Profile initialProfile = Profile.builder().username(username).build();
 
