@@ -55,6 +55,8 @@ func NewUser(tenantId uuid.UUID, email, hashedPassword string, profile Profile) 
 	}
 }
 
+// 错误类型需导出，便于反射和类型断言
+
 type IllegalArgumentError struct{ msg string }
 
 func (e *IllegalArgumentError) Error() string { return e.msg }
@@ -135,7 +137,9 @@ type UserTest struct {
 // 业务相关参数获取逻辑全部放在这里
 func (ut *UserTest) GetMethodParamValue(paramName string, caseData map[string]string) interface{} {
 	paramName = strings.TrimSpace(paramName)
-	fmt.Printf("[DEBUG] paramName: '%s'\n", paramName)
+	if debugFlag {
+		fmt.Printf("[DEBUG] paramName: '%s'\n", paramName)
+	}
 	var result interface{}
 	switch paramName {
 	case "plainPassword":
@@ -145,10 +149,16 @@ func (ut *UserTest) GetMethodParamValue(paramName string, caseData map[string]st
 	case "encoder", "passwordEncoder":
 		result = &mockPasswordEncoder{}
 	case "newProfile", "profile":
+		username := caseData["profile_username"]
+		avatar := caseData["profile_avatarUrl"]
+		bio := caseData["profile_bio"]
+		if username == "" || avatar == "" || bio == "" {
+			fmt.Printf("[WARNING] Profile字段缺失: username=%v, avatar=%v, bio=%v\n", username, avatar, bio)
+		}
 		result = Profile{
-			Username:  caseData["profile_username"],
-			AvatarUrl: caseData["profile_avatarUrl"],
-			Bio:       caseData["profile_bio"],
+			Username:  username,
+			AvatarUrl: avatar,
+			Bio:       bio,
 		}
 	case "tenantId", "groupId", "roleId":
 		v := caseData[paramName]
@@ -168,11 +178,21 @@ func (ut *UserTest) GetMethodParamValue(paramName string, caseData map[string]st
 		result = caseData["email"]
 	case "hashedPassword":
 		result = caseData["hashedPassword"]
+	case "status":
+		if caseData[paramName] == "SUSPENDED" {
+			result = SUSPENDED
+		} else {
+			result = ACTIVE
+		}
 	default:
-		fmt.Printf("[ERROR] 未命中参数名分支: '%s'\n", paramName)
+		if _, ok := caseData[paramName]; !ok {
+			fmt.Printf("[WARNING] 用例表缺少字段: %s\n", paramName)
+		}
 		result = caseData[paramName]
 	}
-	fmt.Printf("[参数获取debug] paramName: %s, caseData原始值: %v, 返回值: %+v, 类型: %T\n", paramName, caseData[paramName], result, result)
+	if debugFlag {
+		fmt.Printf("[参数获取debug] paramName: %s, caseData原始值: %v, 返回值: %+v, 类型: %T\n", paramName, caseData[paramName], result, result)
+	}
 	return result
 }
 
@@ -204,8 +224,11 @@ func TestChangePassword(t *testing.T) {
 		t.Fatalf("用例加载失败: %v", err)
 	}
 	user := &User{Status: ACTIVE}
-	caseNames := []string{"正常修改密码", "密码为空异常", "密码长度不足", "挂起状态下修改密码抛异常"}
-	ut.Execute(t, ut, caseNames, user.ChangePassword)
+	caseNames1 := []string{"正常修改密码", "密码为空异常", "密码长度不足"}
+	ut.Execute(t, ut, caseNames1, user.ChangePassword)
+	user1 := &User{Status: SUSPENDED}
+	caseNames2 := []string{"挂起状态下修改密码抛异常"}
+	ut.Execute(t, ut, caseNames2, user1.ChangePassword)
 }
 
 func TestSuspend(t *testing.T) {

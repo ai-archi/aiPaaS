@@ -24,6 +24,8 @@ type GlobalTestResult struct {
 
 var AllTestResults = map[string]*GlobalTestResult{}
 
+var debugFlag = false // 全局调试开关，生产环境建议设为false
+
 // ExcelDrivenTest 提供基于Excel的测试驱动能力
 // 负责加载用例、执行方法、断言和结果统计
 // 需嵌入到具体测试结构体中
@@ -136,14 +138,28 @@ func (e *ExcelDrivenTest) BuildMethodParameters(provider ParamValueProvider, met
 	methodName := runtimeFuncName(reflect.ValueOf(method).Pointer())
 	paramNames := e.ParamNameMap[methodName]
 	params := make([]interface{}, 0, len(paramNames))
-	for _, pname := range paramNames {
-		params = append(params, provider.GetMethodParamValue(pname, caseData))
+	funcType := reflect.TypeOf(method)
+	for i, pname := range paramNames {
+		val := provider.GetMethodParamValue(pname, caseData)
+		params = append(params, val)
+		if debugFlag {
+			fmt.Printf("[参数类型debug] paramName: %s, value: %+v, type: %T\n", pname, val, val)
+		}
+		// 类型校验
+		if funcType.NumIn() > i {
+			paramType := funcType.In(i)
+			valType := reflect.TypeOf(val)
+			if val != nil && valType != paramType {
+				if !(paramType.Kind() == reflect.Interface && valType.Implements(paramType)) {
+					panic(fmt.Sprintf("参数类型不匹配: %s 期望: %v 实际: %T", pname, paramType, val))
+				}
+			}
+		}
 	}
-	fmt.Printf("[参数组装debug] methodName: %s, paramNames: %+v\n", methodName, paramNames)
-	for i, p := range params {
-		fmt.Printf("[参数类型debug] paramName: %s, value: %+v, type: %T\n", paramNames[i], p, p)
+	if debugFlag {
+		fmt.Printf("[参数组装debug] methodName: %s, paramNames: %+v\n", methodName, paramNames)
+		fmt.Printf("[参数组装debug] params: %+v\n", params)
 	}
-	fmt.Printf("[参数组装debug] params: %+v\n", params)
 	return params
 }
 
@@ -193,17 +209,24 @@ func (e *ExcelDrivenTest) Execute(t *testing.T, provider ParamValueProvider, cas
 				}
 			}()
 			out := funcValue.Call(in)
-			if len(out) > 0 {
+			if len(out) == 1 {
+				// 只有一个返回值，且是 error
+				if errVal, ok := out[0].Interface().(error); ok {
+					realErr = errVal
+					result = nil
+				} else {
+					result = out[0].Interface()
+					realErr = nil
+				}
+			} else if len(out) > 1 {
 				result = out[0].Interface()
-			}
-			if len(out) > 1 {
 				if errVal, ok := out[1].Interface().(error); ok {
 					realErr = errVal
 				}
 			}
 		}()
-		e.PerformAssertion(t, caseType, expectedResult, expectedException, result, realErr)
-		e.RecordTestResult(caseName, realErr == nil || (expectedException != "" && realErr != nil && realErr.Error() == expectedException), realErr)
+		pass := e.PerformAssertion(t, caseType, expectedResult, expectedException, result, realErr)
+		e.RecordTestResult(caseName, pass, realErr)
 	}
 }
 
@@ -217,51 +240,98 @@ func uuidParseOrNil(s string) interface{} {
 }
 
 // PerformAssertion 执行断言
-func (e *ExcelDrivenTest) PerformAssertion(t *testing.T, caseType, expectedResult, expectedException string, result interface{}, err error) {
+func (e *ExcelDrivenTest) PerformAssertion(t *testing.T, caseType, expectedResult, expectedException string, result interface{}, err error) bool {
+	if debugFlag {
+		fmt.Printf("[ASSERT][DEBUG] caseType=%s, expectedResult=%v, expectedException=%v, result=%v, err=%v\n", caseType, expectedResult, expectedException, result, err)
+	}
 	switch caseType {
 	case "assertTrue":
+		if debugFlag {
+			fmt.Printf("[ASSERT][DEBUG] assertTrue: result=%v\n", result)
+		}
 		if b, ok := result.(bool); !ok || !b {
-			t.Errorf("期望true, 实际: %v", result)
+			t.Errorf("[ASSERT] 期望true, 实际: %v", result)
+			return false
 		}
+		return true
 	case "assertFalse":
+		if debugFlag {
+			fmt.Printf("[ASSERT][DEBUG] assertFalse: result=%v\n", result)
+		}
 		if b, ok := result.(bool); !ok || b {
-			t.Errorf("期望false, 实际: %v", result)
+			t.Errorf("[ASSERT] 期望false, 实际: %v", result)
+			return false
 		}
+		return true
 	case "assertEquals":
+		if debugFlag {
+			fmt.Printf("[ASSERT][DEBUG] assertEquals: expected=%v, actual=%v\n", expectedResult, result)
+		}
 		if fmt.Sprintf("%v", result) != expectedResult {
-			t.Errorf("期望: %s, 实际: %v", expectedResult, result)
+			t.Errorf("[ASSERT] 期望: %s, 实际: %v", expectedResult, result)
+			return false
 		}
+		return true
 	case "assertNotNull":
+		if debugFlag {
+			fmt.Printf("[ASSERT][DEBUG] assertNotNull: result=%v\n", result)
+		}
 		if result == nil {
-			t.Errorf("期望非空, 实际: nil")
+			t.Errorf("[ASSERT] 期望非空, 实际: nil")
+			return false
 		}
+		return true
 	case "assertNull":
-		if result != nil {
-			t.Errorf("期望空, 实际: %v", result)
+		if debugFlag {
+			fmt.Printf("[ASSERT][DEBUG] assertNull: result=%v\n", result)
 		}
+		if result != nil {
+			t.Errorf("[ASSERT] 期望空, 实际: %v", result)
+			return false
+		}
+		return true
 	case "assertThrows":
+		if debugFlag {
+			fmt.Printf("[ASSERT][DEBUG] assertThrows: err=%v, expectedException=%v\n", err, expectedException)
+		}
 		if err == nil {
-			t.Errorf("期望异常, 实际无异常")
+			t.Errorf("[ASSERT] 期望异常, 实际无异常")
+			return false
 		} else if expectedException != "" {
 			errType := reflect.TypeOf(err)
 			if errType.Kind() == reflect.Ptr {
 				errType = errType.Elem()
 			}
 			typeName := errType.Name()
+			fmt.Printf("[ASSERT][DEBUG] 期望异常类型: %s, 实际类型: %s, error内容: %v\n", expectedException, typeName, err)
 			if typeName != expectedException {
-				t.Errorf("期望异常类型: %s, 实际: %s", expectedException, typeName)
+				t.Errorf("[ASSERT] 期望异常类型: %s, 实际: %s", expectedException, typeName)
+				return false
 			}
+			return true
 		}
+		return true // 没有 expectedException 只要有异常就算通过
 	case "assertDoesNotThrow":
-		if err != nil {
-			t.Errorf("期望无异常, 实际: %v", err)
+		if debugFlag {
+			fmt.Printf("[ASSERT][DEBUG] assertDoesNotThrow: err=%v\n", err)
 		}
+		if err != nil {
+			t.Errorf("[ASSERT] 期望无异常, 实际: %v", err)
+			return false
+		}
+		return true
 	case "assertVoidState":
-		if err != nil {
-			t.Errorf("期望无异常, 实际: %v", err)
+		if debugFlag {
+			fmt.Printf("[ASSERT][DEBUG] assertVoidState: err=%v\n", err)
 		}
+		if err != nil {
+			t.Errorf("[ASSERT] 期望无异常, 实际: %v", err)
+			return false
+		}
+		return true
 	default:
-		t.Errorf("未知caseType: %s", caseType)
+		t.Errorf("[ASSERT] 未知caseType: %s", caseType)
+		return false
 	}
 }
 
@@ -277,7 +347,6 @@ func (e *ExcelDrivenTest) RecordTestResult(caseName string, success bool, err er
 		Timestamp: time.Now(),
 	}
 	e.TestResults[caseName] = one
-	// 全局统计，key加上当前测试方法名避免覆盖
 	methodName := ""
 	if e.CurrentCase != nil && e.CurrentCase["_testMethod"] != "" {
 		methodName = e.CurrentCase["_testMethod"]
@@ -286,20 +355,9 @@ func (e *ExcelDrivenTest) RecordTestResult(caseName string, success bool, err er
 	if methodName != "" {
 		key = methodName + ":" + caseName
 	}
-	// 包含/正则/多关键字策略
-	successFlag := success
-	if !success && e.CurrentCase != nil && e.CurrentCase["expectedException"] != "" && err != nil {
-		ex := e.CurrentCase["expectedException"]
-		errType := reflect.TypeOf(err)
-		if errType.Kind() == reflect.Ptr {
-			errType = errType.Elem()
-		}
-		typeName := errType.Name()
-		successFlag = (typeName == ex)
-	}
 	AllTestResults[key] = &GlobalTestResult{
 		CaseName:  key,
-		Success:   successFlag,
+		Success:   success,
 		Exception: err,
 		Timestamp: one.Timestamp,
 	}
