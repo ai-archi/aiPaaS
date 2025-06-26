@@ -1,0 +1,51 @@
+{
+  "Activate-fm": [],
+  "ChangePassword-fm": [
+    "newPassword",
+    "encoder"
+  ],
+  "CreateUser": [
+    "tenantId",
+    "email",
+    "plainPassword",
+    "username",
+    "encoder"
+  ],
+  "Encode-fm": [
+    "s"
+  ],
+  "Error-fm": [],
+  "GetMethodParamValue-fm": [
+    "paramName",
+    "caseData"
+  ],
+  "Matches-fm": [
+    "raw",
+    "encoded"
+  ],
+  "NewUser": [
+    "tenantId",
+    "email",
+    "hashedPassword",
+    "profile"
+  ],
+  "Suspend-fm": [],
+  "TestActivate": [
+    "t"
+  ],
+  "TestChangePassword": [
+    "t"
+  ],
+  "TestCreateUser": [
+    "t"
+  ],
+  "TestSuspend": [
+    "t"
+  ],
+  "TestUpdateProfile": [
+    "t"
+  ],
+  "UpdateProfile-fm": [
+    "newProfile"
+  ]
+}
