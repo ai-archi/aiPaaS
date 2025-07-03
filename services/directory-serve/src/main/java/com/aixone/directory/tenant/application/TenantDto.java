@@ -1,7 +1,6 @@
 package com.aixone.directory.tenant.application;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import lombok.Builder;
 import lombok.Value;
@@ -17,7 +16,7 @@ public final class TenantDto {
     @Value
     @Builder
     public static class TenantView {
-        UUID id;
+        String id;
         String name;
         String status;
         LocalDateTime createdAt;

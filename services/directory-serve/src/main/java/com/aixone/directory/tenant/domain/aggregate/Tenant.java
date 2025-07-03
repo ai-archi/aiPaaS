@@ -1,7 +1,6 @@
 package com.aixone.directory.tenant.domain.aggregate;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +11,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class Tenant {
 
-    private final UUID id;
+    private final String id;
     private String name;
     private TenantStatus status;
     private final LocalDateTime createdAt;
@@ -20,7 +19,7 @@ public class Tenant {
 
     public static Tenant create(String name) {
         return Tenant.builder()
-                .id(UUID.randomUUID())
+                .id(java.util.UUID.randomUUID().toString())
                 .name(name)
                 .status(TenantStatus.ACTIVE)
                 .createdAt(LocalDateTime.now())

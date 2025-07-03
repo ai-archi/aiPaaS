@@ -1,7 +1,6 @@
 package com.aixone.directory.tenant.infrastructure.persistence.dbo;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import com.aixone.directory.tenant.domain.aggregate.TenantStatus;
 
@@ -21,7 +20,7 @@ import lombok.Setter;
 public class TenantDbo {
 
     @Id
-    private UUID id;
+    private String id;
 
     @Column(nullable = false, unique = true)
     private String name;

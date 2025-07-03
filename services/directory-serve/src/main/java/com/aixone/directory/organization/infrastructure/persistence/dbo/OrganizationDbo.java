@@ -3,7 +3,6 @@ package com.aixone.directory.organization.infrastructure.persistence.dbo;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -19,10 +18,10 @@ import lombok.Data;
 @Data
 public class OrganizationDbo {
     @Id
-    private UUID id;
+    private String id;
 
     @Column(nullable = false)
-    private UUID tenantId;
+    private String tenantId;
 
     @Column(nullable = false)
     private String name;

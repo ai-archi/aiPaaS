@@ -9,8 +9,8 @@ import org.springframework.stereotype.Repository;
 import com.aixone.directory.organization.infrastructure.persistence.dbo.DepartmentDbo;
 
 @Repository
-public interface DepartmentJpaRepository extends JpaRepository<DepartmentDbo, UUID> {
-    List<DepartmentDbo> findByOrganizationId(UUID orgId);
-    List<DepartmentDbo> findByParentId(UUID parentId);
-    void deleteByOrganizationId(UUID orgId);
+public interface DepartmentJpaRepository extends JpaRepository<DepartmentDbo, String> {
+    List<DepartmentDbo> findByOrganizationId(String orgId);
+    List<DepartmentDbo> findByParentId(String parentId);
+    void deleteByOrganizationId(String orgId);
 } 

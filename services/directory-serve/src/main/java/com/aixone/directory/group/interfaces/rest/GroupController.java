@@ -1,6 +1,6 @@
 package com.aixone.directory.group.interfaces.rest;
 
-import java.util.UUID;
+import java.util.Set;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,32 +27,34 @@ public class GroupController {
     private final GroupApplicationService groupApplicationService;
 
     @PostMapping
-    public ResponseEntity<GroupDto> createGroup(@PathVariable UUID tenantId, @RequestBody CreateGroupRequest request) {
+    public ResponseEntity<GroupDto> createGroup(@PathVariable String tenantId, @RequestBody CreateGroupRequest request) {
         GroupDto newGroup = groupApplicationService.createGroup(tenantId, request);
         return new ResponseEntity<>(newGroup, HttpStatus.CREATED);
     }
 
     @GetMapping("/{groupId}")
-    public ResponseEntity<GroupDto> getGroup(@PathVariable UUID tenantId, @PathVariable UUID groupId) {
+    public ResponseEntity<GroupDto> getGroup(@PathVariable String tenantId, @PathVariable String groupId) {
         GroupDto group = groupApplicationService.getGroup(tenantId, groupId);
         return ResponseEntity.ok(group);
     }
 
     @PostMapping("/{groupId}/members")
-    public ResponseEntity<Void> addMember(
-            @PathVariable UUID tenantId,
-            @PathVariable UUID groupId,
-            @RequestBody AddMemberRequest request) {
-        groupApplicationService.addMemberToGroup(tenantId, groupId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public void assignUsersToGroup(@PathVariable String groupId, @RequestBody Set<String> userIds) {
+        groupApplicationService.assignUsersToGroup(groupId, userIds);
     }
 
-    @DeleteMapping("/{groupId}/members/{userId}")
-    public ResponseEntity<Void> removeMember(
-            @PathVariable UUID tenantId,
-            @PathVariable UUID groupId,
-            @PathVariable UUID userId) {
-        groupApplicationService.removeMemberFromGroup(tenantId, groupId, userId);
-        return ResponseEntity.noContent().build();
+    @DeleteMapping("/{groupId}/members")
+    public void removeUsersFromGroup(@PathVariable String groupId, @RequestBody Set<String> userIds) {
+        groupApplicationService.removeUsersFromGroup(groupId, userIds);
+    }
+
+    @PostMapping("/{groupId}/roles")
+    public void assignRolesToGroup(@PathVariable String groupId, @RequestBody Set<String> roleIds) {
+        groupApplicationService.assignRolesToGroup(groupId, roleIds);
+    }
+
+    @DeleteMapping("/{groupId}/roles")
+    public void removeRolesFromGroup(@PathVariable String groupId, @RequestBody Set<String> roleIds) {
+        groupApplicationService.removeRolesFromGroup(groupId, roleIds);
     }
 } 

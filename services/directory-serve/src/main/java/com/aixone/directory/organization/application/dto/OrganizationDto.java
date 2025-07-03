@@ -8,7 +8,7 @@ import lombok.Data;
 
 @Data
 public class OrganizationDto {
-    private UUID id;
+    private String id;
     private String name;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

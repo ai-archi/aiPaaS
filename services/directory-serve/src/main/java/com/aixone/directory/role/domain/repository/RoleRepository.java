@@ -8,7 +8,7 @@ import com.aixone.directory.role.domain.aggregate.Role;
 
 public interface RoleRepository {
     void save(Role role);
-    Optional<Role> findById(UUID id);
-    List<Role> findByTenantId(UUID tenantId);
-    Optional<Role> findByTenantIdAndName(UUID tenantId, String name);
+    Optional<Role> findById(String id);
+    List<Role> findByTenantId(String tenantId);
+    Optional<Role> findByTenantIdAndName(String tenantId, String name);
 } 

@@ -23,7 +23,7 @@ public class PostgresTenantRepository implements TenantRepository {
     }
 
     @Override
-    public Optional<Tenant> findById(UUID id) {
+    public Optional<Tenant> findById(String id) {
         return jpaRepository.findById(id).map(tenantMapper::toDomain);
     }
 } 

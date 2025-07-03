@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import lombok.Value;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 
 @Data
@@ -17,7 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class UserDto {
 
-    private UUID id;
+    private String id;
     private String tenantId;
     private String username;
     private String email;
@@ -60,7 +59,7 @@ public class UserDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UserPublicView {
-        private UUID id;
+        private String id;
         private String username;
         private String avatarUrl;
     }
@@ -70,7 +69,7 @@ public class UserDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UserCredentialsView {
-        private UUID id;
+        private String id;
         private String email;
         private String hashedPassword;
         private UserStatus status;

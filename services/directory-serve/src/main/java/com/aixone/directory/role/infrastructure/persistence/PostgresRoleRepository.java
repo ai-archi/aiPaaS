@@ -29,19 +29,19 @@ public class PostgresRoleRepository implements RoleRepository {
     }
 
     @Override
-    public Optional<Role> findById(UUID id) {
+    public Optional<Role> findById(String id) {
         return jpaRepository.findById(id).map(mapper::toDomain);
     }
 
     @Override
-    public List<Role> findByTenantId(UUID tenantId) {
+    public List<Role> findByTenantId(String tenantId) {
         return jpaRepository.findByTenantId(tenantId).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Optional<Role> findByTenantIdAndName(UUID tenantId, String name) {
+    public Optional<Role> findByTenantIdAndName(String tenantId, String name) {
         return jpaRepository.findByTenantIdAndName(tenantId, name).map(mapper::toDomain);
     }
 } 

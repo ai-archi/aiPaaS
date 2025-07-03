@@ -7,7 +7,6 @@ import com.aixone.directory.user.domain.aggregate.User;
 import com.aixone.directory.user.infrastructure.persistence.dbo.UserDbo;
 
 import java.util.HashSet;
-import java.util.UUID;
 
 @Component
 public class UserMapper {
@@ -23,7 +22,7 @@ public class UserMapper {
         // They should be populated by the application service if needed.
         return new User(
             dbo.getId(),
-            UUID.fromString(dbo.getTenantId()),
+            dbo.getTenantId(),
             dbo.getEmail(),
             dbo.getHashedPassword(),
             profile,
@@ -41,7 +40,7 @@ public class UserMapper {
         }
         UserDbo dbo = new UserDbo();
         dbo.setId(domain.getId());
-        dbo.setTenantId(domain.getTenantId().toString());
+        dbo.setTenantId(domain.getTenantId());
         dbo.setEmail(domain.getEmail());
         dbo.setHashedPassword(domain.getHashedPassword());
         dbo.setStatus(domain.getStatus());

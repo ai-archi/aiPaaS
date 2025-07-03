@@ -8,7 +8,6 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.UUID;
 import java.lang.reflect.Method;
 
 public class UserTest extends AbstractExcelDrivenTest {
@@ -29,7 +28,7 @@ public class UserTest extends AbstractExcelDrivenTest {
     @Test
     void testCreateUser() {
         log.debug("testCreateUser 用例参数: {}", allTestCases.stream().filter(c -> c.get("caseName").equals("正常创建用户")).findFirst().orElse(null));
-        execute(new String[]{"正常创建用户","邮箱为空异常","密码为空异常","邮箱格式错误","密码长度不足"}, getMethod(User.class, "createUser", UUID.class, String.class, String.class, String.class, PasswordEncoder.class));
+        execute(new String[]{"正常创建用户","邮箱为空异常","密码为空异常","邮箱格式错误","密码长度不足"}, getMethod(User.class, "createUser", String.class, String.class, String.class, String.class, PasswordEncoder.class));
     }
 
     @Test
@@ -54,22 +53,22 @@ public class UserTest extends AbstractExcelDrivenTest {
 
     @Test
     void testAssignToGroup() {
-        execute(new String[]{"分配分组"}, getMethod(User.class, "assignToGroup", UUID.class));
+        execute(new String[]{"分配分组"}, getMethod(User.class, "assignToGroup", String.class));
     }
 
     @Test
     void testRemoveFromGroup() {
-        execute(new String[]{"移除分组"}, getMethod(User.class, "removeFromGroup", UUID.class));
+        execute(new String[]{"移除分组"}, getMethod(User.class, "removeFromGroup", String.class));
     }
 
     @Test
     void testGrantRole() {
-        execute(new String[]{"授予角色"}, getMethod(User.class, "grantRole", UUID.class));
+        execute(new String[]{"授予角色"}, getMethod(User.class, "grantRole", String.class));
     }
 
     @Test
     void testRevokeRole() {
-        execute(new String[]{"撤销角色"}, getMethod(User.class, "revokeRole", UUID.class));
+        execute(new String[]{"撤销角色"}, getMethod(User.class, "revokeRole", String.class));
     }
 
     @Test
@@ -99,7 +98,7 @@ public class UserTest extends AbstractExcelDrivenTest {
             case "roleId":
             case "tenantId":
                 String v = caseData.get(paramName);
-                value = v != null && !v.isEmpty() ? java.util.UUID.fromString(v) : null;
+                value = v != null && !v.isEmpty() && !"null".equalsIgnoreCase(v) ? v : "dummy-" + paramName;
                 break;
             case "status":
                 String statusStr = caseData.get("status");

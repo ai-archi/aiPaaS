@@ -375,3 +375,6 @@ buildNumber.properties
 !.mvn/wrapper/maven-wrapper.properties
 !mvnw
 !mvnw.cmd
+
+# Go debug binaries
+__debug_bin*

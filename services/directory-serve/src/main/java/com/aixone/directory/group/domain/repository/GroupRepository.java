@@ -8,6 +8,6 @@ import com.aixone.directory.group.domain.aggregate.Group;
 
 public interface GroupRepository {
     void save(Group group);
-    Optional<Group> findById(UUID id);
-    List<Group> findByTenantId(UUID tenantId);
+    Optional<Group> findById(String id);
+    List<Group> findByTenantId(String tenantId);
 } 

@@ -15,6 +15,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import com.aixone.directory.user.infrastructure.persistence.dbo.UserDbo;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import com.aixone.directory.group.infrastructure.persistence.dbo.GroupDbo;
 
 @Getter
 @Setter
@@ -22,18 +26,29 @@ import lombok.Setter;
 @Table(name = "roles")
 public class RoleDbo {
     @Id
-    private UUID id;
+    private String id;
 
     @Column(name = "tenant_id", nullable = false)
-    private UUID tenantId;
+    private String tenantId;
 
     @Column(nullable = false)
     private String name;
 
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "role_id"))
-    @Column(name = "user_id", nullable = false)
-    private Set<UUID> members = new HashSet<>();
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "user_roles",
+        joinColumns = @JoinColumn(name = "role_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<UserDbo> users = new HashSet<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "group_roles",
+        joinColumns = @JoinColumn(name = "role_id"),
+        inverseJoinColumns = @JoinColumn(name = "group_id")
+    )
+    private Set<GroupDbo> groups = new HashSet<>();
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

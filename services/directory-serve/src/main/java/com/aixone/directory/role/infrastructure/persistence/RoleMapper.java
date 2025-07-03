@@ -31,8 +31,9 @@ public class RoleMapper {
         dbo.setName(domain.getName());
         // 'members' are managed at the persistence level, so we don't map them from the domain object.
         // The Dbo is typically loaded, modified, and then saved.
-        // If creating a new RoleDbo, the members set would be initialized as empty.
-        dbo.setMembers(new HashSet<>());
+        // If creating a new RoleDbo, the users and groups set would be initialized as empty.
+        dbo.setUsers(new HashSet<>());
+        dbo.setGroups(new HashSet<>());
         dbo.setCreatedAt(domain.getCreatedAt());
         dbo.setUpdatedAt(domain.getUpdatedAt());
         return dbo;

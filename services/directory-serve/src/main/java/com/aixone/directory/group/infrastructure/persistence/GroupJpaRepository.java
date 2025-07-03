@@ -9,6 +9,6 @@ import org.springframework.stereotype.Repository;
 import com.aixone.directory.group.infrastructure.persistence.dbo.GroupDbo;
 
 @Repository
-public interface GroupJpaRepository extends JpaRepository<GroupDbo, UUID> {
-    List<GroupDbo> findByTenantId(UUID tenantId);
+public interface GroupJpaRepository extends JpaRepository<GroupDbo, String> {
+    List<GroupDbo> findByTenantId(String tenantId);
 } 

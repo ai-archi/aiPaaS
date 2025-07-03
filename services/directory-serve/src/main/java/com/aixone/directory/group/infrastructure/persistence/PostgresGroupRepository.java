@@ -26,12 +26,12 @@ public class PostgresGroupRepository implements GroupRepository {
     }
 
     @Override
-    public Optional<Group> findById(UUID id) {
+    public Optional<Group> findById(String id) {
         return Optional.empty();
     }
 
     @Override
-    public List<Group> findByTenantId(UUID tenantId) {
+    public List<Group> findByTenantId(String tenantId) {
         return Collections.emptyList();
     }
 }

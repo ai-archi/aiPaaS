@@ -3,6 +3,11 @@ package com.aixone.directory.test;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Excel驱动的抽象测试基类
  * 负责执行方法调用和结果汇总
  */
+@ExtendWith(MockitoExtension.class)
 public abstract class AbstractExcelDrivenTest {
     protected static final Logger log = LoggerFactory.getLogger(AbstractExcelDrivenTest.class);
     // 所有测试用例数据
@@ -28,6 +34,11 @@ public abstract class AbstractExcelDrivenTest {
     protected static Map<String, TestResult> testResults = new HashMap<>();
     // 当前测试用例数据
     protected Map<String, String> currentCase;
+
+    @BeforeEach
+    void initMocks() {
+        MockitoAnnotations.openMocks(this);
+    }
 
     /**
      * 加载Excel用例数据
@@ -101,11 +112,34 @@ public abstract class AbstractExcelDrivenTest {
      * @param method 要测试的方法
      */
     protected void execute(String[] caseNames, Method method) {
+        // 自动推断当前JUnit测试方法名和类名
+        String testMethodName = null;
+        String testClassName = null;
+        StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+        for (StackTraceElement el : stack) {
+            if (el.getClassName().endsWith("Test") && !el.getMethodName().equals("execute")) {
+                testMethodName = el.getMethodName();
+                String[] classParts = el.getClassName().split("\\.");
+                testClassName = classParts[classParts.length - 1];
+                break;
+            }
+        }
         for (String caseName : caseNames) {
             currentCase = getUseCase(caseName);
             String caseType = currentCase.get("caseType");
-            String expectedResult = currentCase.get("expectedResult");
+            log.debug("caseType: {}", caseType);
+
+            if (caseType == null || caseType.trim().isEmpty()) {
+                String msg = "caseType不可为空";
+                log.error("用例[{}] caseType为空，跳过执行: {}", caseName, msg);
+                recordTestResult(caseName, false, new IllegalArgumentException(msg), testMethodName, testClassName);
+                continue;
+            }
+
+            String expectedResult = currentCase.get("expectedResult");  
+            log.debug("expectedResult: {}", expectedResult);
             String expectedException = currentCase.get("expectedException");
+            log.debug("expectedException: {}", expectedException);
             try {
                 // 构建方法参数
                 Object[] parameters = buildMethodParameters(method, currentCase);
@@ -120,12 +154,12 @@ public abstract class AbstractExcelDrivenTest {
                     realException = e;
                 }
                 // 根据用例类型进行断言
-                performAssertion(caseType, expectedResult, expectedException, result, realException);
+                performAssertion(caseName,caseType, expectedResult, expectedException, result, realException);
                 // 记录成功结果
-                recordTestResult(caseName, realException == null || (expectedException != null && realException.getClass().getSimpleName().equals(expectedException)), realException);
+                recordTestResult(caseName, realException == null || (expectedException != null && realException.getClass().getSimpleName().equals(expectedException)), realException, testMethodName, testClassName);
             } catch (Exception e) {
                 // 记录结果
-                recordTestResult(caseName, false, e);
+                recordTestResult(caseName, false, e, testMethodName, testClassName);
             }
         }
     }
@@ -139,12 +173,17 @@ public abstract class AbstractExcelDrivenTest {
      */
     protected Object invokeTestMethod(Method method, Object... params) throws Exception {
         log.debug("invokeTestMethod 调用: method={}, params={}", method.getName(), java.util.Arrays.toString(params));
+        for (int i = 0; i < params.length; i++) {
+            log.debug("invokeTestMethod param[{}]: {}", i, params[i]);
+        }
         Object result;
         if ((method.getModifiers() & java.lang.reflect.Modifier.STATIC) != 0) {
             result = method.invoke(null, params);
         } else {
             Class<?> clazz = method.getDeclaringClass();
             Object instance = clazz.getDeclaredConstructor().newInstance();
+            // 注入 mock 字段
+            injectMocks(instance);
             java.lang.reflect.Field[] fields = clazz.getDeclaredFields();
             if (currentCase != null) {
                 for (java.lang.reflect.Field field : fields) {
@@ -167,7 +206,9 @@ public abstract class AbstractExcelDrivenTest {
                     }
                 }
             }
+            log.debug("invokeTestMethod before invoke: params={}", java.util.Arrays.toString(params));
             result = method.invoke(instance, params);
+            log.debug("invokeTestMethod after invoke: result={}", result);
         }
         log.debug("invokeTestMethod 返回: result={}", result);
         return result;
@@ -213,7 +254,11 @@ public abstract class AbstractExcelDrivenTest {
      * 获取方法参数值 - 默认实现：paramName与caseData key相同直接返回字符串，否则返回null。子类可重写。
      */
     protected Object getMethodParamValue(String paramName, Map<String, String> caseData) {
-        return caseData.getOrDefault(paramName, null);
+        String value = caseData.getOrDefault(paramName, null);
+        if (value == null || value.isEmpty() || "null".equalsIgnoreCase(value)) {
+            return null;
+        }
+        return value;
     }
 
     /**
@@ -224,9 +269,9 @@ public abstract class AbstractExcelDrivenTest {
      * @param result 实际结果
      * @param exception 实际异常
      */
-    private void performAssertion(String caseType, String expectedResult, String expectedException, 
+    private void performAssertion(String caseName,String caseType, String expectedResult, String expectedException, 
                                  Object result, Exception exception) {
-        log.debug("用例类型: {}, 期望结果: {}, 实际结果: {}, 异常: {}, 当前用例: {}", caseType, expectedResult, result, exception, (currentCase != null ? currentCase.get("caseName") : "null"));
+        log.debug("用例名称: {}, 用例类型: {}, 期望结果: {}, 实际结果: {}, 异常: {}, 当前用例: {}", caseName, caseType, expectedResult, result, exception, (currentCase != null ? currentCase.get("caseName") : "null"));
         switch (caseType) {
             case "assertTrue":
                 boolean isSuccess = (result != null && !Boolean.FALSE.equals(result));
@@ -271,13 +316,17 @@ public abstract class AbstractExcelDrivenTest {
      * @param caseName 用例名称
      * @param success 是否成功
      * @param exception 异常信息
+     * @param testMethodName 测试方法名
+     * @param testClassName 测试类名
      */
-    private void recordTestResult(String caseName, boolean success, Throwable exception) {
+    private void recordTestResult(String caseName, boolean success, Throwable exception, String testMethodName, String testClassName) {
         TestResult result = new TestResult();
         result.setCaseName(caseName);
         result.setSuccess(success);
         result.setException(exception);
         result.setTimestamp(LocalDateTime.now());
+        result.setTestMethodName(testMethodName);
+        result.setTestClassName(testClassName);
         testResults.put(caseName, result);
     }
 
@@ -302,6 +351,8 @@ public abstract class AbstractExcelDrivenTest {
                         Optional<Map<String, String>> caseData = allTestCases.stream().filter(c -> result.getCaseName().equals(c.get("caseName"))).findFirst();
                         caseType = caseData.map(c -> c.get("caseType")).orElse("");
                     }
+                    String methodName = result.getTestMethodName();
+                    String className = result.getTestClassName();
                     String status = result.isSuccess() ? "✓" : "✗";
                     String detail;
                     if (result.isSuccess()) {
@@ -321,7 +372,7 @@ public abstract class AbstractExcelDrivenTest {
                             detail = "断言失败【失败】";
                         }
                     }
-                    log.info("{} {} - {}", status, result.getCaseName(), detail);
+                    log.info("{} [{}{}.{}] {} - {}", status, className != null ? className : "", className != null ? "." : "", methodName, result.getCaseName(), detail);
                 });
     }
 
@@ -333,6 +384,8 @@ public abstract class AbstractExcelDrivenTest {
         private boolean success;
         private Throwable exception;
         private LocalDateTime timestamp;
+        private String testMethodName;
+        private String testClassName;
         // Getters and Setters
         public String getCaseName() { return caseName; }
         public void setCaseName(String caseName) { this.caseName = caseName; }
@@ -342,6 +395,10 @@ public abstract class AbstractExcelDrivenTest {
         public void setException(Throwable exception) { this.exception = exception; }
         public LocalDateTime getTimestamp() { return timestamp; }
         public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+        public String getTestMethodName() { return testMethodName; }
+        public void setTestMethodName(String testMethodName) { this.testMethodName = testMethodName; }
+        public String getTestClassName() { return testClassName; }
+        public void setTestClassName(String testClassName) { this.testClassName = testClassName; }
     }
 
     /**
@@ -364,5 +421,26 @@ public abstract class AbstractExcelDrivenTest {
      */
     protected Object getTestTarget() {
         return null;
+    }
+
+    // 新增：将当前测试类的 @Mock 字段注入到被测对象同名字段
+    private void injectMocks(Object target) {
+        java.lang.reflect.Field[] testFields = this.getClass().getDeclaredFields();
+        java.lang.reflect.Field[] targetFields = target.getClass().getDeclaredFields();
+        for (java.lang.reflect.Field testField : testFields) {
+            if (testField.isAnnotationPresent(org.mockito.Mock.class)) {
+                testField.setAccessible(true);
+                try {
+                    Object mock = testField.get(this);
+                    for (java.lang.reflect.Field targetField : targetFields) {
+                        if (targetField.getType().isAssignableFrom(testField.getType())
+                                && targetField.getName().equals(testField.getName())) {
+                            targetField.setAccessible(true);
+                            targetField.set(target, mock);
+                        }
+                    }
+                } catch (Exception ignore) {}
+            }
+        }
     }
 } 

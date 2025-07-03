@@ -1,7 +1,6 @@
 package com.aixone.directory.user.domain.repository;
 
 import java.util.Optional;
-import java.util.UUID;
 
 import com.aixone.directory.user.domain.aggregate.User;
 
@@ -22,7 +21,7 @@ public interface UserRepository {
      * @param id The UUID of the user.
      * @return An Optional containing the user if found, or empty otherwise.
      */
-    Optional<User> findById(UUID id);
+    Optional<User> findById(String id);
 
     /**
      * Finds a user by their tenant ID and email address.
@@ -30,7 +29,7 @@ public interface UserRepository {
      * @param email The email address of the user.
      * @return An Optional containing the user if found, or empty otherwise.
      */
-    Optional<User> findByTenantIdAndEmail(UUID tenantId, String email);
+    Optional<User> findByTenantIdAndEmail(String tenantId, String email);
 
     /**
      * Finds a user by their tenant ID and ID.
@@ -38,7 +37,7 @@ public interface UserRepository {
      * @param userId The UUID of the user.
      * @return An Optional containing the user if found, or empty otherwise.
      */
-    Optional<User> findByTenantIdAndId(UUID tenantId, UUID userId);
+    Optional<User> findByTenantIdAndId(String tenantId, String userId);
 
     /**
      * Checks if a user with the given email exists.
@@ -51,5 +50,5 @@ public interface UserRepository {
      * Deletes a user by their ID.
      * @param id The UUID of the user to delete.
      */
-    void deleteById(UUID id);
+    void deleteById(String id);
 } 

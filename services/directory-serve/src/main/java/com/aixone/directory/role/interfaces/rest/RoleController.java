@@ -2,6 +2,7 @@ package com.aixone.directory.role.interfaces.rest;
 
 import java.util.UUID;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +35,7 @@ public class RoleController {
     }
 
     @GetMapping("/{roleId}")
-    public ResponseEntity<RoleDto> getRole(@PathVariable UUID roleId) {
+    public ResponseEntity<RoleDto> getRole(@PathVariable String roleId) {
         Optional<RoleDto> role = roleApplicationService.getRole(roleId);
         return role.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -42,16 +43,36 @@ public class RoleController {
 
     @PostMapping("/{roleId}/members")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void addMemberToRole(@PathVariable UUID roleId, @RequestBody AddMemberToRoleRequest request) {
+    public void addMemberToRole(@PathVariable String roleId, @RequestBody AddMemberToRoleRequest request) {
         roleApplicationService.addMemberToRole(roleId, request);
     }
 
     @DeleteMapping("/{roleId}/members/{userId}")
     public ResponseEntity<Void> removeMember(
-            @PathVariable UUID tenantId,
-            @PathVariable UUID roleId,
-            @PathVariable UUID userId) {
+            @PathVariable String tenantId,
+            @PathVariable String roleId,
+            @PathVariable String userId) {
         roleApplicationService.removeMemberFromRole(tenantId, roleId, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{roleId}/users")
+    public void assignUsersToRole(@PathVariable String roleId, @RequestBody Set<String> userIds) {
+        roleApplicationService.assignUsersToRole(roleId, userIds);
+    }
+
+    @DeleteMapping("/{roleId}/users")
+    public void removeUsersFromRole(@PathVariable String roleId, @RequestBody Set<String> userIds) {
+        roleApplicationService.removeUsersFromRole(roleId, userIds);
+    }
+
+    @PostMapping("/{roleId}/groups")
+    public void assignGroupsToRole(@PathVariable String roleId, @RequestBody Set<String> groupIds) {
+        roleApplicationService.assignGroupsToRole(roleId, groupIds);
+    }
+
+    @DeleteMapping("/{roleId}/groups")
+    public void removeGroupsFromRole(@PathVariable String roleId, @RequestBody Set<String> groupIds) {
+        roleApplicationService.removeGroupsFromRole(roleId, groupIds);
     }
 } 

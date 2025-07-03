@@ -1,7 +1,6 @@
 package com.aixone.directory.tenant.application;
 
 import java.util.Optional;
-import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +18,7 @@ public class TenantApplicationService {
 
     private final TenantRepository tenantRepository;
 
-    public UUID createTenant(TenantDto.CreateTenantCommand command) {
+    public String createTenant(TenantDto.CreateTenantCommand command) {
         Assert.notNull(command, "Command must not be null");
         Assert.hasText(command.getName(), "Tenant name must not be empty");
 
@@ -29,7 +28,7 @@ public class TenantApplicationService {
         return tenant.getId();
     }
 
-    public Optional<TenantDto.TenantView> findTenantById(UUID tenantId) {
+    public Optional<TenantDto.TenantView> findTenantById(String tenantId) {
         return tenantRepository.findById(tenantId)
                 .map(tenant -> TenantDto.TenantView.builder()
                         .id(tenant.getId())

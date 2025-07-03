@@ -20,20 +20,20 @@ public class User {
 
     private static final Logger log = LoggerFactory.getLogger(User.class);
 
-    private UUID id;
-    private UUID tenantId;
+    private String id;
+    private String tenantId;
     private String email;
     private String hashedPassword;
     private Profile profile;
     private UserStatus status;
-    private Set<UUID> roleIds = new HashSet<>();
-    private Set<UUID> groupIds = new HashSet<>();
+    private Set<String> roleIds = new HashSet<>();
+    private Set<String> groupIds = new HashSet<>();
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     // Constructor for creating a new User
-    private User(UUID tenantId, String email, String hashedPassword, Profile profile) {
-        this.id = UUID.randomUUID();
+    private User(String tenantId, String email, String hashedPassword, Profile profile) {
+        this.id = UUID.randomUUID().toString();
         this.tenantId = tenantId;
         this.email = email;
         this.hashedPassword = hashedPassword;
@@ -43,7 +43,7 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public static User createUser(UUID tenantId, String email, String plainPassword, String username, PasswordEncoder passwordEncoder) {
+    public static User createUser(String tenantId, String email, String plainPassword, String username, PasswordEncoder passwordEncoder) {
         log.debug("createUser 入参: tenantId={}, email={}, plainPassword={}, username={}, passwordEncoder={}", tenantId, email, plainPassword, username, passwordEncoder != null);
         Assert.hasText(email, "Email cannot be null or empty");
         Assert.hasText(plainPassword, "Password cannot be null or empty");
@@ -106,25 +106,25 @@ public class User {
         this.touch();
     }
 
-    public void assignToGroup(UUID groupId) {
+    public void assignToGroup(String groupId) {
         Assert.notNull(groupId, "GroupId cannot be null");
         this.groupIds.add(groupId);
         this.touch();
     }
 
-    public void removeFromGroup(UUID groupId) {
+    public void removeFromGroup(String groupId) {
         Assert.notNull(groupId, "GroupId cannot be null");
         this.groupIds.remove(groupId);
         this.touch();
     }
 
-    public void grantRole(UUID roleId) {
+    public void grantRole(String roleId) {
         Assert.notNull(roleId, "RoleId cannot be null");
         this.roleIds.add(roleId);
         this.touch();
     }
 
-    public void revokeRole(UUID roleId) {
+    public void revokeRole(String roleId) {
         Assert.notNull(roleId, "RoleId cannot be null");
         this.roleIds.remove(roleId);
         this.touch();

@@ -7,8 +7,8 @@ import lombok.Data;
 
 @Data
 public class PositionDto {
-    private UUID id;
-    private UUID orgId;
+    private String id;
+    private String orgId;
     private String name;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

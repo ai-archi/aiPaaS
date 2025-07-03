@@ -3,7 +3,6 @@ package com.aixone.directory.organization.infrastructure.persistence.dbo;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 import org.hibernate.annotations.Comment;
 
@@ -28,7 +27,7 @@ import lombok.ToString;
 public class PositionDbo {
 
     @Id
-    private UUID id;
+    private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id", nullable = false)
@@ -38,11 +37,11 @@ public class PositionDbo {
 
     @Comment("租户ID")
     @Column(name = "tenant_id", nullable = false)
-    private UUID tenantId;
+    private String tenantId;
 
     @Comment("组织ID")
     @Column(name = "department_id", nullable = false)
-    private UUID departmentId;
+    private String departmentId;
 
     @Comment("岗位名称")
     @Column(nullable = false)

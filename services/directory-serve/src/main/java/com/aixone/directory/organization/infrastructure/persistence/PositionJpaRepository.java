@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import com.aixone.directory.organization.infrastructure.persistence.dbo.PositionDbo;
 
 @Repository
-public interface PositionJpaRepository extends JpaRepository<PositionDbo, UUID> {
-    List<PositionDbo> findByOrganizationId(UUID orgId);
-    void deleteByOrganizationId(UUID orgId);
+public interface PositionJpaRepository extends JpaRepository<PositionDbo, String> {
+    List<PositionDbo> findByOrganizationId(String orgId);
+    void deleteByOrganizationId(String orgId);
 } 

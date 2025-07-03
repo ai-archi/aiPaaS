@@ -26,10 +26,10 @@ import lombok.Setter;
 @Table(name = "groups")
 public class GroupDbo {
     @Id
-    private UUID id;
+    private String id;
 
     @Column(name = "tenant_id", nullable = false)
-    private UUID tenantId;
+    private String tenantId;
 
     @Column(nullable = false)
     private String name;

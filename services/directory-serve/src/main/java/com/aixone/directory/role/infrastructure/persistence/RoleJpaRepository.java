@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 import com.aixone.directory.role.infrastructure.persistence.dbo.RoleDbo;
 
 @Repository
-public interface RoleJpaRepository extends JpaRepository<RoleDbo, UUID> {
-    List<RoleDbo> findByTenantId(UUID tenantId);
-    Optional<RoleDbo> findByTenantIdAndName(UUID tenantId, String name);
+public interface RoleJpaRepository extends JpaRepository<RoleDbo, String> {
+    List<RoleDbo> findByTenantId(String tenantId);
+    Optional<RoleDbo> findByTenantIdAndName(String tenantId, String name);
 } 

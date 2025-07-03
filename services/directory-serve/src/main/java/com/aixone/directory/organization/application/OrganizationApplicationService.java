@@ -31,19 +31,17 @@ public class OrganizationApplicationService {
     private final PositionMapper positionMapper;
 
     @Transactional
-    public UUID createOrganization(CreateOrganizationRequest request) {
-        // Optional: Check for duplicate names within the same tenant
+    public String createOrganization(CreateOrganizationRequest request) {
         organizationRepository.findByTenantIdAndName(request.getTenantId(), request.getName()).ifPresent(o -> {
             throw new IllegalStateException("Organization with this name already exists in the tenant.");
         });
-
         Organization organization = Organization.create(request.getTenantId(), request.getName());
         organizationRepository.save(organization);
         return organization.getId();
     }
 
     @Transactional
-    public DepartmentDto addDepartmentToOrganization(UUID organizationId, CreateDepartmentRequest request) {
+    public DepartmentDto addDepartmentToOrganization(String organizationId, CreateDepartmentRequest request) {
         Organization organization = findOrganization(organizationId);
         Department newDepartment = organization.addDepartment(request.getName(), request.getParentId());
         organizationRepository.save(organization);
@@ -51,7 +49,7 @@ public class OrganizationApplicationService {
     }
 
     @Transactional
-    public PositionDto addPositionToOrganization(UUID organizationId, CreatePositionRequest request) {
+    public PositionDto addPositionToOrganization(String organizationId, CreatePositionRequest request) {
         Organization organization = findOrganization(organizationId);
         Position newPosition = organization.addPosition(request.getName());
         organizationRepository.save(organization);
@@ -59,13 +57,13 @@ public class OrganizationApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public OrganizationDto getOrganizationById(UUID id) {
+    public OrganizationDto getOrganizationById(String id) {
         return organizationRepository.findById(id)
                 .map(this::toOrganizationDto)
                 .orElseThrow(() -> new EntityNotFoundException("Organization not found with id: " + id));
     }
 
-    private Organization findOrganization(UUID organizationId) {
+    private Organization findOrganization(String organizationId) {
         return organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new EntityNotFoundException("Organization not found with id: " + organizationId));
     }

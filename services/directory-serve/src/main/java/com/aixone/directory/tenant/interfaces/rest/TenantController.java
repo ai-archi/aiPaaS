@@ -1,7 +1,5 @@
 package com.aixone.directory.tenant.interfaces.rest;
 
-import java.util.UUID;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,13 +21,13 @@ public class TenantController {
     private final TenantApplicationService tenantApplicationService;
 
     @PostMapping
-    public ResponseEntity<UUID> createTenant(@RequestBody TenantDto.CreateTenantCommand command) {
-        UUID tenantId = tenantApplicationService.createTenant(command);
+    public ResponseEntity<String> createTenant(@RequestBody TenantDto.CreateTenantCommand command) {
+        String tenantId = tenantApplicationService.createTenant(command);
         return ResponseEntity.status(201).body(tenantId);
     }
 
     @GetMapping("/{tenantId}")
-    public ResponseEntity<TenantDto.TenantView> getTenantById(@PathVariable UUID tenantId) {
+    public ResponseEntity<TenantDto.TenantView> getTenantById(@PathVariable String tenantId) {
         return tenantApplicationService.findTenantById(tenantId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

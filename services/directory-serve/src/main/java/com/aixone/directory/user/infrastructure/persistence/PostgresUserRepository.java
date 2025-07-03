@@ -28,18 +28,18 @@ public class PostgresUserRepository implements UserRepository {
     }
 
     @Override
-    public Optional<User> findById(UUID id) {
+    public Optional<User> findById(String id) {
         return jpaRepository.findById(id).map(mapper::toDomain);
     }
 
     @Override
-    public Optional<User> findByTenantIdAndEmail(UUID tenantId, String email) {
-        return jpaRepository.findByTenantIdAndEmail(tenantId.toString(), email).map(mapper::toDomain);
+    public Optional<User> findByTenantIdAndEmail(String tenantId, String email) {
+        return jpaRepository.findByTenantIdAndEmail(tenantId, email).map(mapper::toDomain);
     }
 
     @Override
-    public Optional<User> findByTenantIdAndId(UUID tenantId, UUID userId) {
-        return jpaRepository.findByTenantIdAndId(tenantId.toString(), userId).map(mapper::toDomain);
+    public Optional<User> findByTenantIdAndId(String tenantId, String userId) {
+        return jpaRepository.findByTenantIdAndId(tenantId, userId).map(mapper::toDomain);
     }
 
     @Override
@@ -48,7 +48,7 @@ public class PostgresUserRepository implements UserRepository {
     }
 
     @Override
-    public void deleteById(UUID id) {
+    public void deleteById(String id) {
         jpaRepository.deleteById(id);
     }
 }
