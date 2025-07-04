@@ -1,6 +1,6 @@
 package com.aixone.directory.user.domain.aggregate;
 
-import com.aixone.directory.test.AbstractExcelDrivenTest;
+import com.aixone.common.test.AbstractExcelDrivenTest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;

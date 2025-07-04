@@ -59,15 +59,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.poi</groupId>
-            <artifactId>poi</artifactId>
-            <version>5.2.3</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.poi</groupId>
-            <artifactId>poi-ooxml</artifactId>
-            <version>5.2.3</version>
+            <groupId>com.aixone.libs</groupId>
+            <artifactId>excel-test</artifactId>
+            <version>1.0.0</version>
             <scope>test</scope>
         </dependency>
 
