@@ -53,7 +53,28 @@
         </dependency>
         <dependency>
             <groupId>com.aixone</groupId>
+            <artifactId>aixone-common-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.aixone</groupId>
+            <artifactId>aixone-common-constant</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.aixone</groupId>
+            <artifactId>aixone-common-exception</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.aixone</groupId>
+            <artifactId>aixone-common-tools</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.aixone</groupId>
             <artifactId>aixone-session</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.aixone</groupId>
+            <artifactId>aixone-test</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.aixone</groupId>

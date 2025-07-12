@@ -86,6 +86,26 @@
             </dependency>
             <dependency>
                 <groupId>com.aixone</groupId>
+                <artifactId>aixone-common-api</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aixone</groupId>
+                <artifactId>aixone-common-constant</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aixone</groupId>
+                <artifactId>aixone-common-exception</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aixone</groupId>
+                <artifactId>aixone-common-tools</artifactId>
+                <version>1.0.0</version>
+            </dependency>            
+            <dependency>
+                <groupId>com.aixone</groupId>
                 <artifactId>aixone-permission</artifactId>
                 <version>1.0.0</version>
             </dependency>

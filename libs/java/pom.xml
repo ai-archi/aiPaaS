@@ -10,6 +10,10 @@
         <module>aixone-test</module>
         <module>aixone-permission</module>
         <module>aixone-session</module>
+        <module>aixone-common-api</module>
+        <module>aixone-common-exception</module>
+        <module>aixone-common-tools</module>
+        <module>aixone-common-constant</module>
     </modules>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
