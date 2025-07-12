@@ -9,10 +9,7 @@
         <version>1.0.0</version>
     </parent>
     <artifactId>auth-serve</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>认证服务</name>
-    <description>统一身份认证与授权中心</description>
     <dependencies>
         <!-- 依赖由父pom统一管理 -->
         <dependency>
