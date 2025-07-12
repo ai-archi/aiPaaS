@@ -8,9 +8,9 @@
         <version>1.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <artifactId>aixone-permission</artifactId>
+    <artifactId>aixone-permission-sdk</artifactId>
     <packaging>jar</packaging>
-    <name>aixone-permission</name>
+    <name>aixone-permission-sdk</name>
     <description>统一权限（RBAC+ABAC）模型与决策引擎</description>
     <dependencies>
         <dependency>

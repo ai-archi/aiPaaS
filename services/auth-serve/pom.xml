@@ -19,7 +19,7 @@
         <!-- 统一权限包依赖 -->
         <dependency>
             <groupId>com.aixone</groupId>
-            <artifactId>aixone-permission</artifactId>
+            <artifactId>aixone-permission-sdk</artifactId>
         </dependency>
         <dependency>
             <groupId>com.aixone</groupId>

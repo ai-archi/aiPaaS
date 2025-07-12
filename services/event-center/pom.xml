@@ -78,7 +78,7 @@
         </dependency>
         <dependency>
             <groupId>com.aixone</groupId>
-            <artifactId>aixone-permission</artifactId>
+            <artifactId>aixone-permission-sdk</artifactId>
         </dependency>
     </dependencies>
 </project>

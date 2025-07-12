@@ -106,7 +106,7 @@
             </dependency>            
             <dependency>
                 <groupId>com.aixone</groupId>
-                <artifactId>aixone-permission</artifactId>
+                <artifactId>aixone-permission-sdk</artifactId>
                 <version>1.0.0</version>
             </dependency>
             <dependency>

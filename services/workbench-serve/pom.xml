@@ -77,7 +77,7 @@
         </dependency>
         <dependency>
             <groupId>com.aixone</groupId>
-            <artifactId>aixone-permission</artifactId>
+            <artifactId>aixone-permission-sdk</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>

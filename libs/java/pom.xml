@@ -8,7 +8,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>aixone-test</module>
-        <module>aixone-permission</module>
+        <module>aixone-permission-sdk</module>
         <module>aixone-session</module>
         <module>aixone-common-api</module>
         <module>aixone-common-exception</module>
