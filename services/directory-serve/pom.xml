@@ -6,7 +6,6 @@
         <groupId>com.aixone</groupId>
         <artifactId>services</artifactId>
         <version>1.0.0</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>directory-serve</artifactId>
     <name>directory-serve</name>
@@ -38,7 +37,6 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.30</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -60,9 +58,18 @@
 
         <dependency>
             <groupId>com.aixone.libs</groupId>
-            <artifactId>excel-test</artifactId>
+            <artifactId>aixone-test</artifactId>
             <version>1.0.0</version>
-            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.aixone</groupId>
+            <artifactId>aixone-session</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.aixone</groupId>
+            <artifactId>aixone-permission</artifactId>
         </dependency>
 
     </dependencies>
@@ -106,5 +113,18 @@
     </plugin>
 </plugins>
     </build>
+
+    <repositories>
+        <repository>
+            <id>local</id>
+            <url>file:///Users/jin/DEVELOP/maven/repo</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
 </project> 

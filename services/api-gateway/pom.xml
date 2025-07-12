@@ -8,6 +8,7 @@
         <groupId>com.aixone</groupId>
         <artifactId>services</artifactId>
         <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>api-gateway</artifactId>
@@ -62,6 +63,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <!-- aixone-session -->
+        <dependency>
+            <groupId>com.aixone</groupId>
+            <artifactId>aixone-session</artifactId>
         </dependency>
     </dependencies>
 

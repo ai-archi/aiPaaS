@@ -20,13 +20,11 @@ public class ApiResponse<T> {
         this.message = message;
         this.data = data;
     }
-    public static <T> ApiResponse<T> success(T data, MessageSource messageSource) {
-        String msg = messageSource.getMessage("success", null, LocaleContextHolder.getLocale());
-        return new ApiResponse<>(0, msg, data);
+    public static <T> ApiResponse<T> success(T data) {
+        return new ApiResponse<>(0, "success", data);
     }
-    public static <T> ApiResponse<T> error(int code, String messageKey, MessageSource messageSource) {
-        String msg = messageSource.getMessage(messageKey, null, LocaleContextHolder.getLocale());
-        return new ApiResponse<>(code, msg, null);
+    public static <T> ApiResponse<T> error(int code, String message) {
+        return new ApiResponse<>(code, message, null);
     }
     // getter/setter 省略
 } 

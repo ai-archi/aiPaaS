@@ -24,6 +24,8 @@ public class AuthServiceImpl implements AuthService {
     private TenantRepository tenantRepository;
     @Autowired
     private RefreshTokenService refreshTokenService;
+    @Autowired
+    private com.aixone.auth.util.JwtUtil jwtUtil;
     private static final long REFRESH_TOKEN_EXPIRE_SECONDS = 7 * 24 * 3600; // 7天
     // 可注入更多依赖，如验证码服务、Token工具类等
 
@@ -60,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
         user.setPhone((String) req.get("phone"));
         userRepository.save(user);
         // 可扩展：分配默认角色、发送欢迎邮件等
-        String accessToken = JwtUtil.generateToken(user.getUserId(), "default-client");
+        String accessToken = jwtUtil.generateToken(user.getUserId(), "default-client");
         String refreshToken = refreshTokenService.createAndStore(user.getUserId(), "default-client", REFRESH_TOKEN_EXPIRE_SECONDS);
         HashMap<String, String> result = new HashMap<>();
         result.put("accessToken", accessToken);
@@ -88,7 +90,7 @@ public class AuthServiceImpl implements AuthService {
         }
         // 如果是验证码登录，已在Controller层校验验证码，这里无需校验密码
         // Token生成
-        String accessToken = JwtUtil.generateToken(user.getUserId(), "default-client");
+        String accessToken = jwtUtil.generateToken(user.getUserId(), "default-client");
         String refreshToken = refreshTokenService.createAndStore(user.getUserId(), "default-client", REFRESH_TOKEN_EXPIRE_SECONDS);
         HashMap<String, String> result = new HashMap<>();
         result.put("accessToken", accessToken);
@@ -107,7 +109,7 @@ public class AuthServiceImpl implements AuthService {
         }
         String userId = refreshTokenService.getUserId(refreshToken);
         String clientId = "default-client";
-        String newAccessToken = JwtUtil.generateToken(userId, clientId);
+        String newAccessToken = jwtUtil.generateToken(userId, clientId);
         // 可选：续签新的refreshToken
         String newRefreshToken = refreshTokenService.createAndStore(userId, clientId, REFRESH_TOKEN_EXPIRE_SECONDS);
         // 旧refreshToken失效

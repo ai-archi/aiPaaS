@@ -1,0 +1,35 @@
+server:
+  port: 8080 # 服务端口
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/workbench
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update # 自动建表
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+    timeout: 2000
+
+logging:
+  level:
+    root: INFO
+    com.aixone: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always 

@@ -3,13 +3,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.aixone.libs</groupId>
+        <groupId>com.aixone</groupId>
         <artifactId>aixone-libs</artifactId>
         <version>1.0.0</version>
     </parent>
-    <artifactId>excel-test</artifactId>
+    <artifactId>aixone-test</artifactId>
     <packaging>jar</packaging>
-    <name>Excel驱动测试工具包</name>
     <dependencies>
         <dependency>
             <groupId>org.apache.poi</groupId>
@@ -32,8 +31,20 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>4.8.0</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project> 
