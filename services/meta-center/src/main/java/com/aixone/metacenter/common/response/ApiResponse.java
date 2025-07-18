@@ -66,12 +66,11 @@ public class ApiResponse<T> {
 
     /**
      * 成功响应（无数据）
-     *
-     * @param message 响应消息
-     * @return API响应
+     * 
+     * @return 成功响应
      */
-    public static <T> ApiResponse<T> success(String message) {
-        return new ApiResponse<>(200, message, null, LocalDateTime.now());
+    public static <T> ApiResponse<T> success() {
+        return new ApiResponse<>(true, "操作成功", null, null);
     }
 
     /**
