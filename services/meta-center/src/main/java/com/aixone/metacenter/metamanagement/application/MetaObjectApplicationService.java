@@ -146,6 +146,16 @@ public class MetaObjectApplicationService {
     }
 
     /**
+     * 根据ID获取元数据对象
+     * 
+     * @param id 元数据对象ID
+     * @return 元数据对象DTO
+     */
+    public MetaObjectDTO getMetaObjectById(Long id) {
+        return getMetaObject(id);
+    }
+
+    /**
      * 根据租户ID和名称获取元数据对象
      * 
      * @param tenantId 租户ID
@@ -199,6 +209,40 @@ public class MetaObjectApplicationService {
     }
 
     /**
+     * 分页查询元数据对象
+     * 
+     * @param query 查询条件
+     * @param pageable 分页参数
+     * @return 分页结果
+     */
+    public Page<MetaObjectDTO> getMetaObjects(MetaObjectQuery query, Pageable pageable) {
+        log.debug("分页查询元数据对象: query={}, pageable={}", query, pageable);
+
+        // 执行查询
+        Page<MetaObject> page;
+        if (StringUtils.hasText(query.getName())) {
+            page = metaObjectRepository.findByTenantIdAndNameContainingIgnoreCase(
+                    query.getTenantId(), query.getName(), pageable);
+        } else if (StringUtils.hasText(query.getDescription())) {
+            page = metaObjectRepository.findByTenantIdAndDescriptionContainingIgnoreCase(
+                    query.getTenantId(), query.getDescription(), pageable);
+        } else if (StringUtils.hasText(query.getTags())) {
+            page = metaObjectRepository.findByTenantIdAndTagsContaining(
+                    query.getTenantId(), query.getTags(), pageable);
+        } else if (query.getTypes() != null && !query.getTypes().isEmpty()) {
+            page = metaObjectRepository.findByTenantIdAndTypeIn(
+                    query.getTenantId(), query.getTypes(), pageable);
+        } else if (query.getLifecycles() != null && !query.getLifecycles().isEmpty()) {
+            page = metaObjectRepository.findByTenantIdAndLifecycleIn(
+                    query.getTenantId(), query.getLifecycles(), pageable);
+        } else {
+            page = metaObjectRepository.findByTenantId(query.getTenantId(), pageable);
+        }
+
+        return page.map(metaObjectMapper::toDTO);
+    }
+
+    /**
      * 根据类型查询元数据对象列表
      * 
      * @param tenantId 租户ID
@@ -224,6 +268,137 @@ public class MetaObjectApplicationService {
 
         List<MetaObject> metaObjects = metaObjectRepository.findByTenantIdAndObjectType(tenantId, objectType);
         return metaObjects.stream().map(metaObjectMapper::toDTO).toList();
+    }
+
+    /**
+     * 根据租户ID查询元数据对象列表
+     * 
+     * @param tenantId 租户ID
+     * @return 元数据对象列表
+     */
+    public List<MetaObjectDTO> getMetaObjectsByTenantId(String tenantId) {
+        log.debug("根据租户ID查询元数据对象列表: {}", tenantId);
+
+        List<MetaObject> metaObjects = metaObjectRepository.findByTenantId(tenantId);
+        return metaObjects.stream().map(metaObjectMapper::toDTO).toList();
+    }
+
+    /**
+     * 根据租户ID和对象类型查询元数据对象列表
+     * 
+     * @param tenantId 租户ID
+     * @param objectType 对象类型
+     * @return 元数据对象列表
+     */
+    public List<MetaObjectDTO> getMetaObjectsByTenantIdAndType(String tenantId, String objectType) {
+        log.debug("根据租户ID和对象类型查询元数据对象列表: tenantId={}, objectType={}", tenantId, objectType);
+
+        List<MetaObject> metaObjects = metaObjectRepository.findByTenantIdAndObjectType(tenantId, objectType);
+        return metaObjects.stream().map(metaObjectMapper::toDTO).toList();
+    }
+
+    /**
+     * 根据租户ID删除元数据对象
+     * 
+     * @param tenantId 租户ID
+     */
+    @Transactional
+    public void deleteMetaObjectsByTenantId(String tenantId) {
+        log.info("根据租户ID删除元数据对象: {}", tenantId);
+
+        List<MetaObject> metaObjects = metaObjectRepository.findByTenantId(tenantId);
+        for (MetaObject metaObject : metaObjects) {
+            metaObject.setStatus("deleted");
+        }
+        metaObjectRepository.saveAll(metaObjects);
+
+        log.info("根据租户ID删除元数据对象成功: {}", tenantId);
+    }
+
+    /**
+     * 检查元数据对象名称是否存在
+     * 
+     * @param tenantId 租户ID
+     * @param name 名称
+     * @return 是否存在
+     */
+    public boolean existsByName(String tenantId, String name) {
+        log.debug("检查元数据对象名称是否存在: tenantId={}, name={}", tenantId, name);
+        return metaObjectRepository.existsByTenantIdAndName(tenantId, name);
+    }
+
+    /**
+     * 统计元数据对象数量
+     * 
+     * @param tenantId 租户ID
+     * @return 数量
+     */
+    public long countByTenantId(String tenantId) {
+        log.debug("统计元数据对象数量: {}", tenantId);
+        return metaObjectRepository.countByTenantId(tenantId);
+    }
+
+    /**
+     * 发布元数据对象
+     * 
+     * @param id 元数据对象ID
+     * @return 元数据对象DTO
+     */
+    @Transactional
+    public MetaObjectDTO publishMetaObject(Long id) {
+        log.info("发布元数据对象: {}", id);
+
+        MetaObject metaObject = metaObjectRepository.findById(id)
+                .orElseThrow(() -> new MetaNotFoundException("元数据对象不存在: " + id));
+
+        metaObject.setStatus("published");
+        metaObject.setPublishedAt(java.time.LocalDateTime.now());
+        MetaObject savedMetaObject = metaObjectRepository.save(metaObject);
+
+        log.info("元数据对象发布成功: {}", id);
+        return metaObjectMapper.toDTO(savedMetaObject);
+    }
+
+    /**
+     * 废弃元数据对象
+     * 
+     * @param id 元数据对象ID
+     * @return 元数据对象DTO
+     */
+    @Transactional
+    public MetaObjectDTO deprecateMetaObject(Long id) {
+        log.info("废弃元数据对象: {}", id);
+
+        MetaObject metaObject = metaObjectRepository.findById(id)
+                .orElseThrow(() -> new MetaNotFoundException("元数据对象不存在: " + id));
+
+        metaObject.setStatus("deprecated");
+        metaObject.setDeprecatedAt(java.time.LocalDateTime.now());
+        MetaObject savedMetaObject = metaObjectRepository.save(metaObject);
+
+        log.info("元数据对象废弃成功: {}", id);
+        return metaObjectMapper.toDTO(savedMetaObject);
+    }
+
+    /**
+     * 归档元数据对象
+     * 
+     * @param id 元数据对象ID
+     * @return 元数据对象DTO
+     */
+    @Transactional
+    public MetaObjectDTO archiveMetaObject(Long id) {
+        log.info("归档元数据对象: {}", id);
+
+        MetaObject metaObject = metaObjectRepository.findById(id)
+                .orElseThrow(() -> new MetaNotFoundException("元数据对象不存在: " + id));
+
+        metaObject.setStatus("archived");
+        metaObject.setArchivedAt(java.time.LocalDateTime.now());
+        MetaObject savedMetaObject = metaObjectRepository.save(metaObject);
+
+        log.info("元数据对象归档成功: {}", id);
+        return metaObjectMapper.toDTO(savedMetaObject);
     }
 
     /**

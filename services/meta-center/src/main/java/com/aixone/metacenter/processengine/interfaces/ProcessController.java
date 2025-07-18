@@ -1,255 +1,264 @@
 package com.aixone.metacenter.processengine.interfaces;
 
-import com.aixone.metacenter.processengine.application.ProcessApplicationService;
-import com.aixone.metacenter.processengine.domain.Process;
-import com.aixone.metacenter.common.constant.MetaConstants;
 import com.aixone.metacenter.common.response.ApiResponse;
+import com.aixone.metacenter.processengine.application.ProcessApplicationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 
 /**
- * 流程引擎控制器
- * 提供流程管理的REST API接口
+ * 流程引擎REST控制器
+ * 
+ * @author aixone
+ * @version 1.0.0
+ * @since 2024-06-01
  */
 @Slf4j
 @RestController
-@RequestMapping(MetaConstants.Api.API_PREFIX + "/processes")
+@RequestMapping("/processes")
 @RequiredArgsConstructor
 public class ProcessController {
 
     private final ProcessApplicationService processApplicationService;
 
     /**
-     * 创建流程
-     *
-     * @param process 流程对象
-     * @return 创建的流程
+     * 启动流程实例
+     * 
+     * @param processId 流程定义ID
+     * @param variables 流程变量
+     * @return 流程实例ID
      */
-    @PostMapping
-    public ResponseEntity<ApiResponse<Process>> createProcess(@Valid @RequestBody Process process) {
-        try {
-            log.info("创建流程: {}", process.getName());
-            Process createdProcess = processApplicationService.createProcess(process);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success(createdProcess, "流程创建成功"));
-        } catch (Exception e) {
-            log.error("创建流程失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("PROCESS_CREATE_ERROR", "创建流程失败: " + e.getMessage()));
-        }
+    @PostMapping("/{processId}/start")
+    public ResponseEntity<ApiResponse<String>> startProcess(
+            @PathVariable Long processId,
+            @RequestBody Map<String, Object> variables) {
+        log.info("启动流程实例: processId={}", processId);
+        String instanceId = processApplicationService.startProcess(processId, variables);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(instanceId, "流程实例启动成功"));
     }
 
     /**
-     * 更新流程
-     *
-     * @param id 流程ID
-     * @param process 流程对象
-     * @return 更新后的流程
-     */
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Process>> updateProcess(@PathVariable Long id, @Valid @RequestBody Process process) {
-        try {
-            log.info("更新流程: {}", id);
-            Process updatedProcess = processApplicationService.updateProcess(id, process);
-            return ResponseEntity.ok(ApiResponse.success(updatedProcess, "流程更新成功"));
-        } catch (Exception e) {
-            log.error("更新流程失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("PROCESS_UPDATE_ERROR", "更新流程失败: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 删除流程
-     *
-     * @param id 流程ID
-     * @return 删除结果
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteProcess(@PathVariable Long id) {
-        try {
-            log.info("删除流程: {}", id);
-            processApplicationService.deleteProcess(id);
-            return ResponseEntity.ok(ApiResponse.success(null, "流程删除成功"));
-        } catch (Exception e) {
-            log.error("删除流程失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("PROCESS_DELETE_ERROR", "删除流程失败: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 根据ID查询流程
-     *
-     * @param id 流程ID
-     * @return 流程
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Process>> getProcessById(@PathVariable Long id) {
-        try {
-            log.debug("查询流程: {}", id);
-            Process process = processApplicationService.getProcessById(id);
-            return ResponseEntity.ok(ApiResponse.success(process, "流程查询成功"));
-        } catch (Exception e) {
-            log.error("查询流程失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("PROCESS_QUERY_ERROR", "查询流程失败: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 分页查询流程
-     *
-     * @param page 页码
-     * @param size 页大小
-     * @param sortBy 排序字段
-     * @param sortDir 排序方向
-     * @return 分页结果
-     */
-    @GetMapping
-    public ResponseEntity<ApiResponse<Page<Process>>> getProcesses(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-        try {
-            log.debug("分页查询流程: page={}, size={}, sortBy={}, sortDir={}", page, size, sortBy, sortDir);
-            
-            Sort sort = sortDir.equalsIgnoreCase("desc") ? 
-                    Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
-            Pageable pageable = PageRequest.of(page, size, sort);
-            
-            Page<Process> processes = processApplicationService.getProcesses(pageable);
-            return ResponseEntity.ok(ApiResponse.success(processes, "流程分页查询成功"));
-        } catch (Exception e) {
-            log.error("分页查询流程失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("PROCESS_QUERY_ERROR", "分页查询流程失败: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 启动流程
-     *
-     * @param id 流程ID
-     * @param data 流程启动数据
-     * @return 启动结果
-     */
-    @PostMapping("/{id}/start")
-    public ResponseEntity<ApiResponse<Object>> startProcess(@PathVariable Long id, @RequestBody Object data) {
-        try {
-            log.info("启动流程: {}", id);
-            Object result = processApplicationService.startProcess(id, data);
-            return ResponseEntity.ok(ApiResponse.success(result, "流程启动成功"));
-        } catch (Exception e) {
-            log.error("启动流程失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("PROCESS_START_ERROR", "启动流程失败: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 暂停流程
-     *
-     * @param id 流程ID
+     * 暂停流程实例
+     * 
+     * @param instanceId 流程实例ID
      * @return 暂停结果
      */
-    @PutMapping("/{id}/pause")
-    public ResponseEntity<ApiResponse<Process>> pauseProcess(@PathVariable Long id) {
-        try {
-            log.info("暂停流程: {}", id);
-            Process process = processApplicationService.pauseProcess(id);
-            return ResponseEntity.ok(ApiResponse.success(process, "流程暂停成功"));
-        } catch (Exception e) {
-            log.error("暂停流程失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("PROCESS_PAUSE_ERROR", "暂停流程失败: " + e.getMessage()));
-        }
+    @PostMapping("/instances/{instanceId}/suspend")
+    public ResponseEntity<ApiResponse<Void>> suspendProcessInstance(@PathVariable String instanceId) {
+        log.info("暂停流程实例: {}", instanceId);
+        processApplicationService.suspendProcessInstance(instanceId);
+        return ResponseEntity.ok(ApiResponse.success(null, "流程实例暂停成功"));
     }
 
     /**
-     * 恢复流程
-     *
-     * @param id 流程ID
+     * 恢复流程实例
+     * 
+     * @param instanceId 流程实例ID
      * @return 恢复结果
      */
-    @PutMapping("/{id}/resume")
-    public ResponseEntity<ApiResponse<Process>> resumeProcess(@PathVariable Long id) {
-        try {
-            log.info("恢复流程: {}", id);
-            Process process = processApplicationService.resumeProcess(id);
-            return ResponseEntity.ok(ApiResponse.success(process, "流程恢复成功"));
-        } catch (Exception e) {
-            log.error("恢复流程失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("PROCESS_RESUME_ERROR", "恢复流程失败: " + e.getMessage()));
-        }
+    @PostMapping("/instances/{instanceId}/resume")
+    public ResponseEntity<ApiResponse<Void>> resumeProcessInstance(@PathVariable String instanceId) {
+        log.info("恢复流程实例: {}", instanceId);
+        processApplicationService.resumeProcessInstance(instanceId);
+        return ResponseEntity.ok(ApiResponse.success(null, "流程实例恢复成功"));
     }
 
     /**
-     * 终止流程
-     *
-     * @param id 流程ID
+     * 终止流程实例
+     * 
+     * @param instanceId 流程实例ID
+     * @param reason 终止原因
      * @return 终止结果
      */
-    @PutMapping("/{id}/terminate")
-    public ResponseEntity<ApiResponse<Process>> terminateProcess(@PathVariable Long id) {
-        try {
-            log.info("终止流程: {}", id);
-            Process process = processApplicationService.terminateProcess(id);
-            return ResponseEntity.ok(ApiResponse.success(process, "流程终止成功"));
-        } catch (Exception e) {
-            log.error("终止流程失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("PROCESS_TERMINATE_ERROR", "终止流程失败: " + e.getMessage()));
-        }
+    @PostMapping("/instances/{instanceId}/terminate")
+    public ResponseEntity<ApiResponse<Void>> terminateProcessInstance(
+            @PathVariable String instanceId,
+            @RequestParam(required = false) String reason) {
+        log.info("终止流程实例: instanceId={}, reason={}", instanceId, reason);
+        processApplicationService.terminateProcessInstance(instanceId, reason);
+        return ResponseEntity.ok(ApiResponse.success(null, "流程实例终止成功"));
     }
 
     /**
-     * 根据流程类型查询流程列表
-     *
-     * @param processType 流程类型
-     * @return 流程列表
+     * 完成当前任务
+     * 
+     * @param taskId 任务ID
+     * @param variables 任务变量
+     * @return 完成结果
      */
-    @GetMapping("/by-type/{processType}")
-    public ResponseEntity<ApiResponse<List<Process>>> getProcessesByType(@PathVariable String processType) {
-        try {
-            log.debug("根据流程类型查询流程列表: {}", processType);
-            List<Process> processes = processApplicationService.getProcessesByType(processType);
-            return ResponseEntity.ok(ApiResponse.success(processes, "流程类型查询成功"));
-        } catch (Exception e) {
-            log.error("根据流程类型查询流程列表失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("PROCESS_QUERY_ERROR", "根据流程类型查询流程列表失败: " + e.getMessage()));
-        }
+    @PostMapping("/tasks/{taskId}/complete")
+    public ResponseEntity<ApiResponse<Void>> completeTask(
+            @PathVariable String taskId,
+            @RequestBody Map<String, Object> variables) {
+        log.info("完成任务: taskId={}", taskId);
+        processApplicationService.completeTask(taskId, variables);
+        return ResponseEntity.ok(ApiResponse.success(null, "任务完成成功"));
     }
 
     /**
-     * 根据状态查询流程列表
-     *
+     * 委派任务
+     * 
+     * @param taskId 任务ID
+     * @param assignee 委派人
+     * @return 委派结果
+     */
+    @PostMapping("/tasks/{taskId}/delegate")
+    public ResponseEntity<ApiResponse<Void>> delegateTask(
+            @PathVariable String taskId,
+            @RequestParam String assignee) {
+        log.info("委派任务: taskId={}, assignee={}", taskId, assignee);
+        processApplicationService.delegateTask(taskId, assignee);
+        return ResponseEntity.ok(ApiResponse.success(null, "任务委派成功"));
+    }
+
+    /**
+     * 转办任务
+     * 
+     * @param taskId 任务ID
+     * @param assignee 转办人
+     * @return 转办结果
+     */
+    @PostMapping("/tasks/{taskId}/transfer")
+    public ResponseEntity<ApiResponse<Void>> transferTask(
+            @PathVariable String taskId,
+            @RequestParam String assignee) {
+        log.info("转办任务: taskId={}, assignee={}", taskId, assignee);
+        processApplicationService.transferTask(taskId, assignee);
+        return ResponseEntity.ok(ApiResponse.success(null, "任务转办成功"));
+    }
+
+    /**
+     * 获取流程实例详情
+     * 
+     * @param instanceId 流程实例ID
+     * @return 流程实例详情
+     */
+    @GetMapping("/instances/{instanceId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getProcessInstance(@PathVariable String instanceId) {
+        log.info("获取流程实例详情: {}", instanceId);
+        Map<String, Object> instance = processApplicationService.getProcessInstance(instanceId);
+        return ResponseEntity.ok(ApiResponse.success(instance, "获取流程实例详情成功"));
+    }
+
+    /**
+     * 获取流程实例列表
+     * 
+     * @param processId 流程定义ID
      * @param status 状态
-     * @return 流程列表
+     * @param page 页码
+     * @param size 页大小
+     * @return 流程实例列表
      */
-    @GetMapping("/by-status/{status}")
-    public ResponseEntity<ApiResponse<List<Process>>> getProcessesByStatus(@PathVariable String status) {
-        try {
-            log.debug("根据状态查询流程列表: {}", status);
-            List<Process> processes = processApplicationService.getProcessesByStatus(status);
-            return ResponseEntity.ok(ApiResponse.success(processes, "流程状态查询成功"));
-        } catch (Exception e) {
-            log.error("根据状态查询流程列表失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("PROCESS_QUERY_ERROR", "根据状态查询流程列表失败: " + e.getMessage()));
-        }
+    @GetMapping("/instances")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getProcessInstances(
+            @RequestParam(required = false) Long processId,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        log.info("获取流程实例列表: processId={}, status={}, page={}, size={}", processId, status, page, size);
+        List<Map<String, Object>> instances = processApplicationService.getProcessInstances(processId, status, page, size);
+        return ResponseEntity.ok(ApiResponse.success(instances, "获取流程实例列表成功"));
+    }
+
+    /**
+     * 获取待办任务列表
+     * 
+     * @param assignee 处理人
+     * @param processId 流程定义ID
+     * @param page 页码
+     * @param size 页大小
+     * @return 待办任务列表
+     */
+    @GetMapping("/tasks/todo")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getTodoTasks(
+            @RequestParam(required = false) String assignee,
+            @RequestParam(required = false) Long processId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        log.info("获取待办任务列表: assignee={}, processId={}, page={}, size={}", assignee, processId, page, size);
+        List<Map<String, Object>> tasks = processApplicationService.getTodoTasks(assignee, processId, page, size);
+        return ResponseEntity.ok(ApiResponse.success(tasks, "获取待办任务列表成功"));
+    }
+
+    /**
+     * 获取已办任务列表
+     * 
+     * @param assignee 处理人
+     * @param processId 流程定义ID
+     * @param page 页码
+     * @param size 页大小
+     * @return 已办任务列表
+     */
+    @GetMapping("/tasks/done")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getDoneTasks(
+            @RequestParam(required = false) String assignee,
+            @RequestParam(required = false) Long processId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        log.info("获取已办任务列表: assignee={}, processId={}, page={}, size={}", assignee, processId, page, size);
+        List<Map<String, Object>> tasks = processApplicationService.getDoneTasks(assignee, processId, page, size);
+        return ResponseEntity.ok(ApiResponse.success(tasks, "获取已办任务列表成功"));
+    }
+
+    /**
+     * 获取流程历史记录
+     * 
+     * @param instanceId 流程实例ID
+     * @return 历史记录
+     */
+    @GetMapping("/instances/{instanceId}/history")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getProcessHistory(@PathVariable String instanceId) {
+        log.info("获取流程历史记录: {}", instanceId);
+        List<Map<String, Object>> history = processApplicationService.getProcessHistory(instanceId);
+        return ResponseEntity.ok(ApiResponse.success(history, "获取流程历史记录成功"));
+    }
+
+    /**
+     * 获取流程变量
+     * 
+     * @param instanceId 流程实例ID
+     * @return 流程变量
+     */
+    @GetMapping("/instances/{instanceId}/variables")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getProcessVariables(@PathVariable String instanceId) {
+        log.info("获取流程变量: {}", instanceId);
+        Map<String, Object> variables = processApplicationService.getProcessVariables(instanceId);
+        return ResponseEntity.ok(ApiResponse.success(variables, "获取流程变量成功"));
+    }
+
+    /**
+     * 设置流程变量
+     * 
+     * @param instanceId 流程实例ID
+     * @param variables 流程变量
+     * @return 设置结果
+     */
+    @PostMapping("/instances/{instanceId}/variables")
+    public ResponseEntity<ApiResponse<Void>> setProcessVariables(
+            @PathVariable String instanceId,
+            @RequestBody Map<String, Object> variables) {
+        log.info("设置流程变量: instanceId={}", instanceId);
+        processApplicationService.setProcessVariables(instanceId, variables);
+        return ResponseEntity.ok(ApiResponse.success(null, "设置流程变量成功"));
+    }
+
+    /**
+     * 获取流程统计信息
+     * 
+     * @param processId 流程定义ID
+     * @return 统计信息
+     */
+    @GetMapping("/{processId}/stats")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getProcessStats(@PathVariable Long processId) {
+        log.info("获取流程统计信息: {}", processId);
+        Map<String, Object> stats = processApplicationService.getProcessStats(processId);
+        return ResponseEntity.ok(ApiResponse.success(stats, "获取流程统计信息成功"));
     }
 } 

@@ -1,14 +1,13 @@
 package com.aixone.metacenter.metamanagement.interfaces;
 
+import com.aixone.metacenter.common.response.ApiResponse;
 import com.aixone.metacenter.metamanagement.application.MetaObjectApplicationService;
 import com.aixone.metacenter.metamanagement.application.dto.MetaObjectDTO;
 import com.aixone.metacenter.metamanagement.application.dto.MetaObjectQuery;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +16,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 /**
- * 元数据对象控制器
+ * 元数据对象REST控制器
  * 
  * @author aixone
  * @version 1.0.0
@@ -25,9 +24,8 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/meta-objects")
+@RequestMapping("/meta-objects")
 @RequiredArgsConstructor
-@Tag(name = "元数据对象管理", description = "元数据对象的增删改查接口")
 public class MetaObjectController {
 
     private final MetaObjectApplicationService metaObjectApplicationService;
@@ -35,37 +33,105 @@ public class MetaObjectController {
     /**
      * 创建元数据对象
      * 
-     * @param dto 元数据对象DTO
-     * @return 创建的元数据对象
+     * @param metaObjectDTO 元数据对象DTO
+     * @return 创建结果
      */
     @PostMapping
-    @Operation(summary = "创建元数据对象", description = "创建新的元数据对象")
-    public ResponseEntity<MetaObjectDTO> createMetaObject(
-            @Parameter(description = "元数据对象信息") @Valid @RequestBody MetaObjectDTO dto) {
-        log.info("创建元数据对象请求: {}", dto.getName());
-        
-        MetaObjectDTO result = metaObjectApplicationService.createMetaObject(dto);
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+    public ResponseEntity<ApiResponse<MetaObjectDTO>> createMetaObject(@Valid @RequestBody MetaObjectDTO metaObjectDTO) {
+        log.info("创建元数据对象: {}", metaObjectDTO.getName());
+        MetaObjectDTO created = metaObjectApplicationService.createMetaObject(metaObjectDTO);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(created, "元数据对象创建成功"));
+    }
+
+    /**
+     * 根据ID查询元数据对象
+     * 
+     * @param id 元数据对象ID
+     * @return 元数据对象
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<MetaObjectDTO>> getMetaObjectById(@PathVariable Long id) {
+        log.info("根据ID查询元数据对象: {}", id);
+        MetaObjectDTO metaObject = metaObjectApplicationService.getMetaObjectById(id);
+        return ResponseEntity.ok(ApiResponse.success(metaObject, "查询成功"));
+    }
+
+    /**
+     * 根据租户ID和名称查询元数据对象
+     * 
+     * @param tenantId 租户ID
+     * @param name 名称
+     * @return 元数据对象
+     */
+    @GetMapping("/by-name")
+    public ResponseEntity<ApiResponse<MetaObjectDTO>> getMetaObjectByName(
+            @RequestParam String tenantId, 
+            @RequestParam String name) {
+        log.info("根据租户ID和名称查询元数据对象: tenantId={}, name={}", tenantId, name);
+        MetaObjectDTO metaObject = metaObjectApplicationService.getMetaObjectByName(tenantId, name);
+        return ResponseEntity.ok(ApiResponse.success(metaObject, "查询成功"));
+    }
+
+    /**
+     * 分页查询元数据对象
+     * 
+     * @param query 查询条件
+     * @param pageable 分页参数
+     * @return 分页结果
+     */
+    @GetMapping
+    public ResponseEntity<ApiResponse<Page<MetaObjectDTO>>> getMetaObjects(
+            MetaObjectQuery query, 
+            Pageable pageable) {
+        log.info("分页查询元数据对象: query={}, pageable={}", query, pageable);
+        Page<MetaObjectDTO> result = metaObjectApplicationService.getMetaObjects(query, pageable);
+        return ResponseEntity.ok(ApiResponse.success(result, "查询成功"));
+    }
+
+    /**
+     * 根据租户ID查询元数据对象列表
+     * 
+     * @param tenantId 租户ID
+     * @return 元数据对象列表
+     */
+    @GetMapping("/tenant/{tenantId}")
+    public ResponseEntity<ApiResponse<List<MetaObjectDTO>>> getMetaObjectsByTenantId(@PathVariable String tenantId) {
+        log.info("根据租户ID查询元数据对象列表: {}", tenantId);
+        List<MetaObjectDTO> metaObjects = metaObjectApplicationService.getMetaObjectsByTenantId(tenantId);
+        return ResponseEntity.ok(ApiResponse.success(metaObjects, "查询成功"));
+    }
+
+    /**
+     * 根据租户ID和对象类型查询元数据对象列表
+     * 
+     * @param tenantId 租户ID
+     * @param objectType 对象类型
+     * @return 元数据对象列表
+     */
+    @GetMapping("/tenant/{tenantId}/type/{objectType}")
+    public ResponseEntity<ApiResponse<List<MetaObjectDTO>>> getMetaObjectsByTenantIdAndType(
+            @PathVariable String tenantId, 
+            @PathVariable String objectType) {
+        log.info("根据租户ID和对象类型查询元数据对象列表: tenantId={}, objectType={}", tenantId, objectType);
+        List<MetaObjectDTO> metaObjects = metaObjectApplicationService.getMetaObjectsByTenantIdAndType(tenantId, objectType);
+        return ResponseEntity.ok(ApiResponse.success(metaObjects, "查询成功"));
     }
 
     /**
      * 更新元数据对象
      * 
      * @param id 元数据对象ID
-     * @param dto 元数据对象DTO
-     * @return 更新后的元数据对象
+     * @param metaObjectDTO 元数据对象DTO
+     * @return 更新结果
      */
     @PutMapping("/{id}")
-    @Operation(summary = "更新元数据对象", description = "更新指定ID的元数据对象")
-    public ResponseEntity<MetaObjectDTO> updateMetaObject(
-            @Parameter(description = "元数据对象ID") @PathVariable Long id,
-            @Parameter(description = "元数据对象信息") @Valid @RequestBody MetaObjectDTO dto) {
-        log.info("更新元数据对象请求: id={}", id);
-        
-        MetaObjectDTO result = metaObjectApplicationService.updateMetaObject(id, dto);
-        
-        return ResponseEntity.ok(result);
+    public ResponseEntity<ApiResponse<MetaObjectDTO>> updateMetaObject(
+            @PathVariable Long id, 
+            @Valid @RequestBody MetaObjectDTO metaObjectDTO) {
+        log.info("更新元数据对象: id={}, name={}", id, metaObjectDTO.getName());
+        MetaObjectDTO updated = metaObjectApplicationService.updateMetaObject(id, metaObjectDTO);
+        return ResponseEntity.ok(ApiResponse.success(updated, "元数据对象更新成功"));
     }
 
     /**
@@ -75,138 +141,90 @@ public class MetaObjectController {
      * @return 删除结果
      */
     @DeleteMapping("/{id}")
-    @Operation(summary = "删除元数据对象", description = "删除指定ID的元数据对象")
-    public ResponseEntity<Void> deleteMetaObject(
-            @Parameter(description = "元数据对象ID") @PathVariable Long id) {
-        log.info("删除元数据对象请求: id={}", id);
-        
+    public ResponseEntity<ApiResponse<Void>> deleteMetaObject(@PathVariable Long id) {
+        log.info("删除元数据对象: {}", id);
         metaObjectApplicationService.deleteMetaObject(id);
-        
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.success(null, "元数据对象删除成功"));
     }
 
     /**
-     * 获取元数据对象
+     * 根据租户ID删除元数据对象
      * 
-     * @param id 元数据对象ID
-     * @return 元数据对象
+     * @param tenantId 租户ID
+     * @return 删除结果
      */
-    @GetMapping("/{id}")
-    @Operation(summary = "获取元数据对象", description = "根据ID获取元数据对象详情")
-    public ResponseEntity<MetaObjectDTO> getMetaObject(
-            @Parameter(description = "元数据对象ID") @PathVariable Long id) {
-        log.debug("获取元数据对象请求: id={}", id);
-        
-        MetaObjectDTO result = metaObjectApplicationService.getMetaObject(id);
-        
-        return ResponseEntity.ok(result);
+    @DeleteMapping("/tenant/{tenantId}")
+    public ResponseEntity<ApiResponse<Void>> deleteMetaObjectsByTenantId(@PathVariable String tenantId) {
+        log.info("根据租户ID删除元数据对象: {}", tenantId);
+        metaObjectApplicationService.deleteMetaObjectsByTenantId(tenantId);
+        return ResponseEntity.ok(ApiResponse.success(null, "元数据对象删除成功"));
     }
 
     /**
-     * 根据名称获取元数据对象
+     * 检查元数据对象名称是否存在
      * 
      * @param tenantId 租户ID
      * @param name 名称
-     * @return 元数据对象
+     * @return 检查结果
      */
-    @GetMapping("/by-name")
-    @Operation(summary = "根据名称获取元数据对象", description = "根据租户ID和名称获取元数据对象")
-    public ResponseEntity<MetaObjectDTO> getMetaObjectByName(
-            @Parameter(description = "租户ID") @RequestParam String tenantId,
-            @Parameter(description = "元数据对象名称") @RequestParam String name) {
-        log.debug("根据名称获取元数据对象请求: tenantId={}, name={}", tenantId, name);
-        
-        MetaObjectDTO result = metaObjectApplicationService.getMetaObjectByName(tenantId, name);
-        
-        return ResponseEntity.ok(result);
+    @GetMapping("/exists")
+    public ResponseEntity<ApiResponse<Boolean>> existsByName(
+            @RequestParam String tenantId, 
+            @RequestParam String name) {
+        log.info("检查元数据对象名称是否存在: tenantId={}, name={}", tenantId, name);
+        boolean exists = metaObjectApplicationService.existsByName(tenantId, name);
+        return ResponseEntity.ok(ApiResponse.success(exists, "检查完成"));
     }
 
     /**
-     * 分页查询元数据对象
-     * 
-     * @param query 查询条件
-     * @return 分页结果
-     */
-    @GetMapping
-    @Operation(summary = "分页查询元数据对象", description = "根据条件分页查询元数据对象")
-    public ResponseEntity<Page<MetaObjectDTO>> listMetaObjects(
-            @Parameter(description = "查询条件") MetaObjectQuery query) {
-        log.debug("分页查询元数据对象请求: {}", query);
-        
-        Page<MetaObjectDTO> result = metaObjectApplicationService.listMetaObjects(query);
-        
-        return ResponseEntity.ok(result);
-    }
-
-    /**
-     * 根据类型查询元数据对象列表
+     * 统计元数据对象数量
      * 
      * @param tenantId 租户ID
-     * @param type 类型
-     * @return 元数据对象列表
+     * @return 统计结果
      */
-    @GetMapping("/by-type")
-    @Operation(summary = "根据类型查询元数据对象", description = "根据租户ID和类型查询元数据对象列表")
-    public ResponseEntity<List<MetaObjectDTO>> listMetaObjectsByType(
-            @Parameter(description = "租户ID") @RequestParam String tenantId,
-            @Parameter(description = "元数据类型") @RequestParam String type) {
-        log.debug("根据类型查询元数据对象请求: tenantId={}, type={}", tenantId, type);
-        
-        List<MetaObjectDTO> result = metaObjectApplicationService.listMetaObjectsByType(tenantId, type);
-        
-        return ResponseEntity.ok(result);
+    @GetMapping("/count")
+    public ResponseEntity<ApiResponse<Long>> countByTenantId(@RequestParam String tenantId) {
+        log.info("统计元数据对象数量: {}", tenantId);
+        long count = metaObjectApplicationService.countByTenantId(tenantId);
+        return ResponseEntity.ok(ApiResponse.success(count, "统计完成"));
     }
 
     /**
-     * 根据对象类型查询元数据对象列表
+     * 发布元数据对象
      * 
-     * @param tenantId 租户ID
-     * @param objectType 对象类型
-     * @return 元数据对象列表
+     * @param id 元数据对象ID
+     * @return 发布结果
      */
-    @GetMapping("/by-object-type")
-    @Operation(summary = "根据对象类型查询元数据对象", description = "根据租户ID和对象类型查询元数据对象列表")
-    public ResponseEntity<List<MetaObjectDTO>> listMetaObjectsByObjectType(
-            @Parameter(description = "租户ID") @RequestParam String tenantId,
-            @Parameter(description = "对象类型") @RequestParam String objectType) {
-        log.debug("根据对象类型查询元数据对象请求: tenantId={}, objectType={}", tenantId, objectType);
-        
-        List<MetaObjectDTO> result = metaObjectApplicationService.listMetaObjectsByObjectType(tenantId, objectType);
-        
-        return ResponseEntity.ok(result);
+    @PostMapping("/{id}/publish")
+    public ResponseEntity<ApiResponse<MetaObjectDTO>> publishMetaObject(@PathVariable Long id) {
+        log.info("发布元数据对象: {}", id);
+        MetaObjectDTO published = metaObjectApplicationService.publishMetaObject(id);
+        return ResponseEntity.ok(ApiResponse.success(published, "元数据对象发布成功"));
     }
 
     /**
-     * 校验元数据对象
+     * 废弃元数据对象
      * 
-     * @param dto 元数据对象DTO
-     * @return 校验结果
+     * @param id 元数据对象ID
+     * @return 废弃结果
      */
-    @PostMapping("/validate")
-    @Operation(summary = "校验元数据对象", description = "校验元数据对象的完整性和正确性")
-    public ResponseEntity<Boolean> validateMetaObject(
-            @Parameter(description = "元数据对象信息") @Valid @RequestBody MetaObjectDTO dto) {
-        log.debug("校验元数据对象请求: {}", dto.getName());
-        
-        boolean result = metaObjectApplicationService.validateMetaObject(dto);
-        
-        return ResponseEntity.ok(result);
+    @PostMapping("/{id}/deprecate")
+    public ResponseEntity<ApiResponse<MetaObjectDTO>> deprecateMetaObject(@PathVariable Long id) {
+        log.info("废弃元数据对象: {}", id);
+        MetaObjectDTO deprecated = metaObjectApplicationService.deprecateMetaObject(id);
+        return ResponseEntity.ok(ApiResponse.success(deprecated, "元数据对象废弃成功"));
     }
 
     /**
-     * 预览元数据对象变更
+     * 归档元数据对象
      * 
-     * @param dto 元数据对象DTO
-     * @return 变更预览结果
+     * @param id 元数据对象ID
+     * @return 归档结果
      */
-    @PostMapping("/preview")
-    @Operation(summary = "预览元数据对象变更", description = "预览元数据对象变更的影响和风险")
-    public ResponseEntity<Object> previewMetaObject(
-            @Parameter(description = "元数据对象信息") @Valid @RequestBody MetaObjectDTO dto) {
-        log.debug("预览元数据对象变更请求: {}", dto.getName());
-        
-        Object result = metaObjectApplicationService.previewMetaObject(dto);
-        
-        return ResponseEntity.ok(result);
+    @PostMapping("/{id}/archive")
+    public ResponseEntity<ApiResponse<MetaObjectDTO>> archiveMetaObject(@PathVariable Long id) {
+        log.info("归档元数据对象: {}", id);
+        MetaObjectDTO archived = metaObjectApplicationService.archiveMetaObject(id);
+        return ResponseEntity.ok(ApiResponse.success(archived, "元数据对象归档成功"));
     }
 } 

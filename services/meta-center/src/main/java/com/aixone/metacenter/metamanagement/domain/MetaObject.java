@@ -116,6 +116,18 @@ public class MetaObject {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /** 发布时间 */
+    @Column(name = "published_at")
+    private LocalDateTime publishedAt;
+
+    /** 废弃时间 */
+    @Column(name = "deprecated_at")
+    private LocalDateTime deprecatedAt;
+
+    /** 归档时间 */
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+
     /** 属性列表 */
     @OneToMany(mappedBy = "metaObject", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MetaAttribute> attributes = new ArrayList<>();

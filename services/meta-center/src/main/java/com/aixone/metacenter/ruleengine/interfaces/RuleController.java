@@ -1,236 +1,200 @@
 package com.aixone.metacenter.ruleengine.interfaces;
 
-import com.aixone.metacenter.ruleengine.application.RuleApplicationService;
-import com.aixone.metacenter.ruleengine.domain.Rule;
-import com.aixone.metacenter.common.constant.MetaConstants;
 import com.aixone.metacenter.common.response.ApiResponse;
+import com.aixone.metacenter.ruleengine.application.RuleApplicationService;
+import com.aixone.metacenter.ruleengine.domain.service.RuleEngineService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 
 /**
- * 规则引擎控制器
- * 提供规则管理的REST API接口
+ * 规则引擎REST控制器
+ * 
+ * @author aixone
+ * @version 1.0.0
+ * @since 2024-06-01
  */
 @Slf4j
 @RestController
-@RequestMapping(MetaConstants.Api.API_PREFIX + "/rules")
+@RequestMapping("/rules")
 @RequiredArgsConstructor
 public class RuleController {
 
     private final RuleApplicationService ruleApplicationService;
-
-    /**
-     * 创建规则
-     *
-     * @param rule 规则对象
-     * @return 创建的规则
-     */
-    @PostMapping
-    public ResponseEntity<ApiResponse<Rule>> createRule(@Valid @RequestBody Rule rule) {
-        try {
-            log.info("创建规则: {}", rule.getName());
-            Rule createdRule = ruleApplicationService.createRule(rule);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success(createdRule, "规则创建成功"));
-        } catch (Exception e) {
-            log.error("创建规则失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("RULE_CREATE_ERROR", "创建规则失败: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 更新规则
-     *
-     * @param id 规则ID
-     * @param rule 规则对象
-     * @return 更新后的规则
-     */
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Rule>> updateRule(@PathVariable Long id, @Valid @RequestBody Rule rule) {
-        try {
-            log.info("更新规则: {}", id);
-            Rule updatedRule = ruleApplicationService.updateRule(id, rule);
-            return ResponseEntity.ok(ApiResponse.success(updatedRule, "规则更新成功"));
-        } catch (Exception e) {
-            log.error("更新规则失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("RULE_UPDATE_ERROR", "更新规则失败: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 删除规则
-     *
-     * @param id 规则ID
-     * @return 删除结果
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteRule(@PathVariable Long id) {
-        try {
-            log.info("删除规则: {}", id);
-            ruleApplicationService.deleteRule(id);
-            return ResponseEntity.ok(ApiResponse.success(null, "规则删除成功"));
-        } catch (Exception e) {
-            log.error("删除规则失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("RULE_DELETE_ERROR", "删除规则失败: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 根据ID查询规则
-     *
-     * @param id 规则ID
-     * @return 规则
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Rule>> getRuleById(@PathVariable Long id) {
-        try {
-            log.debug("查询规则: {}", id);
-            Rule rule = ruleApplicationService.getRuleById(id);
-            return ResponseEntity.ok(ApiResponse.success(rule, "规则查询成功"));
-        } catch (Exception e) {
-            log.error("查询规则失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("RULE_QUERY_ERROR", "查询规则失败: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 分页查询规则
-     *
-     * @param page 页码
-     * @param size 页大小
-     * @param sortBy 排序字段
-     * @param sortDir 排序方向
-     * @return 分页结果
-     */
-    @GetMapping
-    public ResponseEntity<ApiResponse<Page<Rule>>> getRules(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-        try {
-            log.debug("分页查询规则: page={}, size={}, sortBy={}, sortDir={}", page, size, sortBy, sortDir);
-            
-            Sort sort = sortDir.equalsIgnoreCase("desc") ? 
-                    Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
-            Pageable pageable = PageRequest.of(page, size, sort);
-            
-            Page<Rule> rules = ruleApplicationService.getRules(pageable);
-            return ResponseEntity.ok(ApiResponse.success(rules, "规则分页查询成功"));
-        } catch (Exception e) {
-            log.error("分页查询规则失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("RULE_QUERY_ERROR", "分页查询规则失败: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 启用规则
-     *
-     * @param id 规则ID
-     * @return 启用结果
-     */
-    @PutMapping("/{id}/enable")
-    public ResponseEntity<ApiResponse<Rule>> enableRule(@PathVariable Long id) {
-        try {
-            log.info("启用规则: {}", id);
-            Rule rule = ruleApplicationService.enableRule(id);
-            return ResponseEntity.ok(ApiResponse.success(rule, "规则启用成功"));
-        } catch (Exception e) {
-            log.error("启用规则失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("RULE_ENABLE_ERROR", "启用规则失败: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 禁用规则
-     *
-     * @param id 规则ID
-     * @return 禁用结果
-     */
-    @PutMapping("/{id}/disable")
-    public ResponseEntity<ApiResponse<Rule>> disableRule(@PathVariable Long id) {
-        try {
-            log.info("禁用规则: {}", id);
-            Rule rule = ruleApplicationService.disableRule(id);
-            return ResponseEntity.ok(ApiResponse.success(rule, "规则禁用成功"));
-        } catch (Exception e) {
-            log.error("禁用规则失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("RULE_DISABLE_ERROR", "禁用规则失败: " + e.getMessage()));
-        }
-    }
+    private final RuleEngineService ruleEngineService;
 
     /**
      * 执行规则
-     *
-     * @param id 规则ID
-     * @param data 规则执行数据
+     * 
+     * @param ruleId 规则ID
+     * @param context 执行上下文
      * @return 执行结果
      */
-    @PostMapping("/{id}/execute")
-    public ResponseEntity<ApiResponse<Object>> executeRule(@PathVariable Long id, @RequestBody Object data) {
-        try {
-            log.info("执行规则: {}", id);
-            Object result = ruleApplicationService.executeRule(id, data);
-            return ResponseEntity.ok(ApiResponse.success(result, "规则执行成功"));
-        } catch (Exception e) {
-            log.error("执行规则失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("RULE_EXECUTE_ERROR", "执行规则失败: " + e.getMessage()));
-        }
+    @PostMapping("/{ruleId}/execute")
+    public ResponseEntity<ApiResponse<Object>> executeRule(
+            @PathVariable Long ruleId,
+            @RequestBody Map<String, Object> context) {
+        log.info("执行规则: ruleId={}", ruleId);
+        Object result = ruleEngineService.executeRule(ruleId, context);
+        return ResponseEntity.ok(ApiResponse.success(result, "规则执行成功"));
+    }
+
+    /**
+     * 批量执行规则
+     * 
+     * @param ruleIds 规则ID列表
+     * @param context 执行上下文
+     * @return 执行结果
+     */
+    @PostMapping("/batch-execute")
+    public ResponseEntity<ApiResponse<List<Object>>> batchExecuteRules(
+            @RequestParam List<Long> ruleIds,
+            @RequestBody Map<String, Object> context) {
+        log.info("批量执行规则: ruleIds={}", ruleIds);
+        List<Object> results = ruleEngineService.batchExecuteRules(ruleIds, context);
+        return ResponseEntity.ok(ApiResponse.success(results, "规则批量执行成功"));
+    }
+
+    /**
+     * 根据元数据对象ID执行规则
+     * 
+     * @param metaObjectId 元数据对象ID
+     * @param context 执行上下文
+     * @return 执行结果
+     */
+    @PostMapping("/meta-object/{metaObjectId}/execute")
+    public ResponseEntity<ApiResponse<List<Object>>> executeRulesByMetaObject(
+            @PathVariable Long metaObjectId,
+            @RequestBody Map<String, Object> context) {
+        log.info("根据元数据对象执行规则: metaObjectId={}", metaObjectId);
+        List<Object> results = ruleEngineService.executeRulesByMetaObject(metaObjectId, context);
+        return ResponseEntity.ok(ApiResponse.success(results, "规则执行成功"));
     }
 
     /**
      * 验证规则表达式
-     *
+     * 
      * @param expression 规则表达式
      * @return 验证结果
      */
-    @PostMapping("/validate")
-    public ResponseEntity<ApiResponse<Boolean>> validateRuleExpression(@RequestBody String expression) {
-        try {
-            log.info("验证规则表达式: {}", expression);
-            boolean isValid = ruleApplicationService.validateRuleExpression(expression);
-            return ResponseEntity.ok(ApiResponse.success(isValid, "规则表达式验证完成"));
-        } catch (Exception e) {
-            log.error("验证规则表达式失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("RULE_VALIDATE_ERROR", "验证规则表达式失败: " + e.getMessage()));
-        }
+    @PostMapping("/validate-expression")
+    public ResponseEntity<ApiResponse<Boolean>> validateExpression(@RequestBody String expression) {
+        log.info("验证规则表达式");
+        boolean isValid = ruleEngineService.validateExpression(expression);
+        return ResponseEntity.ok(ApiResponse.success(isValid, "表达式验证完成"));
     }
 
     /**
-     * 根据租户ID查询规则列表
-     *
-     * @param tenantId 租户ID
-     * @return 规则列表
+     * 测试规则
+     * 
+     * @param ruleId 规则ID
+     * @param testData 测试数据
+     * @return 测试结果
      */
-    @GetMapping("/by-tenant/{tenantId}")
-    public ResponseEntity<ApiResponse<List<Rule>>> getRulesByTenantId(@PathVariable String tenantId) {
-        try {
-            log.debug("根据租户ID查询规则列表: {}", tenantId);
-            List<Rule> rules = ruleApplicationService.getRulesByTenantId(tenantId);
-            return ResponseEntity.ok(ApiResponse.success(rules, "租户规则查询成功"));
-        } catch (Exception e) {
-            log.error("根据租户ID查询规则列表失败: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("RULE_QUERY_ERROR", "根据租户ID查询规则列表失败: " + e.getMessage()));
-        }
+    @PostMapping("/{ruleId}/test")
+    public ResponseEntity<ApiResponse<Object>> testRule(
+            @PathVariable Long ruleId,
+            @RequestBody Map<String, Object> testData) {
+        log.info("测试规则: ruleId={}", ruleId);
+        Object result = ruleEngineService.testRule(ruleId, testData);
+        return ResponseEntity.ok(ApiResponse.success(result, "规则测试完成"));
+    }
+
+    /**
+     * 获取规则执行日志
+     * 
+     * @param ruleId 规则ID
+     * @param limit 限制条数
+     * @return 执行日志
+     */
+    @GetMapping("/{ruleId}/logs")
+    public ResponseEntity<ApiResponse<List<Object>>> getRuleExecutionLogs(
+            @PathVariable Long ruleId,
+            @RequestParam(defaultValue = "100") int limit) {
+        log.info("获取规则执行日志: ruleId={}, limit={}", ruleId, limit);
+        List<Object> logs = ruleEngineService.getRuleExecutionLogs(ruleId, limit);
+        return ResponseEntity.ok(ApiResponse.success(logs, "获取日志成功"));
+    }
+
+    /**
+     * 启用规则
+     * 
+     * @param ruleId 规则ID
+     * @return 启用结果
+     */
+    @PostMapping("/{ruleId}/enable")
+    public ResponseEntity<ApiResponse<Void>> enableRule(@PathVariable Long ruleId) {
+        log.info("启用规则: {}", ruleId);
+        ruleApplicationService.enableRule(ruleId);
+        return ResponseEntity.ok(ApiResponse.success(null, "规则启用成功"));
+    }
+
+    /**
+     * 禁用规则
+     * 
+     * @param ruleId 规则ID
+     * @return 禁用结果
+     */
+    @PostMapping("/{ruleId}/disable")
+    public ResponseEntity<ApiResponse<Void>> disableRule(@PathVariable Long ruleId) {
+        log.info("禁用规则: {}", ruleId);
+        ruleApplicationService.disableRule(ruleId);
+        return ResponseEntity.ok(ApiResponse.success(null, "规则禁用成功"));
+    }
+
+    /**
+     * 获取规则统计信息
+     * 
+     * @param ruleId 规则ID
+     * @return 统计信息
+     */
+    @GetMapping("/{ruleId}/stats")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getRuleStats(@PathVariable Long ruleId) {
+        log.info("获取规则统计信息: {}", ruleId);
+        Map<String, Object> stats = ruleEngineService.getRuleStats(ruleId);
+        return ResponseEntity.ok(ApiResponse.success(stats, "获取统计信息成功"));
+    }
+
+    /**
+     * 清理规则缓存
+     * 
+     * @param ruleId 规则ID
+     * @return 清理结果
+     */
+    @PostMapping("/{ruleId}/clear-cache")
+    public ResponseEntity<ApiResponse<Void>> clearRuleCache(@PathVariable Long ruleId) {
+        log.info("清理规则缓存: {}", ruleId);
+        ruleEngineService.clearRuleCache(ruleId);
+        return ResponseEntity.ok(ApiResponse.success(null, "缓存清理成功"));
+    }
+
+    /**
+     * 获取规则引擎状态
+     * 
+     * @return 引擎状态
+     */
+    @GetMapping("/engine/status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getEngineStatus() {
+        log.info("获取规则引擎状态");
+        Map<String, Object> status = ruleEngineService.getEngineStatus();
+        return ResponseEntity.ok(ApiResponse.success(status, "获取状态成功"));
+    }
+
+    /**
+     * 重新加载规则引擎
+     * 
+     * @return 重载结果
+     */
+    @PostMapping("/engine/reload")
+    public ResponseEntity<ApiResponse<Void>> reloadEngine() {
+        log.info("重新加载规则引擎");
+        ruleEngineService.reloadEngine();
+        return ResponseEntity.ok(ApiResponse.success(null, "引擎重载成功"));
     }
 } 
