@@ -1,0 +1,2599 @@
+openapi: 3.0.3
+info:
+  title: 元数据服务API
+  description: |
+    元数据驱动的低代码平台核心服务，提供统一的元数据管理、动态数据操作、业务规则引擎、权限控制等能力。
+    
+    ## 核心功能
+    - **元数据管理**: 支持元数据对象、属性、关系、规则的全生命周期管理
+    - **动态数据服务**: 基于元数据的动态CRUD操作，支持表单渲染和数据校验
+    - **业务规则引擎**: 动态配置和执行业务规则，支持多种表达式类型
+    - **权限与安全**: 细粒度权限控制和数据脱敏
+    - **多租户支持**: 租户级别的数据和配置隔离
+    
+    ## 版本与兼容性
+    - API版本遵循语义化版本规范
+    - 向后兼容性保证，废弃接口将提前通知
+    - 支持接口版本协商和灰度发布
+  version: 1.0.0
+  contact:
+    name: 元数据服务团队
+    email: metadata-team@aixone.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.aixone.com/meta-center/v1
+    description: 生产环境
+  - url: https://api-staging.aixone.com/meta-center/v1
+    description: 测试环境
+  - url: http://localhost:8080/meta-center/v1
+    description: 本地开发环境
+
+security:
+  - BearerAuth: []
+  - TenantHeader: []
+
+paths:
+  # ==================== 元数据管理API ====================
+  
+  /metadata/objects:
+    get:
+      tags:
+        - 元数据管理
+      summary: 查询元数据对象列表
+      description: 支持分页、过滤、排序的元数据对象查询
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+        - name: type
+          in: query
+          description: 元数据类型过滤
+          schema:
+            $ref: '#/components/schemas/MetadataType'
+        - name: objectType
+          in: query
+          description: 对象类型过滤
+          schema:
+            type: string
+            enum: [Entity, Attribute, Relation, Rule, Dictionary]
+        - name: lifecycle
+          in: query
+          description: 生命周期状态过滤
+          schema:
+            $ref: '#/components/schemas/LifecycleStatus'
+        - name: keyword
+          in: query
+          description: 关键词搜索（名称、描述、标签）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedMetaObjectResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    
+    post:
+      tags:
+        - 元数据管理
+      summary: 创建元数据对象
+      description: 创建新的元数据对象，支持属性、关系、规则的批量定义
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMetaObjectRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaObjectResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /metadata/objects/{objectId}:
+    get:
+      tags:
+        - 元数据管理
+      summary: 获取元数据对象详情
+      description: 获取指定元数据对象的完整信息，包括属性、关系、规则等
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+        - name: includeRelations
+          in: query
+          description: 是否包含关系信息
+          schema:
+            type: boolean
+            default: true
+        - name: includeRules
+          in: query
+          description: 是否包含规则信息
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaObjectDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      tags:
+        - 元数据管理
+      summary: 更新元数据对象
+      description: 更新元数据对象的完整信息，支持增量更新
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMetaObjectRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaObjectResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    
+    delete:
+      tags:
+        - 元数据管理
+      summary: 删除元数据对象
+      description: 删除指定的元数据对象，支持软删除和硬删除
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+        - name: hardDelete
+          in: query
+          description: 是否硬删除
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '204':
+          description: 删除成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 存在依赖关系，无法删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictResponse'
+
+  /metadata/objects/{objectId}/attributes:
+    get:
+      tags:
+        - 元数据管理
+      summary: 获取对象属性列表
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MetaAttribute'
+    
+    post:
+      tags:
+        - 元数据管理
+      summary: 添加对象属性
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMetaAttributeRequest'
+      responses:
+        '201':
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaAttribute'
+
+  /metadata/objects/{objectId}/attributes/{attributeName}:
+    put:
+      tags:
+        - 元数据管理
+      summary: 更新对象属性
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+        - name: attributeName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMetaAttributeRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaAttribute'
+    
+    delete:
+      tags:
+        - 元数据管理
+      summary: 删除对象属性
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+        - name: attributeName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 删除成功
+
+  /metadata/objects/{objectId}/relations:
+    get:
+      tags:
+        - 元数据管理
+      summary: 获取对象关系列表
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+        - name: direction
+          in: query
+          description: 关系方向过滤
+          schema:
+            type: string
+            enum: [inbound, outbound, both]
+            default: both
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MetaRelation'
+    
+    post:
+      tags:
+        - 元数据管理
+      summary: 创建对象关系
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMetaRelationRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaRelation'
+
+  # ==================== 动态数据服务API ====================
+  
+  /data/{objectType}:
+    get:
+      tags:
+        - 动态数据服务
+      summary: 查询动态数据列表
+      description: 基于元数据定义查询数据实例，支持动态过滤、排序、分页
+      parameters:
+        - name: objectType
+          in: path
+          required: true
+          description: 元数据对象类型
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+        - name: filter
+          in: query
+          description: 动态过滤条件（JSON格式）
+          schema:
+            type: string
+          example: '{"status": "active", "age": {"$gte": 18}}'
+        - name: projection
+          in: query
+          description: 字段投影（逗号分隔）
+          schema:
+            type: string
+          example: 'name,email,status'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedDataResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    
+    post:
+      tags:
+        - 动态数据服务
+      summary: 创建动态数据
+      description: 基于元数据定义创建数据实例，自动执行校验和规则
+      parameters:
+        - name: objectType
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDataRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          description: 数据校验失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /data/{objectType}/{id}:
+    get:
+      tags:
+        - 动态数据服务
+      summary: 获取动态数据详情
+      parameters:
+        - name: objectType
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: includeRelations
+          in: query
+          description: 是否包含关联数据
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      tags:
+        - 动态数据服务
+      summary: 更新动态数据
+      parameters:
+        - name: objectType
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDataRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    
+    delete:
+      tags:
+        - 动态数据服务
+      summary: 删除动态数据
+      parameters:
+        - name: objectType
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: hardDelete
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '204':
+          description: 删除成功
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /data/{objectType}/validate:
+    post:
+      tags:
+        - 动态数据服务
+      summary: 数据校验
+      description: 基于元数据规则校验数据，不执行实际保存操作
+      parameters:
+        - name: objectType
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateDataRequest'
+      responses:
+        '200':
+          description: 校验完成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResult'
+
+  /data/{objectType}/batch:
+    post:
+      tags:
+        - 动态数据服务
+      summary: 批量操作数据
+      description: 支持批量创建、更新、删除操作
+      parameters:
+        - name: objectType
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchOperationRequest'
+      responses:
+        '200':
+          description: 批量操作完成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchOperationResponse'
+
+  # ==================== 表单渲染API ====================
+  
+  /forms/{objectType}/schema:
+    get:
+      tags:
+        - 表单渲染
+      summary: 获取表单Schema
+      description: 基于元数据生成前端表单渲染所需的Schema
+      parameters:
+        - name: objectType
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: scenario
+          in: query
+          description: 使用场景（create/edit/view/search）
+          schema:
+            type: string
+            enum: [create, edit, view, search]
+            default: create
+        - name: layout
+          in: query
+          description: 布局类型
+          schema:
+            type: string
+            enum: [vertical, horizontal, grid, tabs]
+            default: vertical
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FormSchema'
+
+  /forms/{objectType}/render:
+    post:
+      tags:
+        - 表单渲染
+      summary: 渲染表单数据
+      description: 将数据按照表单Schema进行格式化和脱敏处理
+      parameters:
+        - name: objectType
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormRenderRequest'
+      responses:
+        '200':
+          description: 渲染成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FormRenderResponse'
+
+  # ==================== 业务规则API ====================
+  
+  /rules:
+    get:
+      tags:
+        - 业务规则
+      summary: 查询业务规则列表
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - name: ruleType
+          in: query
+          description: 规则类型过滤
+          schema:
+            type: string
+            enum: [validation, automation, workflow, calculation]
+        - name: scope
+          in: query
+          description: 作用范围过滤
+          schema:
+            type: string
+        - name: enabled
+          in: query
+          description: 启用状态过滤
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedRuleResponse'
+    
+    post:
+      tags:
+        - 业务规则
+      summary: 创建业务规则
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRuleRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleResponse'
+
+  /rules/{ruleId}:
+    get:
+      tags:
+        - 业务规则
+      summary: 获取业务规则详情
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleDetailResponse'
+    
+    put:
+      tags:
+        - 业务规则
+      summary: 更新业务规则
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRuleRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleResponse'
+    
+    delete:
+      tags:
+        - 业务规则
+      summary: 删除业务规则
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 删除成功
+
+  /rules/{ruleId}/execute:
+    post:
+      tags:
+        - 业务规则
+      summary: 执行业务规则
+      description: 手动触发规则执行，主要用于测试和调试
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteRuleRequest'
+      responses:
+        '200':
+          description: 执行完成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleExecutionResult'
+
+  /rules/batch/execute:
+    post:
+      tags:
+        - 业务规则
+      summary: 批量执行规则
+      description: 批量执行多个规则，支持并发执行和依赖控制
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchExecuteRulesRequest'
+      responses:
+        '200':
+          description: 批量执行完成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchExecutionResult'
+
+  # ==================== 权限管理API ====================
+  
+  /permissions/check:
+    post:
+      tags:
+        - 权限管理
+      summary: 权限校验
+      description: 校验用户对指定资源的操作权限
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionCheckRequest'
+      responses:
+        '200':
+          description: 校验完成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionCheckResponse'
+
+  /permissions/batch-check:
+    post:
+      tags:
+        - 权限管理
+      summary: 批量权限校验
+      description: 批量校验多个资源的权限
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchPermissionCheckRequest'
+      responses:
+        '200':
+          description: 批量校验完成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchPermissionCheckResponse'
+
+  /permissions/policies:
+    get:
+      tags:
+        - 权限管理
+      summary: 获取权限策略列表
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - name: subject
+          in: query
+          description: 权限主体过滤
+          schema:
+            type: string
+        - name: resource
+          in: query
+          description: 资源过滤
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedPermissionPolicyResponse'
+    
+    post:
+      tags:
+        - 权限管理
+      summary: 创建权限策略
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePermissionPolicyRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionPolicyResponse'
+
+  # ==================== 版本管理API ====================
+  
+  /metadata/objects/{objectId}/versions:
+    get:
+      tags:
+        - 版本管理
+      summary: 获取对象版本历史
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedVersionResponse'
+    
+    post:
+      tags:
+        - 版本管理
+      summary: 创建新版本
+      description: 基于当前版本创建新的版本
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVersionRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionResponse'
+
+  /metadata/objects/{objectId}/versions/{version}:
+    get:
+      tags:
+        - 版本管理
+      summary: 获取指定版本详情
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionDetailResponse'
+
+  /metadata/objects/{objectId}/versions/{version}/rollback:
+    post:
+      tags:
+        - 版本管理
+      summary: 回滚到指定版本
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 回滚成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaObjectResponse'
+
+  # ==================== 生命周期管理API ====================
+  
+  /metadata/objects/{objectId}/lifecycle:
+    put:
+      tags:
+        - 生命周期管理
+      summary: 更新生命周期状态
+      description: 更新元数据对象的生命周期状态，如发布、归档、废弃等
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLifecycleRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LifecycleResponse'
+
+  /metadata/objects/{objectId}/publish:
+    post:
+      tags:
+        - 生命周期管理
+      summary: 发布元数据对象
+      description: 将草稿状态的元数据对象发布为正式版本
+      parameters:
+        - $ref: '#/components/parameters/ObjectIdParam'
+      responses:
+        '200':
+          description: 发布成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaObjectResponse'
+
+  # ==================== 监控与统计API ====================
+  
+  /monitoring/health:
+    get:
+      tags:
+        - 监控统计
+      summary: 健康检查
+      description: 服务健康状态检查，包括数据库、缓存、消息队列等组件状态
+      responses:
+        '200':
+          description: 服务健康
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+        '503':
+          description: 服务不健康
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+
+  /monitoring/metrics:
+    get:
+      tags:
+        - 监控统计
+      summary: 获取系统指标
+      description: 获取系统运行指标，如API调用量、响应时间、错误率等
+      parameters:
+        - name: startTime
+          in: query
+          description: 开始时间
+          schema:
+            type: string
+            format: date-time
+        - name: endTime
+          in: query
+          description: 结束时间
+          schema:
+            type: string
+            format: date-time
+        - name: metrics
+          in: query
+          description: 指标类型（逗号分隔）
+          schema:
+            type: string
+            example: 'api_calls,response_time,error_rate'
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+
+  /statistics/overview:
+    get:
+      tags:
+        - 监控统计
+      summary: 获取系统概览统计
+      description: 获取系统整体统计信息，如元数据对象数量、数据记录数量等
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemOverviewResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT认证token
+    TenantHeader:
+      type: apiKey
+      in: header
+      name: X-Tenant-ID
+      description: 租户标识
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: 页码，从0开始
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    
+    SizeParam:
+      name: size
+      in: query
+      description: 每页大小
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    
+    SortParam:
+      name: sort
+      in: query
+      description: 排序字段和方向，格式：field,direction
+      schema:
+        type: string
+        example: 'createdAt,desc'
+    
+    ObjectIdParam:
+      name: objectId
+      in: path
+      required: true
+      description: 元数据对象ID
+      schema:
+        type: string
+
+  schemas:
+    # ==================== 基础数据结构 ====================
+    
+    MetadataType:
+      type: string
+      enum: [business, technical, administrative, reference]
+      description: |
+        元数据主类型：
+        - business: 业务元数据
+        - technical: 技术元数据  
+        - administrative: 管理元数据
+        - reference: 参考元数据
+
+    LifecycleStatus:
+      type: string
+      enum: [draft, published, archived, deprecated]
+      description: |
+        生命周期状态：
+        - draft: 草稿
+        - published: 已发布
+        - archived: 已归档
+        - deprecated: 已废弃
+
+    # ==================== 元数据对象模型 ====================
+    
+    MetaObject:
+      type: object
+      required: [id, name, objectType, type]
+      properties:
+        id:
+          type: string
+          description: 唯一标识
+        name:
+          type: string
+          description: 对象名称
+        objectType:
+          type: string
+          enum: [Entity, Attribute, Relation, Rule, Dictionary]
+          description: 对象类型
+        type:
+          $ref: '#/components/schemas/MetadataType'
+        subType:
+          type: string
+          description: 子类型
+        description:
+          type: string
+          description: 描述信息
+        tags:
+          type: array
+          items:
+            type: string
+          description: 标签列表
+        lifecycle:
+          $ref: '#/components/schemas/LifecycleStatus'
+        status:
+          type: string
+          enum: [enabled, disabled, locked]
+          description: 当前状态
+        owner:
+          type: string
+          description: 负责人
+        responsible:
+          type: string
+          description: 责任人
+        qualityScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: 质量分数
+        complianceLevel:
+          type: string
+          enum: [A, B, C, D]
+          description: 合规等级
+        version:
+          type: integer
+          minimum: 1
+          description: 版本号
+        tenantId:
+          type: string
+          description: 租户ID
+        createdBy:
+          type: string
+          description: 创建人
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+        updatedBy:
+          type: string
+          description: 更新人
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新时间
+        extensionFields:
+          type: object
+          additionalProperties: true
+          description: 扩展字段
+
+    MetaAttribute:
+      type: object
+      required: [name, label, schema]
+      properties:
+        name:
+          type: string
+          description: 属性名
+        label:
+          type: string
+          description: 显示名
+        schema:
+          type: object
+          description: JSON Schema定义
+          properties:
+            type:
+              type: string
+              enum: [string, number, integer, boolean, array, object]
+            format:
+              type: string
+              description: 格式约束
+            pattern:
+              type: string
+              description: 正则表达式
+            minimum:
+              type: number
+              description: 最小值
+            maximum:
+              type: number
+              description: 最大值
+            minLength:
+              type: integer
+              description: 最小长度
+            maxLength:
+              type: integer
+              description: 最大长度
+            enum:
+              type: array
+              description: 枚举值
+        required:
+          type: boolean
+          default: false
+          description: 是否必填
+        defaultValue:
+          description: 默认值
+        enumRef:
+          type: string
+          description: 引用的字典/枚举ID
+        validationRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationRule'
+          description: 校验规则
+        ui:
+          $ref: '#/components/schemas/UIConfig'
+          description: UI配置
+        security:
+          $ref: '#/components/schemas/SecurityConfig'
+          description: 安全配置
+
+    ValidationRule:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [regex, range, length, custom, unique]
+          description: 校验类型
+        pattern:
+          type: string
+          description: 正则表达式（regex类型）
+        min:
+          type: number
+          description: 最小值（range类型）
+        max:
+          type: number
+          description: 最大值（range类型）
+        minLength:
+          type: integer
+          description: 最小长度（length类型）
+        maxLength:
+          type: integer
+          description: 最大长度（length类型）
+        expression:
+          type: string
+          description: 自定义表达式（custom类型）
+        message:
+          type: string
+          description: 错误提示信息
+        severity:
+          type: string
+          enum: [error, warning, info]
+          default: error
+          description: 严重程度
+
+    UIConfig:
+      type: object
+      properties:
+        inputType:
+          type: string
+          enum: [text, password, email, number, tel, url, textarea, select, checkbox, radio, date, datetime, file, switch]
+          description: 输入控件类型
+        placeholder:
+          type: string
+          description: 占位符
+        order:
+          type: integer
+          description: 显示顺序
+        visible:
+          type: boolean
+          default: true
+          description: 是否可见
+        readonly:
+          type: boolean
+          default: false
+          description: 是否只读
+        disabled:
+          type: boolean
+          default: false
+          description: 是否禁用
+        width:
+          type: string
+          description: 宽度设置
+        options:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              value:
+                description: 值
+          description: 选项列表（select/radio类型）
+        style:
+          type: object
+          additionalProperties: true
+          description: 自定义样式
+
+    SecurityConfig:
+      type: object
+      properties:
+        masking:
+          type: boolean
+          default: false
+          description: 是否需要脱敏
+        maskingType:
+          type: string
+          enum: [full, partial, hash, encrypt]
+          description: 脱敏类型
+        accessLevel:
+          type: string
+          enum: [public, internal, private, confidential]
+          description: 访问级别
+        encryptionKey:
+          type: string
+          description: 加密密钥标识
+
+    MetaRelation:
+      type: object
+      required: [relationType, source, target]
+      properties:
+        id:
+          type: string
+          description: 关系ID
+        relationType:
+          type: string
+          enum: [one-to-one, one-to-many, many-to-many, reference, aggregation, composition]
+          description: 关系类型
+        source:
+          type: string
+          description: 源对象ID
+        target:
+          type: string
+          description: 目标对象ID
+        field:
+          type: string
+          description: 关联字段
+        direction:
+          type: string
+          enum: [inbound, outbound, bidirectional]
+          description: 关系方向
+        navigable:
+          type: boolean
+          default: true
+          description: 是否可导航
+        constraint:
+          type: object
+          properties:
+            cascade:
+              type: boolean
+              description: 级联操作
+            unique:
+              type: boolean
+              description: 唯一约束
+            nullable:
+              type: boolean
+              description: 可空约束
+          description: 关系约束
+
+    # ==================== 请求响应模型 ====================
+    
+    CreateMetaObjectRequest:
+      type: object
+      required: [name, objectType, type]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        objectType:
+          type: string
+          enum: [Entity, Attribute, Relation, Rule, Dictionary]
+        type:
+          $ref: '#/components/schemas/MetadataType'
+        subType:
+          type: string
+          maxLength: 50
+        description:
+          type: string
+          maxLength: 1000
+        tags:
+          type: array
+          items:
+            type: string
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaAttribute'
+        relations:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaRelation'
+        extensionFields:
+          type: object
+          additionalProperties: true
+
+    UpdateMetaObjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 1000
+        tags:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [enabled, disabled, locked]
+        extensionFields:
+          type: object
+          additionalProperties: true
+
+    MetaObjectResponse:
+      allOf:
+        - $ref: '#/components/schemas/MetaObject'
+        - type: object
+          properties:
+            attributes:
+              type: array
+              items:
+                $ref: '#/components/schemas/MetaAttribute'
+            relations:
+              type: array
+              items:
+                $ref: '#/components/schemas/MetaRelation'
+
+    MetaObjectDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/MetaObjectResponse'
+        - type: object
+          properties:
+            rules:
+              type: array
+              items:
+                $ref: '#/components/schemas/MetaRule'
+            extensions:
+              type: array
+              items:
+                $ref: '#/components/schemas/MetaExtension'
+
+    PagedMetaObjectResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaObjectResponse'
+        totalElements:
+          type: integer
+          description: 总记录数
+        totalPages:
+          type: integer
+          description: 总页数
+        size:
+          type: integer
+          description: 每页大小
+        number:
+          type: integer
+          description: 当前页码
+        first:
+          type: boolean
+          description: 是否第一页
+        last:
+          type: boolean
+          description: 是否最后一页
+
+    # ==================== 数据服务模型 ====================
+    
+    CreateDataRequest:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+          description: 数据内容
+        skipValidation:
+          type: boolean
+          default: false
+          description: 是否跳过校验
+        executeRules:
+          type: boolean
+          default: true
+          description: 是否执行规则
+
+    UpdateDataRequest:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+          description: 更新的数据内容
+        skipValidation:
+          type: boolean
+          default: false
+        executeRules:
+          type: boolean
+          default: true
+
+    DataResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 数据ID
+        data:
+          type: object
+          additionalProperties: true
+          description: 数据内容
+        metadata:
+          type: object
+          properties:
+            objectType:
+              type: string
+            version:
+              type: integer
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+            status:
+              type: string
+
+    DataDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/DataResponse'
+        - type: object
+          properties:
+            relations:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataResponse'
+              description: 关联数据
+
+    PagedDataResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataResponse'
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+        first:
+          type: boolean
+        last:
+          type: boolean
+
+    ValidateDataRequest:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+        rules:
+          type: array
+          items:
+            type: string
+          description: 指定执行的规则ID列表
+
+    ValidationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          description: 是否通过校验
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+
+    ValidationError:
+      type: object
+      properties:
+        field:
+          type: string
+          description: 字段名
+        code:
+          type: string
+          description: 错误码
+        message:
+          type: string
+          description: 错误信息
+        severity:
+          type: string
+          enum: [error, warning, info]
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          default: "数据校验失败"
+        validationResult:
+          $ref: '#/components/schemas/ValidationResult'
+
+    BatchOperationRequest:
+      type: object
+      required: [operation, items]
+      properties:
+        operation:
+          type: string
+          enum: [create, update, delete]
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: 数据ID（update/delete操作必需）
+              data:
+                type: object
+                additionalProperties: true
+                description: 数据内容（create/update操作必需）
+        options:
+          type: object
+          properties:
+            skipValidation:
+              type: boolean
+              default: false
+            continueOnError:
+              type: boolean
+              default: false
+            batchSize:
+              type: integer
+              default: 100
+
+    BatchOperationResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: 总操作数
+        success:
+          type: integer
+          description: 成功数
+        failed:
+          type: integer
+          description: 失败数
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+                description: 操作索引
+              success:
+                type: boolean
+                description: 是否成功
+              data:
+                $ref: '#/components/schemas/DataResponse'
+              error:
+                type: string
+                description: 错误信息
+
+    # ==================== 表单渲染模型 ====================
+    
+    FormSchema:
+      type: object
+      properties:
+        title:
+          type: string
+          description: 表单标题
+        description:
+          type: string
+          description: 表单描述
+        layout:
+          type: string
+          enum: [vertical, horizontal, grid, tabs]
+          description: 布局类型
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormField'
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormRule'
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormSection'
+          description: 表单分组
+
+    FormField:
+      type: object
+      properties:
+        name:
+          type: string
+          description: 字段名
+        label:
+          type: string
+          description: 字段标签
+        type:
+          type: string
+          description: 字段类型
+        component:
+          type: string
+          description: 组件类型
+        props:
+          type: object
+          additionalProperties: true
+          description: 组件属性
+        rules:
+          type: array
+          items:
+            type: object
+          description: 校验规则
+        dependencies:
+          type: array
+          items:
+            type: string
+          description: 依赖字段
+
+    FormSection:
+      type: object
+      properties:
+        title:
+          type: string
+          description: 分组标题
+        description:
+          type: string
+          description: 分组描述
+        fields:
+          type: array
+          items:
+            type: string
+          description: 包含的字段名列表
+        collapsed:
+          type: boolean
+          default: false
+          description: 是否默认折叠
+
+    FormRule:
+      type: object
+      properties:
+        trigger:
+          type: string
+          enum: [change, blur, submit]
+          description: 触发时机
+        condition:
+          type: string
+          description: 触发条件
+        actions:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [show, hide, enable, disable, required, optional, setValue]
+              target:
+                type: string
+                description: 目标字段
+              value:
+                description: 设置的值
+
+    FormRenderRequest:
+      type: object
+      required: [data, scenario]
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+          description: 要渲染的数据
+        scenario:
+          type: string
+          enum: [create, edit, view, search]
+          description: 使用场景
+        context:
+          type: object
+          additionalProperties: true
+          description: 渲染上下文
+
+    FormRenderResponse:
+      type: object
+      properties:
+        schema:
+          $ref: '#/components/schemas/FormSchema'
+        data:
+          type: object
+          additionalProperties: true
+          description: 处理后的数据（如脱敏）
+        permissions:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              readable:
+                type: boolean
+              writable:
+                type: boolean
+              visible:
+                type: boolean
+          description: 字段权限
+
+    # ==================== 业务规则模型 ====================
+    
+    MetaRule:
+      type: object
+      required: [id, name, type]
+      properties:
+        id:
+          type: string
+          description: 规则ID
+        name:
+          type: string
+          description: 规则名称
+        type:
+          type: string
+          enum: [validation, automation, workflow, calculation, permission]
+          description: 规则类型
+        scope:
+          type: string
+          description: 作用范围
+        expression:
+          type: string
+          description: 规则表达式
+        dsl:
+          type: string
+          description: DSL表达式
+        condition:
+          type: string
+          description: 触发条件
+        action:
+          type: string
+          description: 执行动作
+        message:
+          type: string
+          description: 提示信息
+        enabled:
+          type: boolean
+          default: true
+          description: 是否启用
+        priority:
+          type: integer
+          default: 0
+          description: 优先级
+        trigger:
+          type: string
+          enum: [onCreate, onUpdate, onDelete, onSave, onValidate, manual]
+          description: 触发时机
+        group:
+          type: string
+          description: 规则组
+        tags:
+          type: array
+          items:
+            type: string
+        version:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateRuleRequest:
+      type: object
+      required: [name, type, expression]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        type:
+          type: string
+          enum: [validation, automation, workflow, calculation, permission]
+        scope:
+          type: string
+        expression:
+          type: string
+        condition:
+          type: string
+        action:
+          type: string
+        message:
+          type: string
+        priority:
+          type: integer
+        trigger:
+          type: string
+          enum: [onCreate, onUpdate, onDelete, onSave, onValidate, manual]
+        group:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    UpdateRuleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        expression:
+          type: string
+        condition:
+          type: string
+        action:
+          type: string
+        message:
+          type: string
+        enabled:
+          type: boolean
+        priority:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+
+    RuleResponse:
+      $ref: '#/components/schemas/MetaRule'
+
+    RuleDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/MetaRule'
+        - type: object
+          properties:
+            executionHistory:
+              type: array
+              items:
+                $ref: '#/components/schemas/RuleExecution'
+            performance:
+              type: object
+              properties:
+                avgExecutionTime:
+                  type: number
+                  description: 平均执行时间（毫秒）
+                totalExecutions:
+                  type: integer
+                  description: 总执行次数
+                successRate:
+                  type: number
+                  description: 成功率
+
+    PagedRuleResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleResponse'
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+
+    ExecuteRuleRequest:
+      type: object
+      required: [context]
+      properties:
+        context:
+          type: object
+          additionalProperties: true
+          description: 执行上下文
+        dryRun:
+          type: boolean
+          default: false
+          description: 是否为试运行
+
+    RuleExecutionResult:
+      type: object
+      properties:
+        ruleId:
+          type: string
+        success:
+          type: boolean
+          description: 是否执行成功
+        result:
+          description: 执行结果
+        message:
+          type: string
+          description: 结果信息
+        executionTime:
+          type: number
+          description: 执行耗时（毫秒）
+        timestamp:
+          type: string
+          format: date-time
+
+    RuleExecution:
+      type: object
+      properties:
+        id:
+          type: string
+        ruleId:
+          type: string
+        context:
+          type: object
+          additionalProperties: true
+        result:
+          description: 执行结果
+        success:
+          type: boolean
+        message:
+          type: string
+        executionTime:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+
+    BatchExecuteRulesRequest:
+      type: object
+      required: [rules, context]
+      properties:
+        rules:
+          type: array
+          items:
+            type: string
+          description: 规则ID列表
+        context:
+          type: object
+          additionalProperties: true
+        parallel:
+          type: boolean
+          default: true
+          description: 是否并行执行
+        dryRun:
+          type: boolean
+          default: false
+
+    BatchExecutionResult:
+      type: object
+      properties:
+        total:
+          type: integer
+        success:
+          type: integer
+        failed:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleExecutionResult'
+
+    # ==================== 权限管理模型 ====================
+    
+    PermissionCheckRequest:
+      type: object
+      required: [subject, resource, action]
+      properties:
+        subject:
+          type: string
+          description: 权限主体（用户ID/角色ID）
+        resource:
+          type: string
+          description: 资源标识
+        action:
+          type: string
+          description: 操作类型
+        context:
+          type: object
+          additionalProperties: true
+          description: 附加上下文
+
+    PermissionCheckResponse:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+          description: 是否允许
+        reason:
+          type: string
+          description: 原因说明
+        masking:
+          type: boolean
+          description: 是否需要脱敏
+        maskingType:
+          type: string
+          enum: [full, partial, hash, encrypt]
+          description: 脱敏类型
+        conditions:
+          type: array
+          items:
+            type: string
+          description: 附加条件
+
+    BatchPermissionCheckRequest:
+      type: object
+      required: [checks]
+      properties:
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermissionCheckRequest'
+
+    BatchPermissionCheckResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/PermissionCheckResponse'
+              - type: object
+                properties:
+                  index:
+                    type: integer
+                    description: 对应请求的索引
+
+    PermissionPolicy:
+      type: object
+      required: [subject, resource, action]
+      properties:
+        id:
+          type: string
+        subject:
+          type: string
+          description: 权限主体
+        resource:
+          type: string
+          description: 资源标识
+        action:
+          type: string
+          description: 操作类型
+        effect:
+          type: string
+          enum: [allow, deny]
+          default: allow
+          description: 权限效果
+        condition:
+          type: string
+          description: 条件表达式
+        masking:
+          type: boolean
+          default: false
+          description: 是否脱敏
+        priority:
+          type: integer
+          default: 0
+          description: 优先级
+        enabled:
+          type: boolean
+          default: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreatePermissionPolicyRequest:
+      type: object
+      required: [subject, resource, action]
+      properties:
+        subject:
+          type: string
+        resource:
+          type: string
+        action:
+          type: string
+        effect:
+          type: string
+          enum: [allow, deny]
+          default: allow
+        condition:
+          type: string
+        masking:
+          type: boolean
+          default: false
+        priority:
+          type: integer
+          default: 0
+
+    PermissionPolicyResponse:
+      $ref: '#/components/schemas/PermissionPolicy'
+
+    PagedPermissionPolicyResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermissionPolicyResponse'
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+
+    # ==================== 版本管理模型 ====================
+    
+    Version:
+      type: object
+      properties:
+        version:
+          type: integer
+          description: 版本号
+        description:
+          type: string
+          description: 版本描述
+        changes:
+          type: array
+          items:
+            type: string
+          description: 变更内容
+        author:
+          type: string
+          description: 作者
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [draft, published, archived]
+        tags:
+          type: array
+          items:
+            type: string
+
+    CreateVersionRequest:
+      type: object
+      required: [description]
+      properties:
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+        changes:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    VersionResponse:
+      $ref: '#/components/schemas/Version'
+
+    VersionDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/Version'
+        - type: object
+          properties:
+            content:
+              $ref: '#/components/schemas/MetaObjectResponse'
+              description: 该版本的完整内容
+
+    PagedVersionResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/VersionResponse'
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+
+    # ==================== 生命周期管理模型 ====================
+    
+    UpdateLifecycleRequest:
+      type: object
+      required: [lifecycle]
+      properties:
+        lifecycle:
+          $ref: '#/components/schemas/LifecycleStatus'
+        reason:
+          type: string
+          description: 变更原因
+        comment:
+          type: string
+          description: 备注信息
+
+    LifecycleResponse:
+      type: object
+      properties:
+        objectId:
+          type: string
+        previousLifecycle:
+          $ref: '#/components/schemas/LifecycleStatus'
+        currentLifecycle:
+          $ref: '#/components/schemas/LifecycleStatus'
+        reason:
+          type: string
+        comment:
+          type: string
+        changedBy:
+          type: string
+        changedAt:
+          type: string
+          format: date-time
+
+    # ==================== 扩展模型 ====================
+    
+    MetaExtension:
+      type: object
+      properties:
+        id:
+          type: string
+        extensionType:
+          type: string
+          enum: [lineage, workflow, integration, custom]
+        handler:
+          type: string
+          description: 扩展处理器
+        config:
+          type: object
+          additionalProperties: true
+          description: 扩展配置
+        enabled:
+          type: boolean
+          default: true
+
+    # ==================== 监控统计模型 ====================
+    
+    HealthCheckResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN, UNKNOWN]
+        components:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: [UP, DOWN, UNKNOWN]
+              details:
+                type: object
+                additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+
+    MetricsResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        metrics:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              value:
+                type: number
+              unit:
+                type: string
+              tags:
+                type: object
+                additionalProperties:
+                  type: string
+
+    SystemOverviewResponse:
+      type: object
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalObjects:
+              type: integer
+              description: 元数据对象总数
+            totalAttributes:
+              type: integer
+              description: 属性总数
+            totalRules:
+              type: integer
+              description: 规则总数
+            byType:
+              type: object
+              additionalProperties:
+                type: integer
+              description: 按类型统计
+        data:
+          type: object
+          properties:
+            totalRecords:
+              type: integer
+              description: 数据记录总数
+            byObjectType:
+              type: object
+              additionalProperties:
+                type: integer
+              description: 按对象类型统计
+        performance:
+          type: object
+          properties:
+            avgResponseTime:
+              type: number
+              description: 平均响应时间
+            requestsPerSecond:
+              type: number
+              description: 每秒请求数
+            errorRate:
+              type: number
+              description: 错误率
+        timestamp:
+          type: string
+          format: date-time
+
+    # ==================== 通用响应模型 ====================
+    
+    ErrorResponse:
+      type: object
+      required: [error, message, timestamp]
+      properties:
+        error:
+          type: string
+          description: 错误类型
+        message:
+          type: string
+          description: 错误信息
+        details:
+          type: string
+          description: 详细信息
+        code:
+          type: string
+          description: 错误码
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+          description: 请求路径
+        traceId:
+          type: string
+          description: 追踪ID
+
+    ConflictResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          default: "资源冲突"
+        conflicts:
+          type: array
+          items:
+            type: object
+            properties:
+              resource:
+                type: string
+              reason:
+                type: string
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Bad Request"
+            message: "请求参数格式错误"
+            code: "INVALID_PARAMETER"
+            timestamp: "2024-12-19T10:30:00Z"
+
+    Unauthorized:
+      description: 未授权访问
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Unauthorized"
+            message: "访问令牌无效或已过期"
+            code: "INVALID_TOKEN"
+            timestamp: "2024-12-19T10:30:00Z"
+
+    Forbidden:
+      description: 权限不足
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Forbidden"
+            message: "权限不足，无法访问该资源"
+            code: "ACCESS_DENIED"
+            timestamp: "2024-12-19T10:30:00Z"
+
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Not Found"
+            message: "请求的资源不存在"
+            code: "RESOURCE_NOT_FOUND"
+            timestamp: "2024-12-19T10:30:00Z"
+
+    Conflict:
+      description: 资源冲突
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ConflictResponse'
+          example:
+            message: "资源存在依赖关系，无法删除"
+            conflicts:
+              - resource: "User.orders"
+                reason: "存在未完成的订单"
+            timestamp: "2024-12-19T10:30:00Z"
+
+    ValidationError:
+      description: 数据校验失败
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+          example:
+            message: "数据校验失败"
+            validationResult:
+              valid: false
+              errors:
+                - field: "email"
+                  code: "INVALID_FORMAT"
+                  message: "邮箱格式不正确"
+                  severity: "error"
+
+# ==================== 标签定义 ====================
+tags:
+  - name: 元数据管理
+    description: 元数据对象、属性、关系、规则的CRUD操作
+  - name: 动态数据服务
+    description: 基于元数据的动态数据操作和管理
+  - name: 表单渲染
+    description: 基于元数据的动态表单生成和渲染
+  - name: 业务规则
+    description: 业务规则的配置、执行和管理
+  - name: 权限管理
+    description: 权限校验、策略管理和数据脱敏
+  - name: 版本管理
+    description: 元数据对象的版本控制和历史管理
+  - name: 生命周期管理
+    description: 元数据对象的生命周期状态管理
+  - name: 监控统计
+    description: 系统监控、健康检查和统计信息
+
+# ==================== 外部文档 ====================
+externalDocs:
+  description: 元数据服务架构文档
+  url: /docs/architecture.md 
