@@ -1,6 +1,6 @@
 package com.aixone.metacenter.dataservice.interfaces;
 
-import com.aixone.metacenter.common.response.ApiResponse;
+import com.aixone.common.api.ApiResponse;
 import com.aixone.metacenter.dataservice.application.DataInstanceApplicationService;
 import com.aixone.metacenter.dataservice.application.dto.DataInstanceDTO;
 import com.aixone.metacenter.dataservice.application.dto.DataInstanceQuery;

@@ -1,6 +1,6 @@
 package com.aixone.metacenter.permissionservice.interfaces;
 
-import com.aixone.metacenter.common.response.ApiResponse;
+import com.aixone.common.api.ApiResponse;
 import com.aixone.metacenter.permissionservice.application.PermissionApplicationService;
 import com.aixone.metacenter.permissionservice.application.dto.PermissionDTO;
 import com.aixone.metacenter.permissionservice.application.dto.PermissionQuery;

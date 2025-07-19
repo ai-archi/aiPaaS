@@ -1,6 +1,6 @@
 package com.aixone.metacenter.uiservice.interfaces;
 
-import com.aixone.metacenter.common.response.ApiResponse;
+import com.aixone.common.api.ApiResponse;
 import com.aixone.metacenter.uiservice.application.UIMetadataApplicationService;
 import com.aixone.metacenter.uiservice.application.dto.UIMetadataDTO;
 import com.aixone.metacenter.uiservice.application.dto.UIMetadataQuery;

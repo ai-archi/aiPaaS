@@ -1,6 +1,6 @@
 package com.aixone.metacenter.integrationorchestration.interfaces;
 
-import com.aixone.metacenter.common.response.ApiResponse;
+import com.aixone.common.api.ApiResponse;
 import com.aixone.metacenter.integrationorchestration.application.IntegrationApplicationService;
 import com.aixone.metacenter.integrationorchestration.application.dto.IntegrationDTO;
 import com.aixone.metacenter.integrationorchestration.application.dto.IntegrationQuery;

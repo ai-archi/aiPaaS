@@ -1,6 +1,6 @@
 package com.aixone.metacenter.processengine.interfaces;
 
-import com.aixone.metacenter.common.response.ApiResponse;
+import com.aixone.common.api.ApiResponse;
 import com.aixone.metacenter.processengine.application.ProcessApplicationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

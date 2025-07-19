@@ -1,6 +1,6 @@
 package com.aixone.metacenter.ruleengine.interfaces;
 
-import com.aixone.metacenter.common.response.ApiResponse;
+import com.aixone.common.api.ApiResponse;
 import com.aixone.metacenter.ruleengine.application.RuleApplicationService;
 import com.aixone.metacenter.ruleengine.domain.Rule;
 import com.aixone.metacenter.ruleengine.domain.service.RuleEngineService;

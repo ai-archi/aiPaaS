@@ -1,6 +1,6 @@
 package com.aixone.metacenter.metamanagement.interfaces;
 
-import com.aixone.metacenter.common.response.ApiResponse;
+import com.aixone.common.api.ApiResponse;
 import com.aixone.metacenter.metamanagement.application.MetaObjectApplicationService;
 import com.aixone.metacenter.metamanagement.application.dto.MetaObjectDTO;
 import com.aixone.metacenter.metamanagement.application.dto.MetaObjectQuery;
