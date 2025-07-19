@@ -29,8 +29,8 @@ public class PermissionApplicationService {
 
     public PermissionDTO createPermission(PermissionDTO permissionDTO) {
         Permission permission = permissionMapper.toEntity(permissionDTO);
-        permission.setCreatedTime(LocalDateTime.now());
-        permission.setUpdatedTime(LocalDateTime.now());
+        permission.setCreatedAt(LocalDateTime.now());
+        permission.setUpdatedAt(LocalDateTime.now());
         Permission savedPermission = permissionRepository.save(permission);
         return permissionMapper.toDTO(savedPermission);
     }
@@ -42,7 +42,7 @@ public class PermissionApplicationService {
         }
         Permission existingPermission = optional.get();
         permissionMapper.updateEntityFromDTO(permissionDTO, existingPermission);
-        existingPermission.setUpdatedTime(LocalDateTime.now());
+        existingPermission.setUpdatedAt(LocalDateTime.now());
         Permission updatedPermission = permissionRepository.save(existingPermission);
         return permissionMapper.toDTO(updatedPermission);
     }
@@ -65,32 +65,16 @@ public class PermissionApplicationService {
 
     @Transactional(readOnly = true)
     public List<PermissionDTO> getPermissionsByTenantId(String tenantId) {
-        List<Permission> permissions = permissionRepository.findByTenantId(tenantId);
+        List<Permission> permissions = permissionRepository.findByTenantIdAndEnabledTrue(tenantId);
         return permissions.stream()
                 .map(permissionMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public Page<PermissionDTO> getPermissions(PermissionQuery query, int page, int size) {
+    public Page<PermissionDTO> getPermissionsByTenantId(String tenantId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Permission> permissions = permissionRepository.findByQuery(query, pageable);
+        Page<Permission> permissions = permissionRepository.findByTenantId(tenantId, pageable);
         return permissions.map(permissionMapper::toDTO);
-    }
-
-    @Transactional(readOnly = true)
-    public List<PermissionDTO> getPermissionsByRoleId(Long roleId) {
-        List<Permission> permissions = permissionRepository.findByRoleId(roleId);
-        return permissions.stream()
-                .map(permissionMapper::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<PermissionDTO> getPermissionsByUserId(Long userId) {
-        List<Permission> permissions = permissionRepository.findByUserId(userId);
-        return permissions.stream()
-                .map(permissionMapper::toDTO)
-                .collect(Collectors.toList());
     }
 }

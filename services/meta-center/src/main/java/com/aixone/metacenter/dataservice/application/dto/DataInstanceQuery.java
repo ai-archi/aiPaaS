@@ -29,6 +29,9 @@ public class DataInstanceQuery {
     /** 元数据对象名称（模糊匹配） */
     private String metaObjectName;
 
+    /** 实例状态 */
+    private String status;
+
     /** 实例状态列表 */
     private List<String> statuses;
 
@@ -97,6 +100,14 @@ public class DataInstanceQuery {
 
     public void setMetaObjectName(String metaObjectName) {
         this.metaObjectName = metaObjectName;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public List<String> getStatuses() {

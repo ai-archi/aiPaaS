@@ -106,52 +106,20 @@ public class PermissionController {
     }
 
     /**
-     * 根据角色ID获取权限列表
-     * 
-     * @param roleId 角色ID
-     * @return 权限列表
-     */
-    @GetMapping("/by-role/{roleId}")
-    public ApiResponse<List<PermissionDTO>> getPermissionsByRoleId(@PathVariable Long roleId) {
-        try {
-            List<PermissionDTO> permissions = permissionApplicationService.getPermissionsByRoleId(roleId);
-            return ApiResponse.success(permissions);
-        } catch (Exception e) {
-            return ApiResponse.error("获取权限列表失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 根据用户ID获取权限列表
-     * 
-     * @param userId 用户ID
-     * @return 权限列表
-     */
-    @GetMapping("/by-user/{userId}")
-    public ApiResponse<List<PermissionDTO>> getPermissionsByUserId(@PathVariable Long userId) {
-        try {
-            List<PermissionDTO> permissions = permissionApplicationService.getPermissionsByUserId(userId);
-            return ApiResponse.success(permissions);
-        } catch (Exception e) {
-            return ApiResponse.error("获取权限列表失败: " + e.getMessage());
-        }
-    }
-
-    /**
      * 分页查询权限
      * 
-     * @param query 查询条件
+     * @param tenantId 租户ID
      * @param page 页码
      * @param size 每页大小
      * @return 分页结果
      */
-    @PostMapping("/search")
-    public ApiResponse<Page<PermissionDTO>> searchPermissions(
-            @RequestBody PermissionQuery query,
+    @GetMapping("/by-tenant/{tenantId}/page")
+    public ApiResponse<Page<PermissionDTO>> getPermissionsByTenantIdPage(
+            @PathVariable String tenantId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         try {
-            Page<PermissionDTO> result = permissionApplicationService.getPermissions(query, page, size);
+            Page<PermissionDTO> result = permissionApplicationService.getPermissionsByTenantId(tenantId, page, size);
             return ApiResponse.success(result);
         } catch (Exception e) {
             return ApiResponse.error("查询权限失败: " + e.getMessage());

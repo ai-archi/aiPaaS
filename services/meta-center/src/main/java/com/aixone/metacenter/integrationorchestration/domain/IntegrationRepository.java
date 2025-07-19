@@ -16,7 +16,38 @@ import java.util.Optional;
  * @since 2024-06-01
  */
 @Repository
-public interface IntegrationRepository extends JpaRepository<Integration, Long> {
+public interface IntegrationRepository {
+
+    /**
+     * 保存集成
+     * 
+     * @param integration 集成
+     * @return 保存后的集成
+     */
+    Integration save(Integration integration);
+
+    /**
+     * 根据ID查找集成
+     * 
+     * @param id 集成ID
+     * @return 集成
+     */
+    Optional<Integration> findById(Long id);
+
+    /**
+     * 检查ID是否存在
+     * 
+     * @param id 集成ID
+     * @return 是否存在
+     */
+    boolean existsById(Long id);
+
+    /**
+     * 根据ID删除集成
+     * 
+     * @param id 集成ID
+     */
+    void deleteById(Long id);
 
     /**
      * 根据租户ID和名称查找集成

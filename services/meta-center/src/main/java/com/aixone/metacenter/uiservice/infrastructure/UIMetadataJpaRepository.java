@@ -84,4 +84,77 @@ public interface UIMetadataJpaRepository extends JpaRepository<UIMetadata, Long>
      * @return UI元数据列表
      */
     List<UIMetadata> findByTenantIdAndPageType(String tenantId, String pageType);
+
+    /**
+     * 根据租户ID和页面ID查询UI元数据
+     * 
+     * @param tenantId 租户ID
+     * @param pageId 页面ID
+     * @return UI元数据
+     */
+    Optional<UIMetadata> findByTenantIdAndPageId(String tenantId, String pageId);
+
+    /**
+     * 根据租户ID和类型查询UI元数据
+     * 
+     * @param tenantId 租户ID
+     * @param type 类型
+     * @return UI元数据列表
+     */
+    List<UIMetadata> findByTenantIdAndType(String tenantId, String type);
+
+    /**
+     * 根据租户ID分页查询UI元数据
+     * 
+     * @param tenantId 租户ID
+     * @param pageable 分页参数
+     * @return 分页结果
+     */
+    org.springframework.data.domain.Page<UIMetadata> findByTenantId(String tenantId, org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * 根据租户ID和页面ID模糊查询UI元数据
+     * 
+     * @param tenantId 租户ID
+     * @param pageId 页面ID（模糊匹配）
+     * @param pageable 分页参数
+     * @return 分页结果
+     */
+    org.springframework.data.domain.Page<UIMetadata> findByTenantIdAndPageIdContainingIgnoreCase(String tenantId, String pageId, org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * 根据租户ID和标题模糊查询UI元数据
+     * 
+     * @param tenantId 租户ID
+     * @param title 标题（模糊匹配）
+     * @param pageable 分页参数
+     * @return 分页结果
+     */
+    org.springframework.data.domain.Page<UIMetadata> findByTenantIdAndTitleContainingIgnoreCase(String tenantId, String title, org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * 检查租户ID和页面ID是否存在
+     * 
+     * @param tenantId 租户ID
+     * @param pageId 页面ID
+     * @return 是否存在
+     */
+    boolean existsByTenantIdAndPageId(String tenantId, String pageId);
+
+    /**
+     * 根据租户ID统计UI元数据数量
+     * 
+     * @param tenantId 租户ID
+     * @return 数量
+     */
+    long countByTenantId(String tenantId);
+
+    /**
+     * 根据租户ID和类型统计UI元数据数量
+     * 
+     * @param tenantId 租户ID
+     * @param type 类型
+     * @return 数量
+     */
+    long countByTenantIdAndType(String tenantId, String type);
 } 

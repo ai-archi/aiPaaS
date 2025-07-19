@@ -90,68 +90,20 @@ public class UIMetadataController {
     }
 
     /**
-     * 根据租户ID获取UI元数据列表
+     * 根据租户ID分页查询UI元数据
      * 
      * @param tenantId 租户ID
-     * @return UI元数据列表
-     */
-    @GetMapping("/by-tenant/{tenantId}")
-    public ApiResponse<List<UIMetadataDTO>> getUIMetadataByTenantId(@PathVariable String tenantId) {
-        try {
-            List<UIMetadataDTO> uiMetadataList = uiMetadataApplicationService.getUIMetadataByTenantId(tenantId);
-            return ApiResponse.success(uiMetadataList);
-        } catch (Exception e) {
-            return ApiResponse.error("获取UI元数据列表失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 根据页面类型获取UI元数据列表
-     * 
-     * @param pageType 页面类型
-     * @return UI元数据列表
-     */
-    @GetMapping("/by-page-type/{pageType}")
-    public ApiResponse<List<UIMetadataDTO>> getUIMetadataByPageType(@PathVariable String pageType) {
-        try {
-            List<UIMetadataDTO> uiMetadataList = uiMetadataApplicationService.getUIMetadataByPageType(pageType);
-            return ApiResponse.success(uiMetadataList);
-        } catch (Exception e) {
-            return ApiResponse.error("获取UI元数据列表失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 根据组件类型获取UI元数据列表
-     * 
-     * @param componentType 组件类型
-     * @return UI元数据列表
-     */
-    @GetMapping("/by-component-type/{componentType}")
-    public ApiResponse<List<UIMetadataDTO>> getUIMetadataByComponentType(@PathVariable String componentType) {
-        try {
-            List<UIMetadataDTO> uiMetadataList = uiMetadataApplicationService.getUIMetadataByComponentType(componentType);
-            return ApiResponse.success(uiMetadataList);
-        } catch (Exception e) {
-            return ApiResponse.error("获取UI元数据列表失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 分页查询UI元数据
-     * 
-     * @param query 查询条件
      * @param page 页码
      * @param size 每页大小
      * @return 分页结果
      */
-    @PostMapping("/search")
-    public ApiResponse<Page<UIMetadataDTO>> searchUIMetadata(
-            @RequestBody UIMetadataQuery query,
+    @GetMapping("/by-tenant/{tenantId}/page")
+    public ApiResponse<Page<UIMetadataDTO>> getUIMetadataByTenantIdPage(
+            @PathVariable String tenantId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         try {
-            Page<UIMetadataDTO> result = uiMetadataApplicationService.getUIMetadata(query, page, size);
+            Page<UIMetadataDTO> result = uiMetadataApplicationService.getUIMetadataByTenantId(tenantId, page, size);
             return ApiResponse.success(result);
         } catch (Exception e) {
             return ApiResponse.error("查询UI元数据失败: " + e.getMessage());

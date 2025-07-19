@@ -16,7 +16,38 @@ import java.util.Optional;
  * @since 2024-06-01
  */
 @Repository
-public interface UIMetadataRepository extends JpaRepository<UIMetadata, Long> {
+public interface UIMetadataRepository {
+
+    /**
+     * 保存UI元数据
+     * 
+     * @param uiMetadata UI元数据
+     * @return 保存后的UI元数据
+     */
+    UIMetadata save(UIMetadata uiMetadata);
+
+    /**
+     * 根据ID查找UI元数据
+     * 
+     * @param id UI元数据ID
+     * @return UI元数据
+     */
+    Optional<UIMetadata> findById(Long id);
+
+    /**
+     * 检查ID是否存在
+     * 
+     * @param id UI元数据ID
+     * @return 是否存在
+     */
+    boolean existsById(Long id);
+
+    /**
+     * 根据ID删除UI元数据
+     * 
+     * @param id UI元数据ID
+     */
+    void deleteById(Long id);
 
     /**
      * 根据租户ID和页面ID查找UI元数据

@@ -44,8 +44,8 @@ public class DataInstanceApplicationService {
         DataInstance dataInstance = dataInstanceMapper.toEntity(dataInstanceDTO);
         
         // 设置创建时间
-        dataInstance.setCreatedTime(LocalDateTime.now());
-        dataInstance.setUpdatedTime(LocalDateTime.now());
+        dataInstance.setCreatedAt(LocalDateTime.now());
+        dataInstance.setUpdatedAt(LocalDateTime.now());
         
         DataInstance savedInstance = dataInstanceRepository.save(dataInstance);
         return dataInstanceMapper.toDTO(savedInstance);
@@ -66,7 +66,7 @@ public class DataInstanceApplicationService {
         
         DataInstance existingInstance = optional.get();
         dataInstanceMapper.updateEntityFromDTO(dataInstanceDTO, existingInstance);
-        existingInstance.setUpdatedTime(LocalDateTime.now());
+        existingInstance.setUpdatedAt(LocalDateTime.now());
         
         DataInstance updatedInstance = dataInstanceRepository.save(existingInstance);
         return dataInstanceMapper.toDTO(updatedInstance);
@@ -152,8 +152,8 @@ public class DataInstanceApplicationService {
         List<DataInstance> instances = dataInstanceDTOs.stream()
                 .map(dto -> {
                     DataInstance instance = dataInstanceMapper.toEntity(dto);
-                    instance.setCreatedTime(LocalDateTime.now());
-                    instance.setUpdatedTime(LocalDateTime.now());
+                    instance.setCreatedAt(LocalDateTime.now());
+                    instance.setUpdatedAt(LocalDateTime.now());
                     return instance;
                 })
                 .collect(Collectors.toList());

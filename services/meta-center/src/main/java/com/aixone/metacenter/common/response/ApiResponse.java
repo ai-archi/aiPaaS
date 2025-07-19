@@ -70,7 +70,7 @@ public class ApiResponse<T> {
      * @return 成功响应
      */
     public static <T> ApiResponse<T> success() {
-        return new ApiResponse<>(true, "操作成功", null, null);
+        return new ApiResponse<>(200, "操作成功", null, LocalDateTime.now());
     }
 
     /**

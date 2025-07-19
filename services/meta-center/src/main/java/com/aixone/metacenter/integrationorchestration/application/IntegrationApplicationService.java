@@ -44,8 +44,8 @@ public class IntegrationApplicationService {
         Integration integration = integrationMapper.toEntity(integrationDTO);
         
         // 设置创建时间
-        integration.setCreatedTime(LocalDateTime.now());
-        integration.setUpdatedTime(LocalDateTime.now());
+        integration.setCreatedAt(LocalDateTime.now());
+        integration.setUpdatedAt(LocalDateTime.now());
         
         Integration savedIntegration = integrationRepository.save(integration);
         return integrationMapper.toDTO(savedIntegration);
@@ -66,7 +66,7 @@ public class IntegrationApplicationService {
         
         Integration existingIntegration = optional.get();
         integrationMapper.updateEntityFromDTO(integrationDTO, existingIntegration);
-        existingIntegration.setUpdatedTime(LocalDateTime.now());
+        existingIntegration.setUpdatedAt(LocalDateTime.now());
         
         Integration updatedIntegration = integrationRepository.save(existingIntegration);
         return integrationMapper.toDTO(updatedIntegration);
@@ -100,60 +100,18 @@ public class IntegrationApplicationService {
     }
 
     /**
-     * 根据租户ID获取集成配置列表
+     * 根据租户ID分页查询集成配置
      * 
      * @param tenantId 租户ID
-     * @return 集成配置列表
-     */
-    @Transactional(readOnly = true)
-    public List<IntegrationDTO> getIntegrationsByTenantId(String tenantId) {
-        List<Integration> integrations = integrationRepository.findByTenantId(tenantId);
-        return integrations.stream()
-                .map(integrationMapper::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 根据查询条件分页查询集成配置
-     * 
-     * @param query 查询条件
      * @param page 页码
      * @param size 每页大小
      * @return 分页结果
      */
     @Transactional(readOnly = true)
-    public Page<IntegrationDTO> getIntegrations(IntegrationQuery query, int page, int size) {
+    public Page<IntegrationDTO> getIntegrationsByTenantId(String tenantId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Integration> integrations = integrationRepository.findByQuery(query, pageable);
+        Page<Integration> integrations = integrationRepository.findByTenantId(tenantId, pageable);
         return integrations.map(integrationMapper::toDTO);
-    }
-
-    /**
-     * 根据状态获取集成配置列表
-     * 
-     * @param status 状态
-     * @return 集成配置列表
-     */
-    @Transactional(readOnly = true)
-    public List<IntegrationDTO> getIntegrationsByStatus(String status) {
-        List<Integration> integrations = integrationRepository.findByStatus(status);
-        return integrations.stream()
-                .map(integrationMapper::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 根据集成类型获取集成配置列表
-     * 
-     * @param integrationType 集成类型
-     * @return 集成配置列表
-     */
-    @Transactional(readOnly = true)
-    public List<IntegrationDTO> getIntegrationsByType(String integrationType) {
-        List<Integration> integrations = integrationRepository.findByIntegrationType(integrationType);
-        return integrations.stream()
-                .map(integrationMapper::toDTO)
-                .collect(Collectors.toList());
     }
 
     /**

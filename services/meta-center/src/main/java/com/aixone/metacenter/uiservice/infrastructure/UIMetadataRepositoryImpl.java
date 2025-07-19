@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * UI元数据仓储实现
@@ -31,78 +32,50 @@ public class UIMetadataRepositoryImpl implements UIMetadataRepository {
         return uiMetadataJpaRepository.save(uiMetadata);
     }
 
+    // 接口中定义的自定义方法实现
     @Override
-    public List<UIMetadata> saveAll(List<UIMetadata> uiMetadataList) {
-        return uiMetadataJpaRepository.saveAll(uiMetadataList);
+    public Optional<UIMetadata> findByTenantIdAndPageId(String tenantId, String pageId) {
+        return uiMetadataJpaRepository.findByTenantIdAndPageId(tenantId, pageId);
     }
 
     @Override
-    public List<UIMetadata> findAll() {
-        return uiMetadataJpaRepository.findAll();
+    public List<UIMetadata> findByTenantIdAndType(String tenantId, String type) {
+        return uiMetadataJpaRepository.findByTenantIdAndType(tenantId, type);
     }
 
     @Override
-    public List<UIMetadata> findByIds(List<Long> ids) {
-        return uiMetadataJpaRepository.findAllById(ids);
+    public List<UIMetadata> findByTenantIdAndStatus(String tenantId, String status) {
+        return uiMetadataJpaRepository.findByTenantIdAndStatus(tenantId, status);
     }
 
     @Override
-    public List<UIMetadata> findByTenantId(String tenantId) {
-        return uiMetadataJpaRepository.findByTenantId(tenantId);
+    public Page<UIMetadata> findByTenantId(String tenantId, Pageable pageable) {
+        return uiMetadataJpaRepository.findByTenantId(tenantId, pageable);
     }
 
     @Override
-    public List<UIMetadata> findByStatus(String status) {
-        return uiMetadataJpaRepository.findByStatus(status);
+    public Page<UIMetadata> findByTenantIdAndPageIdContainingIgnoreCase(String tenantId, String pageId, Pageable pageable) {
+        return uiMetadataJpaRepository.findByTenantIdAndPageIdContainingIgnoreCase(tenantId, pageId, pageable);
     }
 
     @Override
-    public List<UIMetadata> findByPageType(String pageType) {
-        return uiMetadataJpaRepository.findByPageType(pageType);
+    public Page<UIMetadata> findByTenantIdAndTitleContainingIgnoreCase(String tenantId, String title, Pageable pageable) {
+        return uiMetadataJpaRepository.findByTenantIdAndTitleContainingIgnoreCase(tenantId, title, pageable);
     }
 
     @Override
-    public List<UIMetadata> findByComponentType(String componentType) {
-        return uiMetadataJpaRepository.findByComponentType(componentType);
+    public boolean existsByTenantIdAndPageId(String tenantId, String pageId) {
+        return uiMetadataJpaRepository.existsByTenantIdAndPageId(tenantId, pageId);
     }
 
     @Override
-    public Page<UIMetadata> findByQuery(UIMetadataQuery query, Pageable pageable) {
-        Specification<UIMetadata> spec = (root, criteriaQuery, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
+    public long countByTenantId(String tenantId) {
+        return uiMetadataJpaRepository.countByTenantId(tenantId);
+    }
 
-            if (query.getTenantId() != null && !query.getTenantId().isEmpty()) {
-                predicates.add(criteriaBuilder.equal(root.get("tenantId"), query.getTenantId()));
-            }
-
-            if (query.getName() != null && !query.getName().isEmpty()) {
-                predicates.add(criteriaBuilder.like(root.get("name"), "%" + query.getName() + "%"));
-            }
-
-            if (query.getDisplayName() != null && !query.getDisplayName().isEmpty()) {
-                predicates.add(criteriaBuilder.like(root.get("displayName"), "%" + query.getDisplayName() + "%"));
-            }
-
-            if (query.getDescription() != null && !query.getDescription().isEmpty()) {
-                predicates.add(criteriaBuilder.like(root.get("description"), "%" + query.getDescription() + "%"));
-            }
-
-            if (query.getPageType() != null && !query.getPageType().isEmpty()) {
-                predicates.add(criteriaBuilder.equal(root.get("pageType"), query.getPageType()));
-            }
-
-            if (query.getComponentType() != null && !query.getComponentType().isEmpty()) {
-                predicates.add(criteriaBuilder.equal(root.get("componentType"), query.getComponentType()));
-            }
-
-            if (query.getStatuses() != null && !query.getStatuses().isEmpty()) {
-                predicates.add(root.get("status").in(query.getStatuses()));
-            }
-
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
-        };
-
-        return uiMetadataJpaRepository.findAll(spec, pageable);
+    @Override
+    public long countByTenantIdAndType(String tenantId, String type) {
+        return uiMetadataJpaRepository.countByTenantIdAndType(tenantId, type);
     }
 
     @Override
@@ -111,17 +84,12 @@ public class UIMetadataRepositoryImpl implements UIMetadataRepository {
     }
 
     @Override
-    public void deleteAll(List<UIMetadata> uiMetadataList) {
-        uiMetadataJpaRepository.deleteAll(uiMetadataList);
-    }
-
-    @Override
     public boolean existsById(Long id) {
         return uiMetadataJpaRepository.existsById(id);
     }
 
     @Override
-    public long count() {
-        return uiMetadataJpaRepository.count();
+    public Optional<UIMetadata> findById(Long id) {
+        return uiMetadataJpaRepository.findById(id);
     }
 } 

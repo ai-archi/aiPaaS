@@ -151,4 +151,50 @@ public interface IntegrationJpaRepository extends JpaRepository<Integration, Lon
      * @param tenantId 租户ID
      */
     void deleteByTenantId(String tenantId);
+
+    /**
+     * 根据租户ID和类型查询集成列表
+     * 
+     * @param tenantId 租户ID
+     * @param type 类型
+     * @return 集成列表
+     */
+    List<Integration> findByTenantIdAndType(String tenantId, String type);
+
+    /**
+     * 根据租户ID和状态查询集成列表
+     * 
+     * @param tenantId 租户ID
+     * @param status 状态
+     * @return 集成列表
+     */
+    List<Integration> findByTenantIdAndStatus(String tenantId, String status);
+
+    /**
+     * 根据租户ID分页查询集成
+     * 
+     * @param tenantId 租户ID
+     * @param pageable 分页参数
+     * @return 分页结果
+     */
+    org.springframework.data.domain.Page<Integration> findByTenantId(String tenantId, org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * 根据租户ID和名称模糊查询集成
+     * 
+     * @param tenantId 租户ID
+     * @param name 名称（模糊匹配）
+     * @param pageable 分页参数
+     * @return 分页结果
+     */
+    org.springframework.data.domain.Page<Integration> findByTenantIdAndNameContainingIgnoreCase(String tenantId, String name, org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * 根据租户ID和类型统计集成数量
+     * 
+     * @param tenantId 租户ID
+     * @param type 类型
+     * @return 数量
+     */
+    long countByTenantIdAndType(String tenantId, String type);
 }

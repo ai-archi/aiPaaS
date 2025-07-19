@@ -1,5 +1,6 @@
 package com.aixone.metacenter.dataservice.domain;
 
+import com.aixone.metacenter.dataservice.application.dto.DataInstanceQuery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -86,4 +87,41 @@ public interface DataInstanceRepository extends JpaRepository<DataInstance, Long
      * @return 数量
      */
     long countByTenantIdAndMetaObjectIdAndStatus(String tenantId, Long metaObjectId, String status);
+
+    /**
+     * 根据元数据对象ID查找数据实例列表
+     * 
+     * @param metaObjectId 元数据对象ID
+     * @return 数据实例列表
+     */
+    List<DataInstance> findByMetaObjectId(Long metaObjectId);
+
+    /**
+     * 根据查询条件分页查询数据实例
+     * 
+     * @param query 查询条件
+     * @param pageable 分页参数
+     * @return 分页结果
+     */
+    @Query("SELECT di FROM DataInstance di WHERE " +
+           "(:query.tenantId IS NULL OR di.tenantId = :query.tenantId) AND " +
+           "(:query.metaObjectId IS NULL OR di.metaObjectId = :query.metaObjectId) AND " +
+           "(:query.status IS NULL OR di.status = :query.status)")
+    Page<DataInstance> findByQuery(@Param("query") DataInstanceQuery query, Pageable pageable);
+
+    /**
+     * 根据租户ID查找数据实例列表
+     * 
+     * @param tenantId 租户ID
+     * @return 数据实例列表
+     */
+    List<DataInstance> findByTenantId(String tenantId);
+
+    /**
+     * 根据状态查找数据实例列表
+     * 
+     * @param status 状态
+     * @return 数据实例列表
+     */
+    List<DataInstance> findByStatus(String status);
 } 

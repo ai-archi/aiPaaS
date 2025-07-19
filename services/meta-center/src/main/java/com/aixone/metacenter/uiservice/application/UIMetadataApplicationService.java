@@ -29,8 +29,8 @@ public class UIMetadataApplicationService {
 
     public UIMetadataDTO createUIMetadata(UIMetadataDTO uiMetadataDTO) {
         UIMetadata uiMetadata = uiMetadataMapper.toEntity(uiMetadataDTO);
-        uiMetadata.setCreatedTime(LocalDateTime.now());
-        uiMetadata.setUpdatedTime(LocalDateTime.now());
+        uiMetadata.setCreatedAt(LocalDateTime.now());
+        uiMetadata.setUpdatedAt(LocalDateTime.now());
         UIMetadata savedUIMetadata = uiMetadataRepository.save(uiMetadata);
         return uiMetadataMapper.toDTO(savedUIMetadata);
     }
@@ -42,7 +42,7 @@ public class UIMetadataApplicationService {
         }
         UIMetadata existingUIMetadata = optional.get();
         uiMetadataMapper.updateEntityFromDTO(uiMetadataDTO, existingUIMetadata);
-        existingUIMetadata.setUpdatedTime(LocalDateTime.now());
+        existingUIMetadata.setUpdatedAt(LocalDateTime.now());
         UIMetadata updatedUIMetadata = uiMetadataRepository.save(existingUIMetadata);
         return uiMetadataMapper.toDTO(updatedUIMetadata);
     }
@@ -64,33 +64,9 @@ public class UIMetadataApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public List<UIMetadataDTO> getUIMetadataByTenantId(String tenantId) {
-        List<UIMetadata> uiMetadataList = uiMetadataRepository.findByTenantId(tenantId);
-        return uiMetadataList.stream()
-                .map(uiMetadataMapper::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public Page<UIMetadataDTO> getUIMetadata(UIMetadataQuery query, int page, int size) {
+    public Page<UIMetadataDTO> getUIMetadataByTenantId(String tenantId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<UIMetadata> uiMetadataPage = uiMetadataRepository.findByQuery(query, pageable);
+        Page<UIMetadata> uiMetadataPage = uiMetadataRepository.findByTenantId(tenantId, pageable);
         return uiMetadataPage.map(uiMetadataMapper::toDTO);
-    }
-
-    @Transactional(readOnly = true)
-    public List<UIMetadataDTO> getUIMetadataByPageType(String pageType) {
-        List<UIMetadata> uiMetadataList = uiMetadataRepository.findByPageType(pageType);
-        return uiMetadataList.stream()
-                .map(uiMetadataMapper::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<UIMetadataDTO> getUIMetadataByComponentType(String componentType) {
-        List<UIMetadata> uiMetadataList = uiMetadataRepository.findByComponentType(componentType);
-        return uiMetadataList.stream()
-                .map(uiMetadataMapper::toDTO)
-                .collect(Collectors.toList());
     }
 }
