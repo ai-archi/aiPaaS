@@ -6,7 +6,8 @@ import com.aixone.metacenter.common.exception.MetaValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+import com.aixone.common.tools.ValidationUtils;
+import com.aixone.common.tools.StringUtils;
 
 import java.util.List;
 
@@ -30,17 +31,13 @@ public class MetaRelationDomainService {
         log.debug("验证元数据关系: {}", metaRelation.getName());
         
         // 验证名称
-        if (!StringUtils.hasText(metaRelation.getName())) {
-            throw new MetaValidationException("关系名称不能为空");
-        }
-        
-        // 验证名称格式（只能包含字母、数字、下划线）
-        if (!metaRelation.getName().matches("^[a-zA-Z][a-zA-Z0-9_]*$")) {
-            throw new MetaValidationException("关系名称格式不正确，只能包含字母、数字、下划线，且必须以字母开头");
+        String nameError = ValidationUtils.validateIdentifier(metaRelation.getName(), "关系名称");
+        if (nameError != null) {
+            throw new MetaValidationException(nameError);
         }
         
         // 验证显示名称
-        if (!StringUtils.hasText(metaRelation.getDisplayName())) {
+        if (StringUtils.isBlank(metaRelation.getDisplayName())) {
             throw new MetaValidationException("关系显示名称不能为空");
         }
         
@@ -60,7 +57,7 @@ public class MetaRelationDomainService {
         }
         
         // 验证关系类型
-        if (!StringUtils.hasText(metaRelation.getRelationType())) {
+        if (StringUtils.isBlank(metaRelation.getRelationType())) {
             throw new MetaValidationException("关系类型不能为空");
         }
         
@@ -68,7 +65,7 @@ public class MetaRelationDomainService {
         validateRelationType(metaRelation.getRelationType());
         
         // 验证基数
-        if (!StringUtils.hasText(metaRelation.getCardinality())) {
+        if (StringUtils.isBlank(metaRelation.getCardinality())) {
             throw new MetaValidationException("关系基数不能为空");
         }
         

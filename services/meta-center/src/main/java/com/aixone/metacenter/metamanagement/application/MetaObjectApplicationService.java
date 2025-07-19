@@ -15,7 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
+import com.aixone.common.tools.StringUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -186,13 +186,13 @@ public class MetaObjectApplicationService {
 
         // 执行查询
         Page<MetaObject> page;
-        if (StringUtils.hasText(query.getName())) {
+        if (StringUtils.isNotBlank(query.getName())) {
             page = metaObjectRepository.findByTenantIdAndNameContainingIgnoreCase(
                     query.getTenantId(), query.getName(), pageable);
-        } else if (StringUtils.hasText(query.getDescription())) {
+        } else if (StringUtils.isNotBlank(query.getDescription())) {
             page = metaObjectRepository.findByTenantIdAndDescriptionContainingIgnoreCase(
                     query.getTenantId(), query.getDescription(), pageable);
-        } else if (StringUtils.hasText(query.getTags())) {
+        } else if (StringUtils.isNotBlank(query.getTags())) {
             page = metaObjectRepository.findByTenantIdAndTagsContaining(
                     query.getTenantId(), query.getTags(), pageable);
         } else if (query.getTypes() != null && !query.getTypes().isEmpty()) {
@@ -220,13 +220,13 @@ public class MetaObjectApplicationService {
 
         // 执行查询
         Page<MetaObject> page;
-        if (StringUtils.hasText(query.getName())) {
+        if (StringUtils.isNotBlank(query.getName())) {
             page = metaObjectRepository.findByTenantIdAndNameContainingIgnoreCase(
                     query.getTenantId(), query.getName(), pageable);
-        } else if (StringUtils.hasText(query.getDescription())) {
+        } else if (StringUtils.isNotBlank(query.getDescription())) {
             page = metaObjectRepository.findByTenantIdAndDescriptionContainingIgnoreCase(
                     query.getTenantId(), query.getDescription(), pageable);
-        } else if (StringUtils.hasText(query.getTags())) {
+        } else if (StringUtils.isNotBlank(query.getTags())) {
             page = metaObjectRepository.findByTenantIdAndTagsContaining(
                     query.getTenantId(), query.getTags(), pageable);
         } else if (query.getTypes() != null && !query.getTypes().isEmpty()) {
@@ -411,16 +411,16 @@ public class MetaObjectApplicationService {
         log.debug("校验元数据对象: {}", dto.getName());
 
         // 基础参数校验
-        if (!StringUtils.hasText(dto.getName())) {
+        if (StringUtils.isBlank(dto.getName())) {
             throw new MetaValidationException("元数据对象名称不能为空");
         }
-        if (!StringUtils.hasText(dto.getType())) {
+        if (StringUtils.isBlank(dto.getType())) {
             throw new MetaValidationException("元数据对象类型不能为空");
         }
-        if (!StringUtils.hasText(dto.getObjectType())) {
+        if (StringUtils.isBlank(dto.getObjectType())) {
             throw new MetaValidationException("元数据对象类型不能为空");
         }
-        if (!StringUtils.hasText(dto.getTenantId())) {
+        if (StringUtils.isBlank(dto.getTenantId())) {
             throw new MetaValidationException("租户ID不能为空");
         }
 

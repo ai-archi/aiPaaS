@@ -6,7 +6,9 @@ import com.aixone.metacenter.common.exception.MetaValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+import com.aixone.common.tools.ValidationUtils;
+import com.aixone.common.tools.DataTypeUtils;
+import com.aixone.common.tools.StringUtils;
 
 import java.util.List;
 
@@ -30,23 +32,20 @@ public class MetaAttributeDomainService {
         log.debug("验证元数据属性: {}", metaAttribute.getName());
         
         // 验证名称
-        if (!StringUtils.hasText(metaAttribute.getName())) {
-            throw new MetaValidationException("属性名称不能为空");
-        }
-        
-        // 验证名称格式（只能包含字母、数字、下划线）
-        if (!metaAttribute.getName().matches("^[a-zA-Z][a-zA-Z0-9_]*$")) {
-            throw new MetaValidationException("属性名称格式不正确，只能包含字母、数字、下划线，且必须以字母开头");
+        String nameError = ValidationUtils.validateIdentifier(metaAttribute.getName(), "属性名称");
+        if (nameError != null) {
+            throw new MetaValidationException(nameError);
         }
         
         // 验证显示名称
-        if (!StringUtils.hasText(metaAttribute.getDisplayName())) {
+        if (StringUtils.isBlank(metaAttribute.getDisplayName())) {
             throw new MetaValidationException("属性显示名称不能为空");
         }
         
         // 验证数据类型
-        if (!StringUtils.hasText(metaAttribute.getDataType())) {
-            throw new MetaValidationException("数据类型不能为空");
+        String dataTypeError = DataTypeUtils.validateDataType(metaAttribute.getDataType());
+        if (dataTypeError != null) {
+            throw new MetaValidationException(dataTypeError);
         }
         
         // 验证数据类型是否支持
@@ -97,21 +96,9 @@ public class MetaAttributeDomainService {
      * @param dataType 数据类型
      */
     private void validateDataType(String dataType) {
-        String[] supportedTypes = {
-            "STRING", "INTEGER", "LONG", "DOUBLE", "DECIMAL", "BOOLEAN", 
-            "DATE", "DATETIME", "TIMESTAMP", "TEXT", "BLOB", "JSON"
-        };
-        
-        boolean isValid = false;
-        for (String type : supportedTypes) {
-            if (type.equalsIgnoreCase(dataType)) {
-                isValid = true;
-                break;
-            }
-        }
-        
-        if (!isValid) {
-            throw new MetaValidationException("不支持的数据类型: " + dataType);
+        String error = DataTypeUtils.validateDataType(dataType);
+        if (error != null) {
+            throw new MetaValidationException(error);
         }
     }
 
@@ -138,27 +125,7 @@ public class MetaAttributeDomainService {
      * @return 默认值
      */
     public Object getDefaultValue(String dataType) {
-        switch (dataType.toUpperCase()) {
-            case "STRING":
-            case "TEXT":
-                return "";
-            case "INTEGER":
-            case "LONG":
-                return 0;
-            case "DOUBLE":
-            case "DECIMAL":
-                return 0.0;
-            case "BOOLEAN":
-                return false;
-            case "DATE":
-            case "DATETIME":
-            case "TIMESTAMP":
-                return null;
-            case "JSON":
-                return "{}";
-            default:
-                return null;
-        }
+        return DataTypeUtils.getDefaultValue(dataType);
     }
 
     /**
@@ -173,41 +140,6 @@ public class MetaAttributeDomainService {
             return !metaAttribute.getRequired();
         }
         
-        try {
-            switch (metaAttribute.getDataType().toUpperCase()) {
-                case "STRING":
-                case "TEXT":
-                    String strValue = String.valueOf(value);
-                    if (metaAttribute.getLength() != null && strValue.length() > metaAttribute.getLength()) {
-                        return false;
-                    }
-                    break;
-                case "INTEGER":
-                    Integer.parseInt(String.valueOf(value));
-                    break;
-                case "LONG":
-                    Long.parseLong(String.valueOf(value));
-                    break;
-                case "DOUBLE":
-                case "DECIMAL":
-                    Double.parseDouble(String.valueOf(value));
-                    break;
-                case "BOOLEAN":
-                    Boolean.parseBoolean(String.valueOf(value));
-                    break;
-                case "DATE":
-                case "DATETIME":
-                case "TIMESTAMP":
-                    // TODO: 实现日期格式验证
-                    break;
-                case "JSON":
-                    // TODO: 实现JSON格式验证
-                    break;
-            }
-            return true;
-        } catch (Exception e) {
-            log.warn("属性值验证失败: {}, 值: {}, 错误: {}", metaAttribute.getName(), value, e.getMessage());
-            return false;
-        }
+        return DataTypeUtils.isValidValue(metaAttribute.getDataType(), value, metaAttribute.getLength());
     }
 } 
