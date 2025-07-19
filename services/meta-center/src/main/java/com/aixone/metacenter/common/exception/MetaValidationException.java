@@ -1,5 +1,7 @@
 package com.aixone.metacenter.common.exception;
 
+import com.aixone.common.exception.ValidationException;
+
 /**
  * 元数据校验异常
  * 
@@ -7,7 +9,7 @@ package com.aixone.metacenter.common.exception;
  * @version 1.0.0
  * @since 2024-06-01
  */
-public class MetaValidationException extends MetaException {
+public class MetaValidationException extends ValidationException {
 
     private static final long serialVersionUID = 1L;
 

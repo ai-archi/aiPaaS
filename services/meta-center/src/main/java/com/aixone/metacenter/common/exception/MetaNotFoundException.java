@@ -1,5 +1,7 @@
 package com.aixone.metacenter.common.exception;
 
+import com.aixone.common.exception.NotFoundException;
+
 /**
  * 元数据未找到异常
  * 
@@ -7,7 +9,7 @@ package com.aixone.metacenter.common.exception;
  * @version 1.0.0
  * @since 2024-06-01
  */
-public class MetaNotFoundException extends MetaException {
+public class MetaNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = 1L;
 
