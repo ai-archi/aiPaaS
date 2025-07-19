@@ -1,0 +1,21 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.aixone</groupId>
+        <artifactId>aixone-libs</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <artifactId>aixone-event-sdk</artifactId>
+    <packaging>jar</packaging>
+    <name>aixone-event-sdk</name>
+    <description>事件中心统一SDK，提供事件发布、订阅、DTO、接口协议等能力</description>
+    <dependencies>
+        <dependency>
+            <groupId>com.aixone</groupId>
+            <artifactId>aixone-common-api</artifactId>
+        </dependency>
+    </dependencies>
+</project> 
