@@ -1,0 +1,25 @@
+{
+  "name": "@aixone/finance",
+  "version": "1.0.0",
+  "description": "AixOne Finance Management Application",
+  "private": true,
+  "scripts": {
+    "dev": "uni-app dev",
+    "build": "uni-app build",
+    "test": "jest",
+    "lint": "eslint src --ext .js,.ts,.vue"
+  },
+  "dependencies": {
+    "vue": "^3.3.0",
+    "vue-router": "^4.2.0",
+    "pinia": "^2.1.0",
+    "axios": "^1.4.0",
+    "echarts": "^5.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0"
+  }
+}

@@ -1,0 +1,53 @@
+# 测试环境配置
+aixone:
+  event:
+    enabled: true
+    event-center:
+      base-url: http://localhost:8080
+      tenant-id: test-tenant
+      connect-timeout: 5000
+      read-timeout: 10000
+    kafka:
+      bootstrap-servers: localhost:9092
+      group-id: test-group
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+      auto-commit-interval-ms: 1000
+      session-timeout-ms: 30000
+      max-poll-records: 500
+      concurrency: 1
+      poll-timeout: 1000
+    listener:
+      auto-start: true
+      thread-pool-size: 10
+      queue-capacity: 1000
+      enable-metrics: true
+
+# Spring Boot 测试配置
+spring:
+  application:
+    name: aixone-event-sdk-test
+  profiles:
+    active: test
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: test-group
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+      auto-commit-interval-ms: 1000
+      session-timeout-ms: 30000
+      max-poll-records: 500
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.aixone.event.dto.*,com.aixone.common.*
+
+# 日志配置
+logging:
+  level:
+    com.aixone.event: DEBUG
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

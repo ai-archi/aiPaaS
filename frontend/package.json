@@ -1,0 +1,29 @@
+{
+  "name": "aixone-frontend",
+  "version": "1.0.0",
+  "description": "AixOne Enterprise Platform Frontend Architecture",
+  "private": true,
+  "workspaces": [
+    "workspace/*",
+    "applications/domains/*",
+    "applications/platforms/*",
+    "shared/*"
+  ],
+  "scripts": {
+    "dev": "lerna run dev --parallel",
+    "build": "lerna run build",
+    "test": "lerna run test",
+    "lint": "lerna run lint",
+    "clean": "lerna clean",
+    "bootstrap": "lerna bootstrap"
+  },
+  "devDependencies": {
+    "lerna": "^8.0.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

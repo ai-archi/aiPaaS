@@ -113,15 +113,8 @@
         </dependency>
         <dependency>
             <groupId>com.aixone</groupId>
-            <artifactId>aixone-common-constant</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.aixone</groupId>
-            <artifactId>aixone-common-exception</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.aixone</groupId>
-            <artifactId>aixone-common-tools</artifactId>
+            <artifactId>aixone-common-sdk</artifactId>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.aixone</groupId>
