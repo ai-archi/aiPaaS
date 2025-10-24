@@ -1,7 +1,7 @@
 package com.aixone.eventcenter.schedule.application;
 
 import com.aixone.eventcenter.schedule.domain.*;
-import com.aixone.session.SessionContext;
+import com.aixone.common.session.SessionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,7 +1,7 @@
 package com.aixone.eventcenter.config;
 
-import com.aixone.session.SessionInterceptor;
-import com.aixone.session.TokenParser;
+import com.aixone.common.session.SessionInterceptor;
+import com.aixone.common.session.TokenParser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;

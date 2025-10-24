@@ -18,6 +18,11 @@ public interface EventRepository extends Repository<Event, Long> {
     List<Event> findByTenantId(String tenantId);
     
     /**
+     * 根据事件ID和租户ID查找事件
+     */
+    Optional<Event> findByEventIdAndTenantId(Long eventId, String tenantId);
+    
+    /**
      * 根据事件类型查找事件
      */
     List<Event> findByEventType(String eventType);

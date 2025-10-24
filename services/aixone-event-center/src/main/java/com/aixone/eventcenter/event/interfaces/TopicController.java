@@ -7,7 +7,7 @@ import com.aixone.eventcenter.event.application.TopicApplicationService;
 import com.aixone.eventcenter.event.domain.Topic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import com.aixone.session.SessionContext;
+import com.aixone.common.session.SessionContext;
 
 import java.util.List;
 import java.util.Optional;

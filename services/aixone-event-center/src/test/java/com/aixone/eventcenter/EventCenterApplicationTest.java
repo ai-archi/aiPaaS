@@ -3,15 +3,20 @@ package com.aixone.eventcenter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.kafka.core.KafkaTemplate;
 
 /**
  * EventCenterApplication 集成测试
  */
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("test")
 @DisplayName("EventCenterApplication 集成测试")
 class EventCenterApplicationTest {
+
+    @MockBean
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Test
     @DisplayName("应该成功启动应用程序")

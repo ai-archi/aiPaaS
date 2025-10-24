@@ -3,7 +3,7 @@ package com.aixone.eventcenter.schedule.infrastructure;
 import com.aixone.eventcenter.schedule.application.TaskSchedulerService;
 import com.aixone.eventcenter.schedule.domain.Task;
 import com.aixone.eventcenter.schedule.domain.TaskRepository;
-import com.aixone.session.SessionContext;
+import com.aixone.common.session.SessionContext;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;

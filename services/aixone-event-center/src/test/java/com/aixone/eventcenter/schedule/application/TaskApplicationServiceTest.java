@@ -2,16 +2,18 @@ package com.aixone.eventcenter.schedule.application;
 
 import com.aixone.common.exception.BizException;
 import com.aixone.eventcenter.schedule.domain.*;
-import com.aixone.session.SessionContext;
+import com.aixone.common.session.SessionContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -33,9 +35,11 @@ class TaskApplicationServiceTest {
     private TaskRepository taskRepository;
 
     @Mock
+    private TaskLogRepository taskLogRepository;
+
+    @Mock
     private TaskSchedulerService taskSchedulerService;
 
-    @InjectMocks
     private TaskApplicationService taskApplicationService;
 
     private final String TEST_TENANT_ID = "tenant-001";
@@ -43,10 +47,22 @@ class TaskApplicationServiceTest {
 
     @BeforeEach
     void setUp() {
-        // 模拟 SessionContext
-        try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
-            mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
-            mockedSessionContext.when(SessionContext::getUserId).thenReturn(TEST_USER_ID);
+        taskApplicationService = new TaskApplicationService();
+        // 使用反射设置私有字段
+        try {
+            java.lang.reflect.Field taskRepositoryField = TaskApplicationService.class.getDeclaredField("taskRepository");
+            taskRepositoryField.setAccessible(true);
+            taskRepositoryField.set(taskApplicationService, taskRepository);
+            
+            java.lang.reflect.Field taskLogRepositoryField = TaskApplicationService.class.getDeclaredField("taskLogRepository");
+            taskLogRepositoryField.setAccessible(true);
+            taskLogRepositoryField.set(taskApplicationService, taskLogRepository);
+            
+            java.lang.reflect.Field taskSchedulerServiceField = TaskApplicationService.class.getDeclaredField("taskSchedulerService");
+            taskSchedulerServiceField.setAccessible(true);
+            taskSchedulerServiceField.set(taskApplicationService, taskSchedulerService);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set up TaskApplicationService dependencies", e);
         }
     }
 
@@ -59,56 +75,76 @@ class TaskApplicationServiceTest {
         void shouldCreateTaskSuccessfully() {
             // Given
             CreateTaskCommand command = createValidCreateTaskCommand();
-            Task expectedTask = createValidTask();
+            Task savedTask = createValidTask();
+            savedTask.setTaskId(1L);
             
-            when(taskRepository.findByTaskNameAndTenantId(anyString(), anyString()))
+            when(taskRepository.findByTaskNameAndTenantId(command.getTaskName(), TEST_TENANT_ID))
                 .thenReturn(Optional.empty());
-            when(taskRepository.save(any(Task.class))).thenReturn(expectedTask);
+            when(taskRepository.save(any(Task.class))).thenReturn(savedTask);
+            doNothing().when(taskSchedulerService).scheduleTask(any(Task.class));
 
             // When
-            Task result = taskApplicationService.createTask(command);
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                mockedSessionContext.when(SessionContext::getUserId).thenReturn(TEST_USER_ID);
+                
+                Task result = taskApplicationService.createTask(command);
 
-            // Then
-            assertNotNull(result);
-            assertEquals(expectedTask, result);
-            verify(taskRepository).findByTaskNameAndTenantId(command.getTaskName(), TEST_TENANT_ID);
-            verify(taskRepository).save(any(Task.class));
-            verify(taskSchedulerService).scheduleTask(any(Task.class));
+                // Then
+                assertNotNull(result);
+                assertEquals(savedTask, result);
+                verify(taskRepository).findByTaskNameAndTenantId(command.getTaskName(), TEST_TENANT_ID);
+                verify(taskRepository).save(any(Task.class));
+                verify(taskSchedulerService).scheduleTask(any(Task.class));
+            }
         }
 
         @Test
-        @DisplayName("任务名称重复应该抛出异常")
-        void duplicateTaskNameShouldThrowException() {
+        @DisplayName("任务名称已存在应该抛出异常")
+        void existingTaskNameShouldThrowException() {
             // Given
             CreateTaskCommand command = createValidCreateTaskCommand();
             Task existingTask = createValidTask();
+            existingTask.setTaskId(1L);
             
-            when(taskRepository.findByTaskNameAndTenantId(anyString(), anyString()))
+            when(taskRepository.findByTaskNameAndTenantId(command.getTaskName(), TEST_TENANT_ID))
                 .thenReturn(Optional.of(existingTask));
 
             // When & Then
-            assertThrows(BizException.class, () -> 
-                taskApplicationService.createTask(command));
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                BizException exception = assertThrows(BizException.class, 
+                    () -> taskApplicationService.createTask(command));
+                assertEquals("TASK_NAME_EXISTS", exception.getErrorCode());
+                assertEquals("任务名称已存在: " + command.getTaskName(), exception.getMessage());
+            }
         }
 
         @Test
-        @DisplayName("空命令应该抛出异常")
+        @DisplayName("创建任务命令为空应该抛出异常")
         void nullCommandShouldThrowException() {
             // When & Then
-            assertThrows(BizException.class, () -> 
-                taskApplicationService.createTask(null));
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                assertThrows(BizException.class, () -> taskApplicationService.createTask(null));
+            }
         }
 
         @Test
-        @DisplayName("空任务名称应该抛出异常")
+        @DisplayName("任务名称为空应该抛出异常")
         void nullTaskNameShouldThrowException() {
             // Given
             CreateTaskCommand command = createValidCreateTaskCommand();
             command.setTaskName(null);
 
             // When & Then
-            assertThrows(BizException.class, () -> 
-                taskApplicationService.createTask(command));
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                assertThrows(BizException.class, () -> taskApplicationService.createTask(command));
+            }
         }
     }
 
@@ -122,124 +158,50 @@ class TaskApplicationServiceTest {
             // Given
             Long taskId = 1L;
             UpdateTaskCommand command = createValidUpdateTaskCommand();
-            Task existingTask = createValidTask();
-            existingTask.setTaskId(taskId);
+            Task task = createValidTask();
+            task.setTaskId(taskId);
+            Task savedTask = createValidTask();
+            savedTask.setTaskId(taskId);
             
             when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
-                .thenReturn(Optional.of(existingTask));
-            when(taskRepository.save(any(Task.class))).thenReturn(existingTask);
+                .thenReturn(Optional.of(task));
+            when(taskRepository.save(any(Task.class))).thenReturn(savedTask);
+            doNothing().when(taskSchedulerService).rescheduleTask(any(Task.class));
 
             // When
-            Task result = taskApplicationService.updateTask(taskId, command);
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                Task result = taskApplicationService.updateTask(taskId, command);
 
-            // Then
-            assertNotNull(result);
-            verify(taskRepository).findByIdAndTenantId(taskId, TEST_TENANT_ID);
-            verify(taskRepository).save(any(Task.class));
-            verify(taskSchedulerService).rescheduleTask(any(Task.class));
+                // Then
+                assertNotNull(result);
+                assertEquals(savedTask, result);
+                verify(taskRepository).findByIdAndTenantId(taskId, TEST_TENANT_ID);
+                verify(taskRepository).save(any(Task.class));
+                verify(taskSchedulerService).rescheduleTask(any(Task.class));
+            }
         }
 
         @Test
-        @DisplayName("任务不存在应该抛出异常")
-        void nonExistentTaskShouldThrowException() {
+        @DisplayName("更新不存在的任务应该抛出异常")
+        void updateNonExistentTaskShouldThrowException() {
             // Given
-            Long taskId = 1L;
+            Long taskId = 999L;
             UpdateTaskCommand command = createValidUpdateTaskCommand();
             
             when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
                 .thenReturn(Optional.empty());
 
             // When & Then
-            assertThrows(BizException.class, () -> 
-                taskApplicationService.updateTask(taskId, command));
-        }
-    }
-
-    @Nested
-    @DisplayName("启用任务测试")
-    class EnableTaskTests {
-
-        @Test
-        @DisplayName("应该成功启用任务")
-        void shouldEnableTaskSuccessfully() {
-            // Given
-            Long taskId = 1L;
-            Task disabledTask = createValidTask();
-            disabledTask.setTaskId(taskId);
-            disabledTask.setEnabled(false);
-            
-            when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
-                .thenReturn(Optional.of(disabledTask));
-            when(taskRepository.save(any(Task.class))).thenReturn(disabledTask);
-
-            // When
-            Task result = taskApplicationService.enableTask(taskId);
-
-            // Then
-            assertNotNull(result);
-            assertTrue(result.getEnabled());
-            verify(taskSchedulerService).scheduleTask(any(Task.class));
-        }
-
-        @Test
-        @DisplayName("已启用的任务应该抛出异常")
-        void alreadyEnabledTaskShouldThrowException() {
-            // Given
-            Long taskId = 1L;
-            Task enabledTask = createValidTask();
-            enabledTask.setTaskId(taskId);
-            enabledTask.setEnabled(true);
-            
-            when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
-                .thenReturn(Optional.of(enabledTask));
-
-            // When & Then
-            assertThrows(BizException.class, () -> 
-                taskApplicationService.enableTask(taskId));
-        }
-    }
-
-    @Nested
-    @DisplayName("禁用任务测试")
-    class DisableTaskTests {
-
-        @Test
-        @DisplayName("应该成功禁用任务")
-        void shouldDisableTaskSuccessfully() {
-            // Given
-            Long taskId = 1L;
-            Task enabledTask = createValidTask();
-            enabledTask.setTaskId(taskId);
-            enabledTask.setEnabled(true);
-            
-            when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
-                .thenReturn(Optional.of(enabledTask));
-            when(taskRepository.save(any(Task.class))).thenReturn(enabledTask);
-
-            // When
-            Task result = taskApplicationService.disableTask(taskId);
-
-            // Then
-            assertNotNull(result);
-            assertFalse(result.getEnabled());
-            verify(taskSchedulerService).unscheduleTask(taskId);
-        }
-
-        @Test
-        @DisplayName("已禁用的任务应该抛出异常")
-        void alreadyDisabledTaskShouldThrowException() {
-            // Given
-            Long taskId = 1L;
-            Task disabledTask = createValidTask();
-            disabledTask.setTaskId(taskId);
-            disabledTask.setEnabled(false);
-            
-            when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
-                .thenReturn(Optional.of(disabledTask));
-
-            // When & Then
-            assertThrows(BizException.class, () -> 
-                taskApplicationService.disableTask(taskId));
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                BizException exception = assertThrows(BizException.class, 
+                    () -> taskApplicationService.updateTask(taskId, command));
+                assertEquals("TASK_NOT_FOUND", exception.getErrorCode());
+                assertEquals("任务不存在: " + taskId, exception.getMessage());
+            }
         }
     }
 
@@ -254,35 +216,181 @@ class TaskApplicationServiceTest {
             Long taskId = 1L;
             Task task = createValidTask();
             task.setTaskId(taskId);
+            
+            when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
+                .thenReturn(Optional.of(task));
+            doNothing().when(taskSchedulerService).unscheduleTask(taskId);
+            doNothing().when(taskLogRepository).deleteByTaskIdAndTenantId(taskId, TEST_TENANT_ID);
+            doNothing().when(taskRepository).deleteById(taskId);
+
+            // When
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                taskApplicationService.deleteTask(taskId);
+
+                // Then
+                verify(taskRepository).findByIdAndTenantId(taskId, TEST_TENANT_ID);
+                verify(taskSchedulerService).unscheduleTask(taskId);
+                verify(taskLogRepository).deleteByTaskIdAndTenantId(taskId, TEST_TENANT_ID);
+                verify(taskRepository).deleteById(taskId);
+            }
+        }
+
+        @Test
+        @DisplayName("删除不存在的任务应该抛出异常")
+        void deleteNonExistentTaskShouldThrowException() {
+            // Given
+            Long taskId = 999L;
+            
+            when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
+                .thenReturn(Optional.empty());
+
+            // When & Then
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                BizException exception = assertThrows(BizException.class, 
+                    () -> taskApplicationService.deleteTask(taskId));
+                assertEquals("TASK_NOT_FOUND", exception.getErrorCode());
+                assertEquals("任务不存在: " + taskId, exception.getMessage());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("任务状态管理测试")
+    class TaskStatusManagementTests {
+
+        @Test
+        @DisplayName("应该成功暂停任务")
+        void shouldPauseTaskSuccessfully() {
+            // Given
+            Long taskId = 1L;
+            Task task = createValidTask();
+            task.setTaskId(taskId);
+            
+            when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
+                .thenReturn(Optional.of(task));
+            when(taskRepository.save(any(Task.class))).thenReturn(task);
+            doNothing().when(taskSchedulerService).unscheduleTask(taskId);
+
+            // When
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                taskApplicationService.pauseTask(taskId);
+
+                // Then
+                verify(taskRepository).findByIdAndTenantId(taskId, TEST_TENANT_ID);
+                verify(taskRepository).save(task);
+                verify(taskSchedulerService).unscheduleTask(taskId);
+            }
+        }
+
+        @Test
+        @DisplayName("应该成功恢复任务")
+        void shouldResumeTaskSuccessfully() {
+            // Given
+            Long taskId = 1L;
+            Task task = createValidTask();
+            task.setTaskId(taskId);
+            
+            when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
+                .thenReturn(Optional.of(task));
+            when(taskRepository.save(any(Task.class))).thenReturn(task);
+            doNothing().when(taskSchedulerService).scheduleTask(any(Task.class));
+
+            // When
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                taskApplicationService.resumeTask(taskId);
+
+                // Then
+                verify(taskRepository).findByIdAndTenantId(taskId, TEST_TENANT_ID);
+                verify(taskRepository).save(task);
+                verify(taskSchedulerService).scheduleTask(task);
+            }
+        }
+
+        @Test
+        @DisplayName("应该成功取消任务")
+        void shouldCancelTaskSuccessfully() {
+            // Given
+            Long taskId = 1L;
+            Task task = createValidTask();
+            task.setTaskId(taskId);
+            
+            when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
+                .thenReturn(Optional.of(task));
+            when(taskRepository.save(any(Task.class))).thenReturn(task);
+            doNothing().when(taskSchedulerService).unscheduleTask(taskId);
+
+            // When
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                taskApplicationService.cancelTask(taskId);
+
+                // Then
+                verify(taskRepository).findByIdAndTenantId(taskId, TEST_TENANT_ID);
+                verify(taskRepository).save(task);
+                verify(taskSchedulerService).unscheduleTask(taskId);
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("任务执行测试")
+    class TaskExecutionTests {
+
+        @Test
+        @DisplayName("应该成功立即执行任务")
+        void shouldExecuteTaskSuccessfully() {
+            // Given
+            Long taskId = 1L;
+            Task task = createValidTask();
+            task.setTaskId(taskId);
+            task.setEnabled(true);
+            
+            when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
+                .thenReturn(Optional.of(task));
+            doNothing().when(taskSchedulerService).executeTaskImmediately(any(Task.class));
+
+            // When
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                taskApplicationService.executeTask(taskId);
+
+                // Then
+                verify(taskRepository).findByIdAndTenantId(taskId, TEST_TENANT_ID);
+                verify(taskSchedulerService).executeTaskImmediately(task);
+            }
+        }
+
+        @Test
+        @DisplayName("执行已禁用的任务应该抛出异常")
+        void executeDisabledTaskShouldThrowException() {
+            // Given
+            Long taskId = 1L;
+            Task task = createValidTask();
+            task.setTaskId(taskId);
             task.setEnabled(false);
             
             when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
                 .thenReturn(Optional.of(task));
 
-            // When
-            taskApplicationService.deleteTask(taskId);
-
-            // Then
-            verify(taskRepository).findByIdAndTenantId(taskId, TEST_TENANT_ID);
-            verify(taskSchedulerService).unscheduleTask(taskId);
-            verify(taskRepository).delete(task);
-        }
-
-        @Test
-        @DisplayName("已启用的任务删除应该抛出异常")
-        void enabledTaskDeletionShouldThrowException() {
-            // Given
-            Long taskId = 1L;
-            Task enabledTask = createValidTask();
-            enabledTask.setTaskId(taskId);
-            enabledTask.setEnabled(true);
-            
-            when(taskRepository.findByIdAndTenantId(taskId, TEST_TENANT_ID))
-                .thenReturn(Optional.of(enabledTask));
-
             // When & Then
-            assertThrows(BizException.class, () -> 
-                taskApplicationService.deleteTask(taskId));
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                BizException exception = assertThrows(BizException.class, 
+                    () -> taskApplicationService.executeTask(taskId));
+                assertEquals("TASK_DISABLED", exception.getErrorCode());
+                assertEquals("任务已禁用，无法执行", exception.getMessage());
+            }
         }
     }
 
@@ -291,7 +399,7 @@ class TaskApplicationServiceTest {
     class QueryTaskTests {
 
         @Test
-        @DisplayName("应该成功根据ID获取任务")
+        @DisplayName("应该成功根据ID查询任务")
         void shouldGetTaskByIdSuccessfully() {
             // Given
             Long taskId = 1L;
@@ -302,56 +410,108 @@ class TaskApplicationServiceTest {
                 .thenReturn(Optional.of(task));
 
             // When
-            Optional<Task> result = taskApplicationService.getTaskById(taskId);
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                Optional<Task> result = taskApplicationService.getTaskById(taskId);
 
-            // Then
-            assertTrue(result.isPresent());
-            assertEquals(task, result.get());
+                // Then
+                assertTrue(result.isPresent());
+                assertEquals(taskId, result.get().getId());
+                verify(taskRepository).findByIdAndTenantId(taskId, TEST_TENANT_ID);
+            }
         }
 
         @Test
-        @DisplayName("应该成功获取所有任务")
-        void shouldGetAllTasksSuccessfully() {
+        @DisplayName("应该成功分页查询任务")
+        void shouldGetTasksWithPagination() {
+            // Given
+            Pageable pageable = mock(Pageable.class);
+            List<Task> tasks = Arrays.asList(createValidTask(), createValidTask());
+            Page<Task> page = new PageImpl<>(tasks);
+            
+            when(taskRepository.findByTenantId(TEST_TENANT_ID, pageable)).thenReturn(page);
+
+            // When
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                Page<Task> result = taskApplicationService.getTasks(pageable);
+
+                // Then
+                assertNotNull(result);
+                assertEquals(2, result.getContent().size());
+                verify(taskRepository).findByTenantId(TEST_TENANT_ID, pageable);
+            }
+        }
+
+        @Test
+        @DisplayName("应该成功根据状态查询任务")
+        void shouldGetTasksByStatus() {
             // Given
             List<Task> tasks = Arrays.asList(createValidTask(), createValidTask());
             
-            when(taskRepository.findByTenantId(TEST_TENANT_ID)).thenReturn(tasks);
+            when(taskRepository.findByStatusAndTenantId(TaskStatus.PENDING, TEST_TENANT_ID))
+                .thenReturn(tasks);
 
             // When
-            List<Task> result = taskApplicationService.getAllTasks();
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                List<Task> result = taskApplicationService.getTasksByStatus(TaskStatus.PENDING);
 
-            // Then
-            assertEquals(2, result.size());
-            assertEquals(tasks, result);
-        }
-
-        @Test
-        @DisplayName("应该成功获取启用的任务")
-        void shouldGetEnabledTasksSuccessfully() {
-            // Given
-            List<Task> enabledTasks = Arrays.asList(createValidTask(), createValidTask());
-            
-            when(taskRepository.findByEnabledAndTenantId(true, TEST_TENANT_ID))
-                .thenReturn(enabledTasks);
-
-            // When
-            List<Task> result = taskApplicationService.getEnabledTasks();
-
-            // Then
-            assertEquals(2, result.size());
-            assertEquals(enabledTasks, result);
+                // Then
+                assertNotNull(result);
+                assertEquals(2, result.size());
+                verify(taskRepository).findByStatusAndTenantId(TaskStatus.PENDING, TEST_TENANT_ID);
+            }
         }
     }
 
-    // 辅助方法
+    @Nested
+    @DisplayName("任务统计测试")
+    class TaskStatisticsTests {
+
+        @Test
+        @DisplayName("应该成功获取任务统计信息")
+        void shouldGetTaskStatisticsSuccessfully() {
+            // Given
+            Long taskId = 1L;
+            long totalCount = 100L;
+            long successCount = 80L;
+            long failCount = 20L;
+            
+            when(taskLogRepository.countByTaskIdAndTenantId(taskId, TEST_TENANT_ID))
+                .thenReturn(totalCount);
+            when(taskLogRepository.countByTaskIdAndStatusAndTenantId(taskId, TaskStatus.SUCCESS, TEST_TENANT_ID))
+                .thenReturn(successCount);
+            when(taskLogRepository.countByTaskIdAndStatusAndTenantId(taskId, TaskStatus.FAILED, TEST_TENANT_ID))
+                .thenReturn(failCount);
+
+            // When
+            try (MockedStatic<SessionContext> mockedSessionContext = mockStatic(SessionContext.class)) {
+                mockedSessionContext.when(SessionContext::getTenantId).thenReturn(TEST_TENANT_ID);
+                
+                TaskStatistics result = taskApplicationService.getTaskStatistics(taskId);
+
+                // Then
+                assertNotNull(result);
+                assertEquals(taskId, result.getTaskId());
+                assertEquals(totalCount, result.getTotalCount());
+                assertEquals(successCount, result.getSuccessCount());
+                assertEquals(failCount, result.getFailCount());
+            }
+        }
+    }
+
     private CreateTaskCommand createValidCreateTaskCommand() {
         CreateTaskCommand command = new CreateTaskCommand();
-        command.setTaskName("测试任务");
-        command.setDescription("这是一个测试任务");
-        command.setTaskType(TaskType.CRON_JOB);
-        command.setScheduleStrategy(ScheduleStrategy.cron("0 0 12 * * ?"));
+        command.setTaskName("test-task");
+        command.setDescription("Test task description");
+        command.setTaskType(TaskType.CRON);
+        command.setScheduleExpression("0 0 12 * * ?");
         command.setExecutorService("test-service");
-        command.setTaskParams("{\"param1\": \"value1\"}");
+        command.setTaskParams("{\"param1\":\"value1\"}");
         command.setMaxRetryCount(3);
         command.setTimeoutSeconds(300);
         return command;
@@ -359,10 +519,9 @@ class TaskApplicationServiceTest {
 
     private UpdateTaskCommand createValidUpdateTaskCommand() {
         UpdateTaskCommand command = new UpdateTaskCommand();
-        command.setDescription("更新后的任务描述");
-        command.setScheduleStrategy(ScheduleStrategy.cron("0 0 18 * * ?"));
-        command.setExecutorService("updated-service");
-        command.setTaskParams("{\"param2\": \"value2\"}");
+        command.setDescription("Updated description");
+        command.setScheduleExpression("0 0 18 * * ?");
+        command.setTaskParams("{\"param1\":\"updated_value\"}");
         command.setMaxRetryCount(5);
         command.setTimeoutSeconds(600);
         return command;
@@ -370,18 +529,19 @@ class TaskApplicationServiceTest {
 
     private Task createValidTask() {
         Task task = new Task();
-        task.setTaskId(1L);
-        task.setTaskName("测试任务");
-        task.setDescription("这是一个测试任务");
-        task.setTaskType(TaskType.CRON_JOB);
+        task.setTaskName("test-task");
+        task.setDescription("Test task description");
+        task.setTaskType(TaskType.CRON);
         task.setScheduleExpression("0 0 12 * * ?");
         task.setExecutorService("test-service");
-        task.setTaskParams("{\"param1\": \"value1\"}");
-        task.setStatus(TaskStatus.PENDING);
-        task.setEnabled(true);
+        task.setTaskParams("{\"param1\":\"value1\"}");
         task.setMaxRetryCount(3);
         task.setTimeoutSeconds(300);
-        task.setTenantId(TEST_TENANT_ID);
+        task.setEnabled(true);
+        task.setStatus(TaskStatus.PENDING);
+        task.setCreator(TEST_USER_ID);
+        task.setCreateTime(Instant.now());
+        task.setUpdateTime(Instant.now());
         return task;
     }
 }

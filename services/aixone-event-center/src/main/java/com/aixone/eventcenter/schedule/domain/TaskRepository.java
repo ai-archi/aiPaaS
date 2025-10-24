@@ -40,6 +40,11 @@ public interface TaskRepository extends Repository<Task, Long> {
     List<Task> findByEnabledTrueAndTenantId(String tenantId);
     
     /**
+     * 根据启用状态和租户ID查找任务
+     */
+    List<Task> findByEnabledAndTenantId(boolean enabled, String tenantId);
+    
+    /**
      * 查找需要执行的任务（状态为PENDING且下次执行时间已到）
      */
     List<Task> findPendingTasksForExecution(Instant currentTime, String tenantId);

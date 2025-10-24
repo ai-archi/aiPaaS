@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.aixone.session.SessionContext;
+import com.aixone.common.session.SessionContext;
 import java.util.Map;
 
 /**

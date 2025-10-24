@@ -1,57 +1,44 @@
-# 测试环境配置
-server:
-  port: 0 # 随机端口
-
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password:
+    url: jdbc:h2:mem:testdb
     driver-class-name: org.h2.Driver
+    username: SA
+    password: 
   jpa:
     hibernate:
-      ddl-auto: create-drop # 测试环境每次重新创建表
+      ddl-auto: create-drop
     show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
-        format_sql: true
-  redis:
-    host: localhost
-    port: 6379
-    database: 0
+  h2:
+    console:
+      enabled: true
+  quartz:
+    job-store-type: memory
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: TestScheduler
+            instanceId: AUTO
+          threadPool:
+            threadCount: 5
+          jobStore:
+            class: org.quartz.simpl.RAMJobStore
   kafka:
     bootstrap-servers: localhost:9092
+    consumer:
+      group-id: test-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      acks: all
-      retries: 0 # 测试环境不重试
-      batch-size: 16384
-      linger-ms: 5
-      buffer-memory: 33554432
-    consumer:
-      group-id: event-center-test-group
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      auto-offset-reset: earliest
-      enable-auto-commit: true
-      auto-commit-interval-ms: 1000
-      properties:
-        spring.json.trusted.packages: "com.aixone.eventcenter.*"
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
 logging:
   level:
-    root: WARN
     com.aixone.eventcenter: DEBUG
-    org.springframework.kafka: WARN
-    org.quartz: WARN
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-  endpoint:
-    health:
-      show-details: when-authorized
+    org.quartz: INFO
+    org.springframework.scheduling: DEBUG

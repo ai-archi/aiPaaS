@@ -54,28 +54,12 @@ public class QuartzConfig {
         
         // 线程池配置
         properties.setProperty("org.quartz.threadPool.class", "org.quartz.simpl.SimpleThreadPool");
-        properties.setProperty("org.quartz.threadPool.threadCount", "10");
+        properties.setProperty("org.quartz.threadPool.threadCount", "5");
         properties.setProperty("org.quartz.threadPool.threadPriority", "5");
         properties.setProperty("org.quartz.threadPool.threadsInheritContextClassLoaderOfInitializingThread", "true");
         
-        // 作业存储配置
-        properties.setProperty("org.quartz.jobStore.class", "org.quartz.impl.jdbcjobstore.JobStoreTX");
-        properties.setProperty("org.quartz.jobStore.driverDelegateClass", "org.quartz.impl.jdbcjobstore.StdJDBCDelegate");
-        properties.setProperty("org.quartz.jobStore.tablePrefix", "QRTZ_");
-        properties.setProperty("org.quartz.jobStore.dataSource", "quartzDataSource");
-        properties.setProperty("org.quartz.jobStore.isClustered", "true");
-        properties.setProperty("org.quartz.jobStore.clusterCheckinInterval", "20000");
-        properties.setProperty("org.quartz.jobStore.maxMisfiresToHandleAtATime", "1");
-        properties.setProperty("org.quartz.jobStore.misfireThreshold", "120000");
-        properties.setProperty("org.quartz.jobStore.txIsolationLevelSerializable", "false");
-        
-        // 数据源配置
-        properties.setProperty("org.quartz.dataSource.quartzDataSource.driver", "org.h2.Driver");
-        properties.setProperty("org.quartz.dataSource.quartzDataSource.URL", "jdbc:h2:mem:testdb");
-        properties.setProperty("org.quartz.dataSource.quartzDataSource.user", "SA");
-        properties.setProperty("org.quartz.dataSource.quartzDataSource.password", "");
-        properties.setProperty("org.quartz.dataSource.quartzDataSource.maxConnections", "5");
-        properties.setProperty("org.quartz.dataSource.quartzDataSource.validationQuery", "SELECT 1");
+        // 作业存储配置 - 使用内存存储，适合测试环境
+        properties.setProperty("org.quartz.jobStore.class", "org.quartz.simpl.RAMJobStore");
         
         // 插件配置
         properties.setProperty("org.quartz.plugin.triggHistory.class", "org.quartz.plugins.history.LoggingTriggerHistoryPlugin");

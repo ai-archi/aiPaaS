@@ -1,19 +1,34 @@
 package com.aixone.permission.model;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.time.LocalDateTime;
 
 /**
  * 权限实体
+ * 与aixone-tech-auth保持一致
  * 
  * @author aixone
  */
 @Data
+@EqualsAndHashCode(of = "permissionId")
 public class Permission {
     
     /**
      * 权限ID
      */
     private String permissionId;
+    
+    /**
+     * 租户ID
+     */
+    private String tenantId;
+    
+    /**
+     * 权限名称
+     */
+    private String name;
     
     /**
      * 资源标识
@@ -33,7 +48,17 @@ public class Permission {
     /**
      * 权限级别
      */
-    private PermissionLevel level;
+    private PermissionLevel level = PermissionLevel.READ;
+    
+    /**
+     * 创建时间
+     */
+    private LocalDateTime createdAt;
+    
+    /**
+     * 更新时间
+     */
+    private LocalDateTime updatedAt;
     
     /**
      * 检查权限是否匹配指定的资源和操作
@@ -62,9 +87,19 @@ public class Permission {
      * 权限级别枚举
      */
     public enum PermissionLevel {
-        READ,   // 读取权限
-        WRITE,  // 写入权限
-        DELETE, // 删除权限
-        ADMIN   // 管理权限
+        READ(1),   // 读取权限
+        WRITE(2),  // 写入权限
+        DELETE(3), // 删除权限
+        ADMIN(4);  // 管理权限
+        
+        private final int level;
+        
+        PermissionLevel(int level) {
+            this.level = level;
+        }
+        
+        public int getLevel() {
+            return level;
+        }
     }
 } 

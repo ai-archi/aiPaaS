@@ -3,7 +3,7 @@ package com.aixone.eventcenter.schedule.application;
 import com.aixone.common.exception.BizException;
 import com.aixone.common.util.ValidationUtils;
 import com.aixone.eventcenter.schedule.domain.*;
-import com.aixone.session.SessionContext;
+import com.aixone.common.session.SessionContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -262,5 +262,67 @@ public class TaskApplicationService {
         long failCount = taskLogRepository.countByTaskIdAndStatusAndTenantId(taskId, TaskStatus.FAILED, tenantId);
         
         return new TaskStatistics(taskId, totalCount, successCount, failCount);
+    }
+    
+    /**
+     * 启用任务
+     */
+    public Task enableTask(Long taskId) {
+        ValidationUtils.notNull(taskId, "任务ID不能为空");
+        
+        String tenantId = SessionContext.getTenantId();
+        Task task = taskRepository.findByIdAndTenantId(taskId, tenantId)
+            .orElseThrow(() -> new BizException("TASK_NOT_FOUND", "任务不存在: " + taskId));
+        
+        if (task.getEnabled()) {
+            throw new BizException("TASK_ALREADY_ENABLED", "任务已启用");
+        }
+        
+        task.setEnabled(true);
+        Task savedTask = taskRepository.save(task);
+        
+        // 添加到调度器
+        taskSchedulerService.scheduleTask(savedTask);
+        
+        return savedTask;
+    }
+    
+    /**
+     * 禁用任务
+     */
+    public Task disableTask(Long taskId) {
+        ValidationUtils.notNull(taskId, "任务ID不能为空");
+        
+        String tenantId = SessionContext.getTenantId();
+        Task task = taskRepository.findByIdAndTenantId(taskId, tenantId)
+            .orElseThrow(() -> new BizException("TASK_NOT_FOUND", "任务不存在: " + taskId));
+        
+        if (!task.getEnabled()) {
+            throw new BizException("TASK_ALREADY_DISABLED", "任务已禁用");
+        }
+        
+        task.setEnabled(false);
+        Task savedTask = taskRepository.save(task);
+        
+        // 从调度器中移除任务
+        taskSchedulerService.unscheduleTask(taskId);
+        
+        return savedTask;
+    }
+    
+    /**
+     * 获取所有任务
+     */
+    @Transactional(readOnly = true)
+    public List<Task> getAllTasks() {
+        return taskRepository.findByTenantId(SessionContext.getTenantId());
+    }
+    
+    /**
+     * 获取启用的任务
+     */
+    @Transactional(readOnly = true)
+    public List<Task> getEnabledTasks() {
+        return taskRepository.findByEnabledAndTenantId(true, SessionContext.getTenantId());
     }
 }

@@ -69,12 +69,6 @@
             <artifactId>aixone-audit-sdk</artifactId>
             <version>1.0.0</version>
         </dependency>
-        <!-- 会话管理SDK -->
-        <dependency>
-            <groupId>com.aixone</groupId>
-            <artifactId>aixone-session-sdk</artifactId>
-            <version>1.0.0</version>
-        </dependency>
         <!-- 保留其他依赖 -->
         <dependency>
             <groupId>com.aixone</groupId>
@@ -93,6 +87,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-quartz</artifactId>
+        </dependency>
+        <!-- C3P0 连接池 -->
+        <dependency>
+            <groupId>com.mchange</groupId>
+            <artifactId>c3p0</artifactId>
+            <version>0.9.5.5</version>
         </dependency>
     </dependencies>
 
@@ -135,7 +135,7 @@
                         <include>**/*Test.java</include>
                         <include>**/*Tests.java</include>
                     </includes>
-                    <forkCount>0</forkCount>
+                    <forkCount>1</forkCount>
                     <reuseForks>false</reuseForks>
                     <argLine>-Xmx1024m -Djava.awt.headless=true</argLine>
                 </configuration>
