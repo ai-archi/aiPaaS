@@ -1,6 +1,6 @@
 package com.aixone.common.ddd;
 
-import com.aixone.session.SessionContext;
+import com.aixone.common.session.SessionContext;
 import java.time.Instant;
 import java.util.UUID;
 

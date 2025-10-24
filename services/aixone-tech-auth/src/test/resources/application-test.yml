@@ -22,6 +22,10 @@ spring:
       host: localhost
       port: 6379
       database: 1
+  
+  test:
+    context:
+      classes: com.aixone.tech.auth.config.TestConfig
 
 # JWT配置
 jwt:

@@ -6,7 +6,6 @@ import com.aixone.event.listener.EventListenerManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -25,15 +24,21 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Kafka事件监听器集成测试
- * 测试真实的Kafka消息发送和接收
+ * 直接使用Spring Kafka发送事件，通过@EventListener验证事件监听
  */
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = {
     "spring.kafka.bootstrap-servers=localhost:9092",
-    "aixone.event.kafka.bootstrap-servers=localhost:9092"
+    "aixone.event.kafka.bootstrap-servers=localhost:9092",
+    "aixone.event.enabled=true"
 })
-@EmbeddedKafka(partitions = 1, topics = {"test-user-events", "test-order-events", "test-payment-events"})
+@EmbeddedKafka(partitions = 1, topics = {
+    "test-user-events", 
+    "test-order-events", 
+    "test-payment-events",
+    "test-batch-events"
+})
 @DisplayName("Kafka事件监听器集成测试")
 class KafkaEventListenerIntegrationTest {
 
@@ -44,20 +49,11 @@ class KafkaEventListenerIntegrationTest {
     private EventListenerManager eventListenerManager;
     
     @Autowired
-    private TestKafkaListener testKafkaListener;
-    
-    @Autowired
-    private TestOrderListener testOrderListener;
-    
-    @Autowired
-    private TestPaymentListener testPaymentListener;
+    private TestEventListener testEventListener;
 
     @BeforeEach
     void setUp() {
-        // 重置计数器
-        testKafkaListener.reset();
-        testOrderListener.reset();
-        testPaymentListener.reset();
+        testEventListener.reset();
     }
 
     @Test
@@ -67,43 +63,44 @@ class KafkaEventListenerIntegrationTest {
         EventDTO event = new EventDTO(
             "user.login",
             "auth-service",
-            "{\"userId\":\"12345\",\"loginTime\":\"" + Instant.now() + "\"}",
+            "{\"userId\":\"12345\",\"loginTime\":\"" + Instant.now() + "\",\"ip\":\"192.168.1.1\"}",
             "test-tenant"
         );
         
-        // 发送消息到Kafka
+        // 直接使用Spring Kafka发送事件
         kafkaTemplate.send("test-user-events", event);
         
-        // 等待消息处理
-        boolean received = testKafkaListener.getUserLoginLatch().await(5, TimeUnit.SECONDS);
+        // 等待@EventListener处理事件
+        boolean received = testEventListener.getUserLoginLatch().await(5, TimeUnit.SECONDS);
         
-        // 验证消息是否被接收
-        assertTrue(received, "用户登录事件应该被接收");
-        assertEquals(1, testKafkaListener.getUserLoginCount().get(), "用户登录事件计数应该为1");
-        assertEquals("user.login", testKafkaListener.getLastEventType().get(), "事件类型应该匹配");
+        // 验证事件监听是否正确
+        assertTrue(received, "用户登录事件应该被@EventListener接收");
+        assertEquals(1, testEventListener.getUserLoginCount().get(), "用户登录事件计数应该为1");
+        assertEquals("user.login", testEventListener.getLastUserEventType().get(), "事件类型应该匹配");
+        assertNotNull(testEventListener.getLastUserEvent().get(), "事件对象应该不为空");
     }
 
     @Test
-    @DisplayName("订单事件监听测试")
-    void testOrderEventListening() throws InterruptedException {
+    @DisplayName("订单创建事件监听测试")
+    void testOrderCreatedEventListening() throws InterruptedException {
         // 创建订单事件
         EventDTO event = new EventDTO(
             "order.created",
             "order-service",
-            "{\"orderId\":\"67890\",\"amount\":99.99}",
+            "{\"orderId\":\"ORD-67890\",\"amount\":199.99,\"currency\":\"USD\"}",
             "test-tenant"
         );
         
-        // 发送消息到Kafka
+        // 直接使用Spring Kafka发送事件
         kafkaTemplate.send("test-order-events", event);
         
-        // 等待消息处理
-        boolean received = testOrderListener.getOrderLatch().await(5, TimeUnit.SECONDS);
+        // 等待@EventListener处理事件
+        boolean received = testEventListener.getOrderLatch().await(5, TimeUnit.SECONDS);
         
-        // 验证消息是否被接收
-        assertTrue(received, "订单事件应该被接收");
-        assertEquals(1, testOrderListener.getOrderCount().get(), "订单事件计数应该为1");
-        assertEquals("order.created", testOrderListener.getLastEventType().get(), "事件类型应该匹配");
+        // 验证事件监听是否正确
+        assertTrue(received, "订单事件应该被@EventListener接收");
+        assertEquals(1, testEventListener.getOrderCount().get(), "订单事件计数应该为1");
+        assertEquals("order.created", testEventListener.getLastOrderEventType().get(), "事件类型应该匹配");
     }
 
     @Test
@@ -111,22 +108,22 @@ class KafkaEventListenerIntegrationTest {
     void testPaymentEventListening() throws InterruptedException {
         // 创建支付事件
         EventDTO event = new EventDTO(
-            "payment.failed",
+            "payment.success",
             "payment-service",
-            "{\"paymentId\":\"11111\",\"reason\":\"insufficient_funds\"}",
+            "{\"paymentId\":\"PAY-11111\",\"orderId\":\"ORD-67890\",\"amount\":199.99}",
             "test-tenant"
         );
         
-        // 发送消息到Kafka
+        // 直接使用Spring Kafka发送事件
         kafkaTemplate.send("test-payment-events", event);
         
-        // 等待消息处理
-        boolean received = testPaymentListener.getPaymentLatch().await(5, TimeUnit.SECONDS);
+        // 等待@EventListener处理事件
+        boolean received = testEventListener.getPaymentLatch().await(5, TimeUnit.SECONDS);
         
-        // 验证消息是否被接收
-        assertTrue(received, "支付事件应该被接收");
-        assertEquals(1, testPaymentListener.getPaymentCount().get(), "支付事件计数应该为1");
-        assertEquals("payment.failed", testPaymentListener.getLastEventType().get(), "事件类型应该匹配");
+        // 验证事件监听是否正确
+        assertTrue(received, "支付事件应该被@EventListener接收");
+        assertEquals(1, testEventListener.getPaymentCount().get(), "支付事件计数应该为1");
+        assertEquals("payment.success", testEventListener.getLastPaymentEventType().get(), "事件类型应该匹配");
     }
 
     @Test
@@ -136,57 +133,85 @@ class KafkaEventListenerIntegrationTest {
         EventDTO event = new EventDTO(
             "user.logout",  // 不匹配 user.login
             "auth-service",
-            "{\"userId\":\"12345\"}",
+            "{\"userId\":\"12345\",\"logoutTime\":\"" + Instant.now() + "\"}",
             "test-tenant"
         );
         
-        // 发送消息到Kafka
+        // 直接使用Spring Kafka发送事件
         kafkaTemplate.send("test-user-events", event);
         
         // 等待一段时间确保消息被处理
         Thread.sleep(2000);
         
-        // 验证不匹配的事件类型不会被处理
-        assertEquals(0, testKafkaListener.getUserLoginCount().get(), "不匹配的事件类型不应该被处理");
+        // 验证@EventListener的事件类型过滤是否生效
+        assertEquals(0, testEventListener.getUserLoginCount().get(), "不匹配的事件类型不应该被@EventListener处理");
     }
 
     @Test
-    @DisplayName("多个监听器优先级测试")
-    void testMultipleListenerPriority() throws InterruptedException {
-        // 创建用户登录事件
-        EventDTO event = new EventDTO(
-            "user.login",
-            "auth-service",
-            "{\"userId\":\"12345\"}",
-            "test-tenant"
-        );
+    @DisplayName("批量事件监听测试")
+    void testBatchEventListening() throws InterruptedException {
+        // 发送多个事件
+        for (int i = 0; i < 5; i++) {
+            EventDTO event = new EventDTO(
+                "user.login",
+                "auth-service",
+                "{\"userId\":\"user" + i + "\",\"loginTime\":\"" + Instant.now() + "\"}",
+                "test-tenant"
+            );
+            
+            // 直接使用Spring Kafka发送事件
+            kafkaTemplate.send("test-batch-events", event);
+        }
         
-        // 发送消息到Kafka
-        kafkaTemplate.send("test-user-events", event);
+        // 等待所有事件被@EventListener处理
+        boolean received = testEventListener.getBatchLatch().await(10, TimeUnit.SECONDS);
         
-        // 等待消息处理
-        boolean received = testKafkaListener.getUserLoginLatch().await(5, TimeUnit.SECONDS);
-        
-        // 验证消息被接收
-        assertTrue(received, "用户登录事件应该被接收");
-        
-        // 验证监听器按优先级执行
-        assertTrue(testKafkaListener.getLastEventType().get() != null, "事件应该被处理");
+        // 验证批量事件监听是否正确
+        assertTrue(received, "批量事件应该被@EventListener接收");
+        assertEquals(5, testEventListener.getBatchCount().get(), "应该接收到5个用户登录事件");
     }
 
     @Test
     @DisplayName("监听器注册验证测试")
     void testListenerRegistration() {
-        // 验证监听器已注册
+        // 验证@EventListener监听器已注册
         assertTrue(eventListenerManager.getRegisteredTopics().contains("test-user-events"), 
             "test-user-events Topic应该已注册");
         assertTrue(eventListenerManager.getRegisteredTopics().contains("test-order-events"), 
             "test-order-events Topic应该已注册");
         assertTrue(eventListenerManager.getRegisteredTopics().contains("test-payment-events"), 
             "test-payment-events Topic应该已注册");
+        assertTrue(eventListenerManager.getRegisteredTopics().contains("test-batch-events"), 
+            "test-batch-events Topic应该已注册");
         
         // 验证监听器数量
-        assertTrue(eventListenerManager.getTotalListenerCount() > 0, "应该有注册的监听器");
+        assertTrue(eventListenerManager.getTotalListenerCount() > 0, "应该有注册的@EventListener监听器");
+        
+        // 验证特定Topic的监听器
+        assertFalse(eventListenerManager.getListeners("test-user-events").isEmpty(), 
+            "test-user-events应该有@EventListener监听器");
+    }
+
+    @Test
+    @DisplayName("监听器优先级测试")
+    void testListenerPriority() throws InterruptedException {
+        // 创建用户登录事件
+        EventDTO event = new EventDTO(
+            "user.login",
+            "auth-service",
+            "{\"userId\":\"priority-test\",\"loginTime\":\"" + Instant.now() + "\"}",
+            "test-tenant"
+        );
+        
+        // 直接使用Spring Kafka发送事件
+        kafkaTemplate.send("test-user-events", event);
+        
+        // 等待@EventListener处理事件
+        boolean received = testEventListener.getUserLoginLatch().await(5, TimeUnit.SECONDS);
+        
+        // 验证事件被@EventListener按优先级处理
+        assertTrue(received, "用户登录事件应该被@EventListener接收");
+        assertTrue(testEventListener.getLastUserEventType().get() != null, "事件应该被@EventListener处理");
     }
 
     @Test
@@ -196,28 +221,50 @@ class KafkaEventListenerIntegrationTest {
         EventDTO event = new EventDTO(
             "user.login",
             "auth-service",
-            "{\"userId\":\"error-user\"}",  // 特殊用户ID会触发异常
+            "{\"userId\":\"error-user\",\"loginTime\":\"" + Instant.now() + "\"}",  // 特殊用户ID会触发异常
             "test-tenant"
         );
         
-        // 发送消息到Kafka
+        // 直接使用Spring Kafka发送事件
         kafkaTemplate.send("test-user-events", event);
         
         // 等待消息处理
         Thread.sleep(3000);
         
         // 验证异常被正确处理（不会导致测试失败）
-        // 这里主要验证异常不会影响其他监听器的正常工作
-        assertTrue(true, "异常应该被正确处理");
+        // 这里主要验证@EventListener的异常处理不会影响其他监听器的正常工作
+        assertTrue(true, "异常应该被@EventListener正确处理");
     }
 
-    // 测试监听器组件
+    /**
+     * 测试事件监听器组件
+     * 使用@EventListener注解进行事件监听
+     */
     @Component
-    static class TestKafkaListener {
+    static class TestEventListener {
+        // 用户事件相关
         private final AtomicInteger userLoginCount = new AtomicInteger(0);
-        private final AtomicReference<String> lastEventType = new AtomicReference<>();
+        private final AtomicReference<String> lastUserEventType = new AtomicReference<>();
+        private final AtomicReference<EventDTO> lastUserEvent = new AtomicReference<>();
         private final CountDownLatch userLoginLatch = new CountDownLatch(1);
+        
+        // 订单事件相关
+        private final AtomicInteger orderCount = new AtomicInteger(0);
+        private final AtomicReference<String> lastOrderEventType = new AtomicReference<>();
+        private final CountDownLatch orderLatch = new CountDownLatch(1);
+        
+        // 支付事件相关
+        private final AtomicInteger paymentCount = new AtomicInteger(0);
+        private final AtomicReference<String> lastPaymentEventType = new AtomicReference<>();
+        private final CountDownLatch paymentLatch = new CountDownLatch(1);
+        
+        // 批量事件相关
+        private final AtomicInteger batchCount = new AtomicInteger(0);
+        private final CountDownLatch batchLatch = new CountDownLatch(5);
 
+        /**
+         * 监听用户登录事件
+         */
         @EventListener(
             topics = "test-user-events",
             eventTypes = "user.login",
@@ -227,32 +274,19 @@ class KafkaEventListenerIntegrationTest {
         )
         public void handleUserLogin(EventDTO event) {
             userLoginCount.incrementAndGet();
-            lastEventType.set(event.getEventType());
+            lastUserEventType.set(event.getEventType());
+            lastUserEvent.set(event);
             userLoginLatch.countDown();
             
             // 模拟异常处理
-            if ("error-user".equals(event.getData())) {
-                throw new RuntimeException("模拟异常");
+            if (event.getData().contains("error-user")) {
+                throw new RuntimeException("模拟异常: " + event.getData());
             }
         }
 
-        public void reset() {
-            userLoginCount.set(0);
-            lastEventType.set(null);
-            // 重新创建CountDownLatch
-        }
-
-        public AtomicInteger getUserLoginCount() { return userLoginCount; }
-        public AtomicReference<String> getLastEventType() { return lastEventType; }
-        public CountDownLatch getUserLoginLatch() { return userLoginLatch; }
-    }
-
-    @Component
-    static class TestOrderListener {
-        private final AtomicInteger orderCount = new AtomicInteger(0);
-        private final AtomicReference<String> lastEventType = new AtomicReference<>();
-        private final CountDownLatch orderLatch = new CountDownLatch(1);
-
+        /**
+         * 监听订单事件
+         */
         @EventListener(
             topics = "test-order-events",
             groupId = "test-order-group",
@@ -261,46 +295,67 @@ class KafkaEventListenerIntegrationTest {
         )
         public void handleOrderEvents(EventDTO event) {
             orderCount.incrementAndGet();
-            lastEventType.set(event.getEventType());
+            lastOrderEventType.set(event.getEventType());
             orderLatch.countDown();
         }
 
-        public void reset() {
-            orderCount.set(0);
-            lastEventType.set(null);
-        }
-
-        public AtomicInteger getOrderCount() { return orderCount; }
-        public AtomicReference<String> getLastEventType() { return lastEventType; }
-        public CountDownLatch getOrderLatch() { return orderLatch; }
-    }
-
-    @Component
-    static class TestPaymentListener {
-        private final AtomicInteger paymentCount = new AtomicInteger(0);
-        private final AtomicReference<String> lastEventType = new AtomicReference<>();
-        private final CountDownLatch paymentLatch = new CountDownLatch(1);
-
+        /**
+         * 监听支付事件
+         */
         @EventListener(
             topics = "test-payment-events",
-            eventTypes = "payment.failed",
+            eventTypes = "payment.success",
             groupId = "test-payment-group",
             id = "test-payment-listener",
             priority = 0  // 高优先级
         )
         public void handlePaymentEvents(EventDTO event) {
             paymentCount.incrementAndGet();
-            lastEventType.set(event.getEventType());
+            lastPaymentEventType.set(event.getEventType());
             paymentLatch.countDown();
         }
 
-        public void reset() {
-            paymentCount.set(0);
-            lastEventType.set(null);
+        /**
+         * 监听批量事件
+         */
+        @EventListener(
+            topics = "test-batch-events",
+            eventTypes = "user.login",
+            groupId = "test-batch-group",
+            id = "test-batch-listener",
+            priority = 1
+        )
+        public void handleBatchEvents(EventDTO event) {
+            batchCount.incrementAndGet();
+            batchLatch.countDown();
         }
 
+        /**
+         * 重置所有计数器
+         */
+        public void reset() {
+            userLoginCount.set(0);
+            orderCount.set(0);
+            paymentCount.set(0);
+            batchCount.set(0);
+            lastUserEventType.set(null);
+            lastOrderEventType.set(null);
+            lastPaymentEventType.set(null);
+            lastUserEvent.set(null);
+        }
+
+        // Getters
+        public AtomicInteger getUserLoginCount() { return userLoginCount; }
+        public AtomicInteger getOrderCount() { return orderCount; }
         public AtomicInteger getPaymentCount() { return paymentCount; }
-        public AtomicReference<String> getLastEventType() { return lastEventType; }
+        public AtomicInteger getBatchCount() { return batchCount; }
+        public AtomicReference<String> getLastUserEventType() { return lastUserEventType; }
+        public AtomicReference<String> getLastOrderEventType() { return lastOrderEventType; }
+        public AtomicReference<String> getLastPaymentEventType() { return lastPaymentEventType; }
+        public AtomicReference<EventDTO> getLastUserEvent() { return lastUserEvent; }
+        public CountDownLatch getUserLoginLatch() { return userLoginLatch; }
+        public CountDownLatch getOrderLatch() { return orderLatch; }
         public CountDownLatch getPaymentLatch() { return paymentLatch; }
+        public CountDownLatch getBatchLatch() { return batchLatch; }
     }
 }

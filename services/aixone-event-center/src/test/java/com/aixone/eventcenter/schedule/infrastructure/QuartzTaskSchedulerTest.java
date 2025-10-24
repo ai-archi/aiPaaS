@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.quartz.*;
 
 import java.time.Instant;
+import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -47,14 +48,14 @@ class QuartzTaskSchedulerTest {
         @DisplayName("应该成功调度Cron任务")
         void shouldScheduleCronJobSuccessfully() throws SchedulerException {
             // Given
-            testTask.setTaskType(TaskType.CRON_JOB);
+            testTask.setTaskType(TaskType.CRON);
             testTask.setScheduleExpression("0 0 12 * * ?");
             
             when(scheduler.scheduleJob(any(JobDetail.class), any(Trigger.class)))
-                .thenReturn(Instant.now());
+                .thenReturn(Date.from(Instant.now()));
 
             // When
-            quartzTaskScheduler.scheduleJob(testTask);
+            quartzTaskScheduler.scheduleTask(testTask);
 
             // Then
             verify(scheduler).scheduleJob(any(JobDetail.class), any(Trigger.class));
@@ -64,14 +65,14 @@ class QuartzTaskSchedulerTest {
         @DisplayName("应该成功调度一次性任务")
         void shouldScheduleOneTimeJobSuccessfully() throws SchedulerException {
             // Given
-            testTask.setTaskType(TaskType.ONE_TIME_JOB);
+            testTask.setTaskType(TaskType.ONCE);
             testTask.setNextExecuteTime(Instant.now().plusSeconds(3600));
             
             when(scheduler.scheduleJob(any(JobDetail.class), any(Trigger.class)))
-                .thenReturn(Instant.now());
+                .thenReturn(Date.from(Instant.now()));
 
             // When
-            quartzTaskScheduler.scheduleJob(testTask);
+            quartzTaskScheduler.scheduleTask(testTask);
 
             // Then
             verify(scheduler).scheduleJob(any(JobDetail.class), any(Trigger.class));
@@ -86,7 +87,7 @@ class QuartzTaskSchedulerTest {
 
             // When & Then
             assertThrows(RuntimeException.class, () -> 
-                quartzTaskScheduler.scheduleJob(testTask));
+                quartzTaskScheduler.scheduleTask(testTask));
         }
     }
 
@@ -101,10 +102,10 @@ class QuartzTaskSchedulerTest {
             when(scheduler.checkExists(any(TriggerKey.class))).thenReturn(true);
             when(scheduler.unscheduleJob(any(TriggerKey.class))).thenReturn(true);
             when(scheduler.scheduleJob(any(JobDetail.class), any(Trigger.class)))
-                .thenReturn(Instant.now());
+                .thenReturn(Date.from(Instant.now()));
 
             // When
-            quartzTaskScheduler.rescheduleJob(testTask);
+            quartzTaskScheduler.rescheduleTask(testTask);
 
             // Then
             verify(scheduler).checkExists(any(TriggerKey.class));
@@ -123,7 +124,7 @@ class QuartzTaskSchedulerTest {
 
             // When & Then
             assertThrows(RuntimeException.class, () -> 
-                quartzTaskScheduler.rescheduleJob(testTask));
+                quartzTaskScheduler.rescheduleTask(testTask));
         }
     }
 
@@ -139,7 +140,7 @@ class QuartzTaskSchedulerTest {
             when(scheduler.unscheduleJob(any(TriggerKey.class))).thenReturn(true);
 
             // When
-            quartzTaskScheduler.unscheduleJob(taskId);
+            quartzTaskScheduler.unscheduleTask(taskId);
 
             // Then
             verify(scheduler).unscheduleJob(any(TriggerKey.class));
@@ -155,7 +156,7 @@ class QuartzTaskSchedulerTest {
 
             // When & Then
             assertThrows(RuntimeException.class, () -> 
-                quartzTaskScheduler.unscheduleJob(taskId));
+                quartzTaskScheduler.unscheduleTask(taskId));
         }
     }
 
@@ -171,7 +172,7 @@ class QuartzTaskSchedulerTest {
             doNothing().when(scheduler).pauseJob(any(JobKey.class));
 
             // When
-            quartzTaskScheduler.pauseJob(taskId);
+            quartzTaskScheduler.pauseTask(taskId);
 
             // Then
             verify(scheduler).pauseJob(any(JobKey.class));
@@ -187,7 +188,7 @@ class QuartzTaskSchedulerTest {
 
             // When & Then
             assertThrows(RuntimeException.class, () -> 
-                quartzTaskScheduler.pauseJob(taskId));
+                quartzTaskScheduler.pauseTask(taskId));
         }
     }
 
@@ -203,7 +204,7 @@ class QuartzTaskSchedulerTest {
             doNothing().when(scheduler).resumeJob(any(JobKey.class));
 
             // When
-            quartzTaskScheduler.resumeJob(taskId);
+            quartzTaskScheduler.resumeTask(taskId);
 
             // Then
             verify(scheduler).resumeJob(any(JobKey.class));
@@ -219,39 +220,38 @@ class QuartzTaskSchedulerTest {
 
             // When & Then
             assertThrows(RuntimeException.class, () -> 
-                quartzTaskScheduler.resumeJob(taskId));
+                quartzTaskScheduler.resumeTask(taskId));
         }
     }
 
     @Nested
-    @DisplayName("重试任务测试")
-    class RetryJobTests {
+    @DisplayName("立即执行测试")
+    class ExecuteImmediatelyTests {
 
         @Test
-        @DisplayName("应该成功调度重试任务")
-        void shouldScheduleRetryJobSuccessfully() throws SchedulerException {
+        @DisplayName("应该成功立即执行任务")
+        void shouldExecuteTaskImmediatelySuccessfully() throws SchedulerException {
             // Given
-            int retryCount = 1;
-            when(scheduler.scheduleJob(any(Trigger.class))).thenReturn(Instant.now());
+            when(scheduler.scheduleJob(any(JobDetail.class), any(Trigger.class)))
+                .thenReturn(Date.from(Instant.now()));
 
             // When
-            quartzTaskScheduler.scheduleJobForRetry(testTask, retryCount);
+            quartzTaskScheduler.executeTaskImmediately(testTask);
 
             // Then
-            verify(scheduler).scheduleJob(any(Trigger.class));
+            verify(scheduler).scheduleJob(any(JobDetail.class), any(Trigger.class));
         }
 
         @Test
-        @DisplayName("重试调度失败应该抛出异常")
-        void retryScheduleFailureShouldThrowException() throws SchedulerException {
+        @DisplayName("立即执行失败应该抛出异常")
+        void executeImmediatelyFailureShouldThrowException() throws SchedulerException {
             // Given
-            int retryCount = 1;
-            when(scheduler.scheduleJob(any(Trigger.class)))
-                .thenThrow(new SchedulerException("Retry schedule error"));
+            when(scheduler.scheduleJob(any(JobDetail.class), any(Trigger.class)))
+                .thenThrow(new SchedulerException("Execute immediately error"));
 
             // When & Then
             assertThrows(RuntimeException.class, () -> 
-                quartzTaskScheduler.scheduleJobForRetry(testTask, retryCount));
+                quartzTaskScheduler.executeTaskImmediately(testTask));
         }
     }
 
@@ -266,20 +266,27 @@ class QuartzTaskSchedulerTest {
             testTask.setTaskId(1L);
             testTask.setTaskName("测试任务");
             testTask.setDescription("任务描述");
-            testTask.setTaskType(TaskType.CRON_JOB);
+            testTask.setTaskType(TaskType.CRON);
             testTask.setExecutorService("test-service");
             testTask.setTaskParams("{\"param\": \"value\"}");
             testTask.setTimeoutSeconds(300);
             testTask.setMaxRetryCount(3);
             testTask.setCurrentRetryCount(0);
             testTask.setScheduleExpression("0 0 12 * * ?");
-            testTask.setTenantId("tenant-001");
+            // 通过反射设置租户ID
+            try {
+                java.lang.reflect.Field tenantIdField = testTask.getClass().getSuperclass().getDeclaredField("tenantId");
+                tenantIdField.setAccessible(true);
+                tenantIdField.set(testTask, "tenant-001");
+            } catch (Exception e) {
+                // 忽略反射异常
+            }
             
             when(scheduler.scheduleJob(any(JobDetail.class), any(Trigger.class)))
-                .thenReturn(Instant.now());
+                .thenReturn(Date.from(Instant.now()));
 
             // When
-            quartzTaskScheduler.scheduleJob(testTask);
+            quartzTaskScheduler.scheduleTask(testTask);
 
             // Then
             verify(scheduler).scheduleJob(argThat(jobDetail -> {
@@ -289,7 +296,7 @@ class QuartzTaskSchedulerTest {
                        jobDetail.getDescription().equals("任务描述") &&
                        jobDataMap.get("taskId").equals(1L) &&
                        jobDataMap.get("tenantId").equals("tenant-001") &&
-                       jobDataMap.get("taskType").equals("CRON_JOB") &&
+                       jobDataMap.get("taskType").equals("CRON") &&
                        jobDataMap.get("taskName").equals("测试任务") &&
                        jobDataMap.get("executorService").equals("test-service") &&
                        jobDataMap.get("taskParams").equals("{\"param\": \"value\"}") &&
@@ -307,7 +314,7 @@ class QuartzTaskSchedulerTest {
         task.setTaskId(1L);
         task.setTaskName("测试任务");
         task.setDescription("这是一个测试任务");
-        task.setTaskType(TaskType.CRON_JOB);
+        task.setTaskType(TaskType.CRON);
         task.setScheduleExpression("0 0 12 * * ?");
         task.setExecutorService("test-service");
         task.setTaskParams("{\"param\": \"value\"}");
@@ -316,7 +323,14 @@ class QuartzTaskSchedulerTest {
         task.setMaxRetryCount(3);
         task.setCurrentRetryCount(0);
         task.setTimeoutSeconds(300);
-        task.setTenantId("tenant-001");
+        // 通过反射设置租户ID
+        try {
+            java.lang.reflect.Field tenantIdField = task.getClass().getSuperclass().getDeclaredField("tenantId");
+            tenantIdField.setAccessible(true);
+            tenantIdField.set(task, "tenant-001");
+        } catch (Exception e) {
+            // 忽略反射异常
+        }
         return task;
     }
 }

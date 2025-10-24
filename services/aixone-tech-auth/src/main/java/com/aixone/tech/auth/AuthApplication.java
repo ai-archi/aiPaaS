@@ -1,7 +1,9 @@
 package com.aixone.tech.auth;
 
+import com.aixone.tech.auth.config.TestConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
@@ -9,6 +11,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  */
 @SpringBootApplication
 @EnableTransactionManagement
+@Import(TestConfig.class)
 public class AuthApplication {
 
     public static void main(String[] args) {

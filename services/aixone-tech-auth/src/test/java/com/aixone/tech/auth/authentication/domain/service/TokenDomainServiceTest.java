@@ -1,12 +1,18 @@
 package com.aixone.tech.auth.authentication.domain.service;
 
 import com.aixone.tech.auth.authentication.domain.model.Token;
+import com.aixone.tech.auth.infrastructure.security.JwtUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 /**
  * Token 领域服务测试
@@ -14,10 +20,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TokenDomainServiceTest {
 
     private TokenDomainService tokenDomainService;
+    
+    @Mock
+    private JwtUtils jwtUtils;
 
     @BeforeEach
     void setUp() {
-        tokenDomainService = new TokenDomainService();
+        MockitoAnnotations.openMocks(this);
+        tokenDomainService = new TokenDomainService(jwtUtils);
+        
+        // Mock JWT generation
+        when(jwtUtils.generateAccessToken(org.mockito.ArgumentMatchers.anyString(), 
+                                        org.mockito.ArgumentMatchers.anyString(), 
+                                        org.mockito.ArgumentMatchers.anyString(), 
+                                        org.mockito.ArgumentMatchers.any(Set.class), 
+                                        org.mockito.ArgumentMatchers.any(Set.class), 
+                                        org.mockito.ArgumentMatchers.any(Map.class)))
+            .thenReturn("mock-access-token");
+        when(jwtUtils.generateRefreshToken(org.mockito.ArgumentMatchers.anyString(), 
+                                         org.mockito.ArgumentMatchers.anyString(), 
+                                         org.mockito.ArgumentMatchers.anyString()))
+            .thenReturn("mock-refresh-token");
     }
 
     @Test

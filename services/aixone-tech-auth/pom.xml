@@ -83,6 +83,22 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
         
+        <!-- JWT 支持 -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        
         <!-- Aixone Common Dependencies -->
         <dependency>
             <groupId>com.aixone</groupId>
@@ -96,10 +112,6 @@
         <dependency>
             <groupId>com.aixone</groupId>
             <artifactId>aixone-permission-sdk</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.aixone</groupId>
-            <artifactId>aixone-session</artifactId>
         </dependency>
         <dependency>
             <groupId>com.aixone</groupId>

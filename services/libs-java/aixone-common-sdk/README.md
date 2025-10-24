@@ -47,13 +47,26 @@
 - `DataTypeUtils` - 数据类型工具
 - `ValidationUtils` - 验证工具（增强版）
 
-## 多租户支持
+### 7. 会话上下文管理 (`com.aixone.common.session`)
+- `SessionContext` - 统一会话上下文管理
+- `TokenParser` - JWT Token 解析器
+- `SessionInterceptor` - Spring 拦截器
+- `AbacAttributes` - ABAC 属性管理
+- `SessionException` - 会话相关异常
 
-本SDK不直接提供租户能力，而是通过依赖 `aixone-session-sdk` 来获取租户上下文：
+## 会话上下文管理
+
+本SDK内置了完整的会话上下文管理能力，支持多租户、JWT Token 解析和 ABAC 属性管理：
 
 ```java
-// 在业务代码中获取租户ID
+// 在业务代码中获取用户信息
+String userId = SessionContext.getUserId();
 String tenantId = SessionContext.getTenantId();
+String clientId = SessionContext.getClientId();
+
+// 获取 ABAC 属性
+Object department = SessionContext.getAbacAttribute("department");
+Object level = SessionContext.getAbacAttribute("level", "default");
 
 // 在Entity基类中自动注入租户ID
 public abstract class Entity<ID> {

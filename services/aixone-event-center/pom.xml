@@ -135,6 +135,9 @@
                         <include>**/*Test.java</include>
                         <include>**/*Tests.java</include>
                     </includes>
+                    <forkCount>0</forkCount>
+                    <reuseForks>false</reuseForks>
+                    <argLine>-Xmx1024m -Djava.awt.headless=true</argLine>
                 </configuration>
             </plugin>
         </plugins>

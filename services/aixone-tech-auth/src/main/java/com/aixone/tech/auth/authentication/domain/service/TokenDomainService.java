@@ -1,9 +1,12 @@
 package com.aixone.tech.auth.authentication.domain.service;
 
 import com.aixone.tech.auth.authentication.domain.model.Token;
+import com.aixone.tech.auth.infrastructure.security.JwtUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -12,13 +15,29 @@ import java.util.UUID;
  */
 @Service
 public class TokenDomainService {
+    
+    private final JwtUtils jwtUtils;
+    
+    public TokenDomainService(JwtUtils jwtUtils) {
+        this.jwtUtils = jwtUtils;
+    }
 
     /**
      * 生成访问令牌
      */
     public Token generateAccessToken(String tenantId, String userId, String clientId, 
                                    LocalDateTime expiresAt) {
-        String tokenValue = generateTokenValue();
+        return generateAccessToken(tenantId, userId, clientId, expiresAt, null, null, null);
+    }
+    
+    /**
+     * 生成访问令牌（带角色和权限）
+     */
+    public Token generateAccessToken(String tenantId, String userId, String clientId, 
+                                   LocalDateTime expiresAt, Set<String> roles, 
+                                   Set<String> permissions, Map<String, Object> abacAttributes) {
+        String tokenValue = jwtUtils.generateAccessToken(userId, tenantId, clientId, 
+                                                        roles, permissions, abacAttributes);
         return new Token(tokenValue, tenantId, userId, clientId, expiresAt, Token.TokenType.ACCESS);
     }
 
@@ -35,7 +54,7 @@ public class TokenDomainService {
      */
     public Token generateRefreshToken(String tenantId, String userId, String clientId, 
                                     LocalDateTime expiresAt) {
-        String tokenValue = generateTokenValue();
+        String tokenValue = jwtUtils.generateRefreshToken(userId, tenantId, clientId);
         return new Token(tokenValue, tenantId, userId, clientId, expiresAt, Token.TokenType.REFRESH);
     }
 
@@ -54,7 +73,7 @@ public class TokenDomainService {
         if (token == null) {
             return false;
         }
-        return token.isValid();
+        return jwtUtils.validateToken(token.getToken()) && token.isValid();
     }
 
     /**

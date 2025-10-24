@@ -92,10 +92,17 @@ public class TaskLog extends com.aixone.common.ddd.Entity<Long> {
     private Instant createTime = Instant.now();
     
     /**
+     * 租户ID
+     */
+    @Column(name = "tenant_id", length = 50)
+    private String tenantId;
+    
+    /**
      * 构造函数
      */
     public TaskLog() {
         super(0L); // 临时ID，实际保存时会生成
+        this.tenantId = getTenantId(); // 从基类获取租户ID
     }
     
     /**
@@ -123,6 +130,18 @@ public class TaskLog extends com.aixone.common.ddd.Entity<Long> {
         this.executorNode = executorNode;
         this.startTime = startTime;
         this.status = TaskStatus.RUNNING;
+    }
+    
+    /**
+     * 构造函数（带租户ID）
+     */
+    public TaskLog(Long taskId, String executorNode, Instant startTime, String tenantId) {
+        super(0L, tenantId);
+        this.taskId = taskId;
+        this.executorNode = executorNode;
+        this.startTime = startTime;
+        this.status = TaskStatus.RUNNING;
+        this.tenantId = tenantId;
     }
     
     /**

@@ -123,10 +123,17 @@ public class Task extends com.aixone.common.ddd.Entity<Long> {
     private Integer timeoutSeconds = 300;
     
     /**
+     * 租户ID
+     */
+    @Column(name = "tenant_id", length = 50)
+    private String tenantId;
+    
+    /**
      * 构造函数
      */
     public Task() {
         super(0L); // 临时ID，实际保存时会生成
+        this.tenantId = getTenantId(); // 从基类获取租户ID
     }
     
     /**
@@ -157,6 +164,21 @@ public class Task extends com.aixone.common.ddd.Entity<Long> {
         this.scheduleExpression = scheduleExpression;
         this.executorService = executorService;
         this.taskParams = taskParams;
+    }
+    
+    /**
+     * 构造函数（带租户ID）
+     */
+    public Task(String taskName, String description, TaskType taskType, 
+                String scheduleExpression, String executorService, String taskParams, String tenantId) {
+        super(0L, tenantId);
+        this.taskName = taskName;
+        this.description = description;
+        this.taskType = taskType;
+        this.scheduleExpression = scheduleExpression;
+        this.executorService = executorService;
+        this.taskParams = taskParams;
+        this.tenantId = tenantId;
     }
     
     /**
