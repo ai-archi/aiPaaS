@@ -62,6 +62,21 @@ CREATE TABLE IF NOT EXISTS verification_codes (
     used BOOLEAN NOT NULL DEFAULT FALSE
 );
 
+-- 创建用户表
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(255) NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    avatar_url VARCHAR(500),
+    bio TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    tenant_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_users_username_tenant UNIQUE (username, tenant_id)
+);
+
 -- 创建租户配置表
 CREATE TABLE IF NOT EXISTS tenant_configs (
     tenant_id VARCHAR(255) PRIMARY KEY,

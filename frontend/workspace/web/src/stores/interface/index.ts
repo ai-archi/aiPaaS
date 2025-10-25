@@ -113,6 +113,10 @@ export interface AdminInfo {
     refresh_token: string
     // 是否是 superAdmin，用于判定是否显示终端按钮等，不做任何权限判断
     super: boolean
+    // 租户ID，用于多租户支持
+    tenantId: string
+    // 客户端ID，用于认证
+    clientId: string
 }
 
 export interface UserInfo {

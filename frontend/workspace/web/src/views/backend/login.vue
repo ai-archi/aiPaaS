@@ -159,10 +159,17 @@ const onSubmitPre = () => {
 const onSubmit = (captchaInfo = '') => {
     state.submitLoading = true
     form.captchaInfo = captchaInfo
-    login('post', form)
+
+    // 使用新的认证接口
+    adminInfo
+        .loginWithNewAuth(form.username, form.password)
         .then((res) => {
-            adminInfo.dataFill(res.data.userInfo, false)
+            // 登录成功，跳转到管理后台
             router.push({ path: adminBaseRoutePath })
+        })
+        .catch((error) => {
+            console.error('登录失败:', error)
+            // 这里可以显示错误提示
         })
         .finally(() => {
             state.submitLoading = false

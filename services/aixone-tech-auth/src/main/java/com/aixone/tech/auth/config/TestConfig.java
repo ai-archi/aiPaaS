@@ -1,9 +1,10 @@
 package com.aixone.tech.auth.config;
 
-import com.aixone.audit.application.AuditService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+
+import com.aixone.audit.application.AuditService;
 
 /**
  * 测试配置
@@ -39,6 +40,27 @@ public class TestConfig {
             @Override
             public com.aixone.audit.domain.AuditLog logAction(String action, String resource, String result, 
                                                              java.util.Map<String, Object> details, String errorMessage) {
+                return null; // 空实现，用于测试
+            }
+            
+            @Override
+            public com.aixone.audit.domain.AuditLog logLoginSuccess(String userId, String clientIp, String userAgent) {
+                return null; // 空实现，用于测试
+            }
+            
+            @Override
+            public com.aixone.audit.domain.AuditLog logLoginFailure(String userId, String reason, String clientIp, String userAgent) {
+                return null; // 空实现，用于测试
+            }
+            
+            @Override
+            public com.aixone.audit.domain.AuditLog logLogout(String userId, String clientIp, String userAgent) {
+                return null; // 空实现，用于测试
+            }
+            
+            @Override
+            public com.aixone.audit.domain.AuditLog logPermissionCheck(String userId, String resource, String action, 
+                                                                      String result, String reason) {
                 return null; // 空实现，用于测试
             }
         };

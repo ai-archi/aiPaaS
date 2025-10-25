@@ -51,7 +51,12 @@ class RoleTest {
         String description = "系统管理员角色";
         List<String> permissionIds = Arrays.asList("perm1", "perm2", "perm3");
 
-        Role newRole = new Role(testRoleId, testTenantId, name, description, permissionIds);
+        Role newRole = new Role();
+        newRole.setRoleId(testRoleId);
+        newRole.setTenantId(testTenantId);
+        newRole.setName(name);
+        newRole.setDescription(description);
+        newRole.setPermissionIds(permissionIds);
 
         assertEquals(testRoleId, newRole.getRoleId());
         assertEquals(testTenantId, newRole.getTenantId());
@@ -66,10 +71,25 @@ class RoleTest {
         String name = "用户角色";
         String description = "普通用户角色";
         List<String> permissionIds = Arrays.asList("user:read", "user:update");
-        List<Permission> permissions = Arrays.asList(
-            new Permission("perm1", testTenantId, "用户查看", "user", "read", "查看用户", Permission.PermissionLevel.READ),
-            new Permission("perm2", testTenantId, "用户更新", "user", "update", "更新用户", Permission.PermissionLevel.WRITE)
-        );
+        Permission perm1 = new Permission();
+        perm1.setPermissionId("perm1");
+        perm1.setTenantId(testTenantId);
+        perm1.setName("用户查看");
+        perm1.setResource("user");
+        perm1.setAction("read");
+        perm1.setDescription("查看用户");
+        perm1.setLevel(Permission.PermissionLevel.READ);
+        
+        Permission perm2 = new Permission();
+        perm2.setPermissionId("perm2");
+        perm2.setTenantId(testTenantId);
+        perm2.setName("用户更新");
+        perm2.setResource("user");
+        perm2.setAction("update");
+        perm2.setDescription("更新用户");
+        perm2.setLevel(Permission.PermissionLevel.WRITE);
+        
+        List<Permission> permissions = Arrays.asList(perm1, perm2);
         LocalDateTime now = LocalDateTime.now();
 
         role.setRoleId(testRoleId);
@@ -94,9 +114,26 @@ class RoleTest {
     @Test
     @DisplayName("测试equals和hashCode方法")
     void testEqualsAndHashCode() {
-        Role role1 = new Role(testRoleId, testTenantId, "角色1", "描述1", Arrays.asList("perm1"));
-        Role role2 = new Role(testRoleId, testTenantId, "角色2", "描述2", Arrays.asList("perm2"));
-        Role role3 = new Role("different-id", testTenantId, "角色1", "描述1", Arrays.asList("perm1"));
+        Role role1 = new Role();
+        role1.setRoleId(testRoleId);
+        role1.setTenantId(testTenantId);
+        role1.setName("角色1");
+        role1.setDescription("描述1");
+        role1.setPermissionIds(Arrays.asList("perm1"));
+        
+        Role role2 = new Role();
+        role2.setRoleId(testRoleId);
+        role2.setTenantId(testTenantId);
+        role2.setName("角色2");
+        role2.setDescription("描述2");
+        role2.setPermissionIds(Arrays.asList("perm2"));
+        
+        Role role3 = new Role();
+        role3.setRoleId("different-id");
+        role3.setTenantId(testTenantId);
+        role3.setName("角色1");
+        role3.setDescription("描述1");
+        role3.setPermissionIds(Arrays.asList("perm1"));
 
         // 相同ID的角色应该相等
         assertEquals(role1, role2);
@@ -149,8 +186,24 @@ class RoleTest {
     @Test
     @DisplayName("测试权限对象列表操作")
     void testPermissionsOperations() {
-        Permission perm1 = new Permission("perm1", testTenantId, "权限1", "resource1", "action1", "描述1", Permission.PermissionLevel.READ);
-        Permission perm2 = new Permission("perm2", testTenantId, "权限2", "resource2", "action2", "描述2", Permission.PermissionLevel.WRITE);
+        Permission perm1 = new Permission();
+        perm1.setPermissionId("perm1");
+        perm1.setTenantId(testTenantId);
+        perm1.setName("权限1");
+        perm1.setResource("resource1");
+        perm1.setAction("action1");
+        perm1.setDescription("描述1");
+        perm1.setLevel(Permission.PermissionLevel.READ);
+        
+        Permission perm2 = new Permission();
+        perm2.setPermissionId("perm2");
+        perm2.setTenantId(testTenantId);
+        perm2.setName("权限2");
+        perm2.setResource("resource2");
+        perm2.setAction("action2");
+        perm2.setDescription("描述2");
+        perm2.setLevel(Permission.PermissionLevel.WRITE);
+        
         List<Permission> permissions = Arrays.asList(perm1, perm2);
 
         role.setPermissions(permissions);
@@ -235,8 +288,23 @@ class RoleTest {
     @DisplayName("测试角色权限关联")
     void testRolePermissionAssociation() {
         // 创建权限
-        Permission perm1 = new Permission("perm1", testTenantId, "权限1", "resource1", "action1", "描述1", Permission.PermissionLevel.READ);
-        Permission perm2 = new Permission("perm2", testTenantId, "权限2", "resource2", "action2", "描述2", Permission.PermissionLevel.WRITE);
+        Permission perm1 = new Permission();
+        perm1.setPermissionId("perm1");
+        perm1.setTenantId(testTenantId);
+        perm1.setName("权限1");
+        perm1.setResource("resource1");
+        perm1.setAction("action1");
+        perm1.setDescription("描述1");
+        perm1.setLevel(Permission.PermissionLevel.READ);
+        
+        Permission perm2 = new Permission();
+        perm2.setPermissionId("perm2");
+        perm2.setTenantId(testTenantId);
+        perm2.setName("权限2");
+        perm2.setResource("resource2");
+        perm2.setAction("action2");
+        perm2.setDescription("描述2");
+        perm2.setLevel(Permission.PermissionLevel.WRITE);
 
         // 设置权限ID列表
         List<String> permissionIds = Arrays.asList("perm1", "perm2");

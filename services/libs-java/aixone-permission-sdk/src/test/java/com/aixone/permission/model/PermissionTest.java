@@ -51,7 +51,14 @@ class PermissionTest {
         String description = "查看用户信息";
         Permission.PermissionLevel level = Permission.PermissionLevel.ADMIN;
 
-        Permission newPermission = new Permission(testPermissionId, testTenantId, name, resource, action, description, level);
+        Permission newPermission = new Permission();
+        newPermission.setPermissionId(testPermissionId);
+        newPermission.setTenantId(testTenantId);
+        newPermission.setName(name);
+        newPermission.setResource(resource);
+        newPermission.setAction(action);
+        newPermission.setDescription(description);
+        newPermission.setLevel(level);
 
         assertEquals(testPermissionId, newPermission.getPermissionId());
         assertEquals(testTenantId, newPermission.getTenantId());
@@ -96,9 +103,32 @@ class PermissionTest {
     @Test
     @DisplayName("测试equals和hashCode方法")
     void testEqualsAndHashCode() {
-        Permission permission1 = new Permission(testPermissionId, testTenantId, "权限1", "resource1", "action1", "描述1", Permission.PermissionLevel.READ);
-        Permission permission2 = new Permission(testPermissionId, testTenantId, "权限2", "resource2", "action2", "描述2", Permission.PermissionLevel.WRITE);
-        Permission permission3 = new Permission("different-id", testTenantId, "权限1", "resource1", "action1", "描述1", Permission.PermissionLevel.READ);
+        Permission permission1 = new Permission();
+        permission1.setPermissionId(testPermissionId);
+        permission1.setTenantId(testTenantId);
+        permission1.setName("权限1");
+        permission1.setResource("resource1");
+        permission1.setAction("action1");
+        permission1.setDescription("描述1");
+        permission1.setLevel(Permission.PermissionLevel.READ);
+        
+        Permission permission2 = new Permission();
+        permission2.setPermissionId(testPermissionId);
+        permission2.setTenantId(testTenantId);
+        permission2.setName("权限2");
+        permission2.setResource("resource2");
+        permission2.setAction("action2");
+        permission2.setDescription("描述2");
+        permission2.setLevel(Permission.PermissionLevel.WRITE);
+        
+        Permission permission3 = new Permission();
+        permission3.setPermissionId("different-id");
+        permission3.setTenantId(testTenantId);
+        permission3.setName("权限1");
+        permission3.setResource("resource1");
+        permission3.setAction("action1");
+        permission3.setDescription("描述1");
+        permission3.setLevel(Permission.PermissionLevel.READ);
 
         // 相同ID的权限应该相等
         assertEquals(permission1, permission2);

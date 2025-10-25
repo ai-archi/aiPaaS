@@ -158,9 +158,12 @@ public class AuthenticationApplicationService {
      * 验证用户凭据
      */
     private String validateUserCredentials(String tenantId, String username, String password) {
-        // 这里需要调用目录服务来验证用户凭据
-        // 暂时返回一个模拟的用户ID
-        return "user-" + username + "-" + tenantId;
+        // 暂时使用简单的验证逻辑
+        // 在实际生产环境中，这里应该调用目录服务来验证用户凭据
+        if ("admin".equals(username) && "admin".equals(password) && "default".equals(tenantId)) {
+            return "admin";
+        }
+        throw new IllegalArgumentException("用户名或密码错误");
     }
 
     /**

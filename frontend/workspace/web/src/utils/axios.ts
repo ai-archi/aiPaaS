@@ -91,7 +91,13 @@ function createAxios<Data = any, T = ApiPromise<Data>>(axiosConfig: AxiosRequest
             // 自动携带token
             if (config.headers) {
                 const token = adminInfo.getToken()
-                if (token) (config.headers as anyObj).batoken = token
+                if (token) {
+                    // 使用新的认证头部格式
+                    ;(config.headers as anyObj).Authorization = `Bearer ${token}`(
+                        // 添加租户ID头部
+                        config.headers as anyObj
+                    )['X-Tenant-ID'] = adminInfo.tenantId
+                }
                 const userToken = options.anotherToken || userInfo.getToken()
                 if (userToken) (config.headers as anyObj)['ba-user-token'] = userToken
             }
@@ -114,17 +120,13 @@ function createAxios<Data = any, T = ApiPromise<Data>>(axiosConfig: AxiosRequest
                     if (response.data.code == 409) {
                         if (!window.tokenRefreshing) {
                             window.tokenRefreshing = true
-                            return refreshToken()
+                            return adminInfo
+                                .refreshAuthToken()
                                 .then((res) => {
-                                    if (res.data.type == 'admin-refresh') {
-                                        adminInfo.setToken(res.data.token, 'auth')
-                                        response.headers.batoken = `${res.data.token}`
-                                        window.requests.forEach((cb) => cb(res.data.token, 'admin-refresh'))
-                                    } else if (res.data.type == 'user-refresh') {
-                                        userInfo.setToken(res.data.token, 'auth')
-                                        response.headers['ba-user-token'] = `${res.data.token}`
-                                        window.requests.forEach((cb) => cb(res.data.token, 'user-refresh'))
-                                    }
+                                    // 更新请求头中的令牌
+                                    response.headers.Authorization = `Bearer ${adminInfo.getToken()}`
+                                    response.headers['X-Tenant-ID'] = adminInfo.tenantId
+                                    window.requests.forEach((cb) => cb(adminInfo.getToken(), 'admin-refresh'))
                                     window.requests = []
                                     return Axios(response.config)
                                 })
@@ -135,7 +137,8 @@ function createAxios<Data = any, T = ApiPromise<Data>>(axiosConfig: AxiosRequest
                                             router.push({ name: 'adminLogin' })
                                             return Promise.reject(err)
                                         } else {
-                                            response.headers.batoken = ''
+                                            response.headers.Authorization = ''
+                                            response.headers['X-Tenant-ID'] = ''
                                             window.requests.forEach((cb) => cb('', 'admin-refresh'))
                                             window.requests = []
                                             return Axios(response.config)
@@ -161,7 +164,8 @@ function createAxios<Data = any, T = ApiPromise<Data>>(axiosConfig: AxiosRequest
                                 // 用函数形式将 resolve 存入，等待刷新后再执行
                                 window.requests.push((token: string, type: string) => {
                                     if (type == 'admin-refresh') {
-                                        response.headers.batoken = `${token}`
+                                        response.headers.Authorization = `Bearer ${token}`
+                                        response.headers['X-Tenant-ID'] = adminInfo.tenantId
                                     } else {
                                         response.headers['ba-user-token'] = `${token}`
                                     }
