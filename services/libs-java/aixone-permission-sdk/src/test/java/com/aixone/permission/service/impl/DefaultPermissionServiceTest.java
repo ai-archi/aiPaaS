@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -41,6 +42,9 @@ class DefaultPermissionServiceTest {
     @Mock
     private PermissionValidator abacValidator;
 
+    @Mock
+    private AbacExpressionUtil abacExpressionUtil;
+
     private DefaultPermissionService permissionService;
     private User testUser;
     private Permission testPermission;
@@ -55,17 +59,13 @@ class DefaultPermissionServiceTest {
         testResource = createTestResource();
         testRole = createTestRole();
 
-        // 使用MockedConstruction来模拟构造函数中的依赖注入
-        try (MockedConstruction<RbacValidator> rbacMock = mockConstruction(RbacValidator.class, (mock, context) -> {
-            when(mock.hasPermission(any(User.class), any(Permission.class), any(Resource.class))).thenReturn(false);
-        });
-             MockedConstruction<AbacValidator> abacMock = mockConstruction(AbacValidator.class, (mock, context) -> {
-                 when(mock.hasPermission(any(User.class), any(Permission.class), any(Resource.class))).thenReturn(false);
-             });
-             MockedConstruction<AbacExpressionUtil> abacUtilMock = mockConstruction(AbacExpressionUtil.class)) {
+        // 创建模拟的验证器
+        rbacValidator = mock(RbacValidator.class);
+        abacValidator = mock(AbacValidator.class);
+        abacExpressionUtil = mock(AbacExpressionUtil.class);
 
-            permissionService = new DefaultPermissionService(userPermissionProvider);
-        }
+        // 创建服务实例，使用模拟的依赖
+        permissionService = new DefaultPermissionService(userPermissionProvider);
     }
 
     @Nested

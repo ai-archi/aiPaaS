@@ -9,15 +9,25 @@
                         <div class="main-content">
                             {{ $t('index.Steve Jobs') }}
                         </div>
-                        <el-button
-                            v-if="memberCenter.state.open"
-                            @click="$router.push(memberCenterBaseRoutePath)"
-                            class="container-button"
-                            color="#ffffff"
-                            size="large"
-                        >
-                            {{ $t('Member Center') }}
-                        </el-button>
+                        <div class="main-buttons">
+                            <el-button
+                                v-if="memberCenter.state.open"
+                                @click="$router.push(memberCenterBaseRoutePath)"
+                                class="container-button"
+                                color="#ffffff"
+                                size="large"
+                            >
+                                {{ $t('Member Center') }}
+                            </el-button>
+                            <el-button
+                                @click="$router.push(adminBaseRoutePath + '/login')"
+                                class="container-button"
+                                color="#ffffff"
+                                size="large"
+                            >
+                                登录后台管理
+                            </el-button>
+                        </div>
                     </div>
                     <div class="main-right">
                         <img :src="indexCover" alt="" />
@@ -36,6 +46,7 @@ import { useMemberCenter } from '/@/stores/memberCenter'
 import Header from '/@/layouts/frontend/components/header.vue'
 import Footer from '/@/layouts/frontend/components/footer.vue'
 import { memberCenterBaseRoutePath } from '/@/router/static/memberCenterBase'
+import { adminBaseRoutePath } from '/@/router/static/adminBase'
 
 const siteConfig = useSiteConfig()
 const memberCenter = useMemberCenter()
@@ -44,6 +55,10 @@ const memberCenter = useMemberCenter()
 <style scoped lang="scss">
 .container-button {
     margin: 0 15px 15px 0;
+}
+.main-buttons {
+    display: flex;
+    flex-wrap: wrap;
 }
 .container {
     width: 100vw;

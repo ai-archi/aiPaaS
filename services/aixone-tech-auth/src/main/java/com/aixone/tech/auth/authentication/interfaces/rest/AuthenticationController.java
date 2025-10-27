@@ -1,6 +1,11 @@
 package com.aixone.tech.auth.authentication.interfaces.rest;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -18,6 +23,9 @@ import com.aixone.tech.auth.authentication.application.service.VerificationCodeA
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+
+import java.util.Optional;
+import com.aixone.tech.auth.authentication.domain.model.User;
 
 /**
  * 认证控制器
@@ -42,8 +50,8 @@ public class AuthenticationController {
      * 用户名密码登录
      */
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request,
-                                               HttpServletRequest httpRequest) {
+    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest request,
+                                                      HttpServletRequest httpRequest) {
         LoginCommand command = new LoginCommand(
             request.getTenantId(),
             request.getUsername(),
@@ -55,13 +63,21 @@ public class AuthenticationController {
         command.setUserAgent(httpRequest.getHeader("User-Agent"));
 
         try {
-            TokenResponse response = authenticationService.login(command);
+            TokenResponse tokenResponse = authenticationService.login(command);
+            
             // 记录登录成功审计日志
             auditService.logLoginSuccess(
                 request.getUsername(),
                 getClientIp(httpRequest),
                 httpRequest.getHeader("User-Agent")
             );
+            
+            // 包装响应为前端期望的格式
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 1);
+            response.put("msg", "登录成功");
+            response.put("data", tokenResponse);
+            
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             // 记录登录失败审计日志
@@ -71,7 +87,14 @@ public class AuthenticationController {
                 getClientIp(httpRequest),
                 httpRequest.getHeader("User-Agent")
             );
-            throw e;
+            
+            // 包装错误响应
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 0);
+            response.put("msg", "登录失败: " + e.getMessage());
+            response.put("data", Map.of());
+            
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -203,5 +226,55 @@ public class AuthenticationController {
             return xForwardedFor.split(",")[0].trim();
         }
         return request.getRemoteAddr();
+    }
+    
+    /**
+     * 测试用户查询
+     */
+    @GetMapping("/test-user/{username}")
+    public ResponseEntity<String> testUser(@PathVariable String username) {
+        try {
+            Optional<User> user = authenticationService.getUserByUsername(username, "default");
+            if (user.isPresent()) {
+                return ResponseEntity.ok("User found: " + user.get().getId() + " - " + user.get().getUsername());
+            } else {
+                return ResponseEntity.ok("User not found");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.ok("Error: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/test-login")
+    public ResponseEntity<String> testLogin(@RequestBody LoginRequest request) {
+        try {
+            System.out.println("DEBUG: testLogin called with username=" + request.getUsername());
+            
+            // Test client validation
+            System.out.println("DEBUG: Testing client validation");
+            // This will call the private method through reflection or we can make it public temporarily
+            
+            // Test user validation
+            System.out.println("DEBUG: Testing user validation");
+            Optional<User> user = authenticationService.getUserByUsername(request.getUsername(), request.getTenantId());
+            if (user.isEmpty()) {
+                return ResponseEntity.ok("User not found");
+            }
+            
+            System.out.println("DEBUG: User found: " + user.get().getId());
+            
+            // Test password validation
+            System.out.println("DEBUG: Testing password validation");
+            boolean passwordMatches = authenticationService.passwordMatches(request.getPassword(), user.get().getHashedPassword());
+            if (!passwordMatches) {
+                return ResponseEntity.ok("Password does not match");
+            }
+            
+            return ResponseEntity.ok("All validations passed for user: " + user.get().getId());
+        } catch (Exception e) {
+            System.out.println("DEBUG: Exception in testLogin: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.ok("Error: " + e.getMessage());
+        }
     }
 }

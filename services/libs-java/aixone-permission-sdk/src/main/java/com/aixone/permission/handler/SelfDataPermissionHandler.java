@@ -10,7 +10,7 @@ import com.aixone.permission.model.Resource;
 public class SelfDataPermissionHandler implements DataPermissionHandler {
     @Override
     public String buildCondition(User user, Resource resource) {
-        if (user.getUserId() == null) return "1=0";
+        if (user == null || user.getUserId() == null) return "1=0";
         return "user_id = '" + user.getUserId() + "'";
     }
 } 

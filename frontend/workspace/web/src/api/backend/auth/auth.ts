@@ -109,11 +109,12 @@ export function validateToken(data: ValidateTokenRequest) {
  */
 export function sendSmsCode(phone: string, tenantId: string) {
     return createAxios({
-        url: '/auth/sms/send',
+        url: '/verification-codes/send',
         method: 'post',
         data: {
             phone,
             tenantId,
+            type: 'SMS',
         },
     })
 }
@@ -123,11 +124,76 @@ export function sendSmsCode(phone: string, tenantId: string) {
  */
 export function sendEmailCode(email: string, tenantId: string) {
     return createAxios({
-        url: '/auth/email/send',
+        url: '/verification-codes/send',
         method: 'post',
         data: {
             email,
             tenantId,
+            type: 'EMAIL',
         },
+    })
+}
+
+/**
+ * 验证验证码
+ */
+export function verifyCode(code: string, phone?: string, email?: string, tenantId: string = 'default') {
+    return createAxios({
+        url: '/verification-codes/verify',
+        method: 'post',
+        data: {
+            code,
+            phone,
+            email,
+            tenantId,
+        },
+    })
+}
+
+/**
+ * 检查权限
+ */
+export function checkPermission(userId: string, resource: string, action: string, tenantId: string = 'default') {
+    return createAxios({
+        url: '/auth/check-permission',
+        method: 'post',
+        data: {
+            userId,
+            resource,
+            action,
+            tenantId,
+        },
+    })
+}
+
+/**
+ * 获取权限列表
+ */
+export function getPermissions(tenantId: string = 'default') {
+    return createAxios({
+        url: `/admin/permissions/${tenantId}`,
+        method: 'get',
+    })
+}
+
+/**
+ * 获取角色列表
+ */
+export function getRoles(tenantId: string = 'default') {
+    return createAxios({
+        url: '/admin/roles',
+        method: 'get',
+        params: { tenantId },
+    })
+}
+
+/**
+ * 获取用户角色
+ */
+export function getUserRoles(userId: string, tenantId: string = 'default') {
+    return createAxios({
+        url: `/admin/users/${userId}/roles`,
+        method: 'get',
+        params: { tenantId },
     })
 }

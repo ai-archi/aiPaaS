@@ -32,10 +32,9 @@ export function logout() {
 }
 
 export function baAccountCheckIn(params: object = {}) {
-    const siteConfig = useSiteConfig()
     return createAxios(
         {
-            url: siteConfig.apiUrl + '/api/user/checkIn',
+            url: '/auth/login',
             data: params,
             method: 'post',
         },
@@ -47,11 +46,10 @@ export function baAccountCheckIn(params: object = {}) {
 
 export function baAccountGetUserInfo() {
     const baAccount = useBaAccount()
-    const siteConfig = useSiteConfig()
     return createAxios(
         {
-            url: siteConfig.apiUrl + '/api/user/info',
-            method: 'get',
+            url: '/auth/validate',
+            method: 'post',
         },
         {
             anotherToken: baAccount.getToken('auth'),
@@ -60,10 +58,9 @@ export function baAccountGetUserInfo() {
 }
 
 export function baAccountLogout() {
-    const siteConfig = useSiteConfig()
     const baAccount = useBaAccount()
     return createAxios({
-        url: siteConfig.apiUrl + '/api/user/logout',
+        url: '/auth/logout',
         method: 'POST',
         data: {
             refreshToken: baAccount.getToken('refresh'),

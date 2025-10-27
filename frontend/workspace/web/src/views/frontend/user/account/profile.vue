@@ -254,7 +254,7 @@ import UserProfileMixin from '/@/components/mixins/userProfile.vue'
 import { useI18n } from 'vue-i18n'
 import { sendEms, sendSms } from '/@/api/common'
 import { uuid } from '/@/utils/random'
-import clickCaptcha from '/@/components/clickCaptcha'
+// import clickCaptcha from '/@/components/clickCaptcha' // 移除验证码功能
 import { useMemberCenter } from '/@/stores/memberCenter'
 let timer: number
 
@@ -381,16 +381,16 @@ const sendVerificationCaptchaPre = () => {
     if (state.dialog.codeSendCountdown > 0) return
     verificationFormRef.value!.validateField('password').then((res) => {
         if (!res) return
-        clickCaptcha(state.dialog.captchaId, (captchaInfo: string) => sendVerificationCaptcha(captchaInfo))
+        // clickCaptcha(state.dialog.captchaId, (captchaInfo: string) => sendVerificationCaptcha(captchaInfo)) // 移除验证码
+        sendVerificationCaptcha()
     })
 }
-const sendVerificationCaptcha = (captchaInfo: string) => {
+const sendVerificationCaptcha = () => {
     state.dialog.sendCaptchaLoading = true
     const func = state.dialog.type == 'email' ? sendEms : sendSms
     func(userInfo[state.dialog.type], `user_${state.dialog.type}_verify`, {
         password: state.dialog.verification.form.password,
-        captchaId: state.dialog.captchaId,
-        captchaInfo,
+        // 移除验证码相关参数
     })
         .then((res) => {
             if (res.code == 1) startTiming(60)
@@ -404,15 +404,15 @@ const sendBindCaptchaPre = () => {
     if (state.dialog.codeSendCountdown > 0) return
     bindFormRef.value!.validateField(state.dialog.type).then((res) => {
         if (!res) return
-        clickCaptcha(state.dialog.captchaId, (captchaInfo: string) => sendBindCaptcha(captchaInfo))
+        // clickCaptcha(state.dialog.captchaId, (captchaInfo: string) => sendBindCaptcha(captchaInfo)) // 移除验证码
+        sendBindCaptcha()
     })
 }
-const sendBindCaptcha = (captchaInfo: string) => {
+const sendBindCaptcha = () => {
     state.dialog.sendCaptchaLoading = true
     const func = state.dialog.type == 'email' ? sendEms : sendSms
     func(state.dialog.bind.form[state.dialog.type], `user_change_${state.dialog.type}`, {
-        captchaId: state.dialog.captchaId,
-        captchaInfo,
+        // 移除验证码相关参数
     })
         .then((res) => {
             if (res.code == 1) startTiming(60)

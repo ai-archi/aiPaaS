@@ -77,7 +77,7 @@ public class VerificationCodeManagementApplicationService {
                 System.out.println("Email Code sent to " + request.getEmail() + ": " + code);
             }
             
-            VerificationCodeResponse response = new VerificationCodeResponse(true, "验证码发送成功", verificationCode.getCodeId(), 300);
+            VerificationCodeResponse response = new VerificationCodeResponse(true, "验证码发送成功", verificationCode.getId(), 300);
             response.setTenantId(request.getTenantId());
             response.setType(request.getType());
             response.setDestination(request.getPhone() != null ? request.getPhone() : request.getEmail());
@@ -120,9 +120,9 @@ public class VerificationCodeManagementApplicationService {
             }
             
             // Mark as used and delete
-            verificationCodeRepository.deleteByCodeId(verificationCode.getCodeId());
+            verificationCodeRepository.deleteByCodeId(verificationCode.getId());
             
-            return new VerificationCodeResponse(true, "验证码验证成功", verificationCode.getCodeId(), 0);
+            return new VerificationCodeResponse(true, "验证码验证成功", verificationCode.getId(), 0);
             
         } catch (Exception e) {
             return new VerificationCodeResponse(false, "验证码验证失败: " + e.getMessage(), null, 0);

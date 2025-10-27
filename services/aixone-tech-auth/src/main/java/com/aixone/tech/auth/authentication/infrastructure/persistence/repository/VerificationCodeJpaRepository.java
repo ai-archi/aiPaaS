@@ -15,7 +15,7 @@ import java.util.Optional;
  * VerificationCode JPA Repository
  */
 @Repository
-public interface VerificationCodeJpaRepository extends JpaRepository<VerificationCodeEntity, Long> {
+public interface VerificationCodeJpaRepository extends JpaRepository<VerificationCodeEntity, String> {
     
     Optional<VerificationCodeEntity> findByPhoneAndTenantIdAndCodeAndUsedFalseAndExpiresAtAfter(String phone, String tenantId, String code, LocalDateTime expiresAt);
     

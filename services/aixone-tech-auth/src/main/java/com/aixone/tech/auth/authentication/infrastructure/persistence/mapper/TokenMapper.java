@@ -4,6 +4,7 @@ import com.aixone.tech.auth.authentication.domain.model.Token;
 import com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 import org.mapstruct.factory.Mappers;
 
 @Mapper(componentModel = "spring")
@@ -16,7 +17,7 @@ public interface TokenMapper {
     @Mapping(source = "userId", target = "userId")
     @Mapping(source = "clientId", target = "clientId")
     @Mapping(source = "expiresAt", target = "expiresAt")
-    @Mapping(source = "type", target = "type")
+    @Mapping(source = "type", target = "type", qualifiedByName = "tokenTypeToString")
     @Mapping(source = "createdAt", target = "createdAt")
     TokenEntity toEntity(Token token);
 
@@ -25,7 +26,23 @@ public interface TokenMapper {
     @Mapping(source = "userId", target = "userId")
     @Mapping(source = "clientId", target = "clientId")
     @Mapping(source = "expiresAt", target = "expiresAt")
-    @Mapping(source = "type", target = "type")
+    @Mapping(source = "type", target = "type", qualifiedByName = "stringToTokenType")
     @Mapping(source = "createdAt", target = "createdAt")
     Token toDomain(TokenEntity tokenEntity);
+
+    /**
+     * 将TokenType枚举转换为String
+     */
+    @Named("tokenTypeToString")
+    default String tokenTypeToString(Token.TokenType type) {
+        return type != null ? type.name() : null;
+    }
+
+    /**
+     * 将String转换为TokenType枚举
+     */
+    @Named("stringToTokenType")
+    default Token.TokenType stringToTokenType(String type) {
+        return type != null ? Token.TokenType.valueOf(type) : null;
+    }
 }

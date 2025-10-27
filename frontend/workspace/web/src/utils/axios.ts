@@ -93,10 +93,9 @@ function createAxios<Data = any, T = ApiPromise<Data>>(axiosConfig: AxiosRequest
                 const token = adminInfo.getToken()
                 if (token) {
                     // 使用新的认证头部格式
-                    ;(config.headers as anyObj).Authorization = `Bearer ${token}`(
-                        // 添加租户ID头部
-                        config.headers as anyObj
-                    )['X-Tenant-ID'] = adminInfo.tenantId
+                    ;(config.headers as anyObj).Authorization = `Bearer ${token}`
+                    // 添加租户ID头部
+                    ;(config.headers as anyObj)['X-Tenant-ID'] = adminInfo.tenantId
                 }
                 const userToken = options.anotherToken || userInfo.getToken()
                 if (userToken) (config.headers as anyObj)['ba-user-token'] = userToken

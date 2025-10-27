@@ -81,11 +81,9 @@ import type { FormItemRule } from 'element-plus'
 import { reactive, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { baAccountCheckIn, baAccountGetUserInfo } from '/@/api/backend/index'
-import clickCaptcha from '/@/components/clickCaptcha'
 import FormItem from '/@/components/formItem/index.vue'
 import { useBaAccount } from '/@/stores/baAccount'
 import { useSiteConfig } from '/@/stores/siteConfig'
-import { uuid } from '/@/utils/random'
 import { buildValidatorData } from '/@/utils/validate'
 
 const { t } = useI18n()
@@ -109,8 +107,6 @@ const state = reactive({
         tab: 'login',
         username: '',
         password: '',
-        captchaId: uuid(),
-        captchaInfo: '',
         keep: false,
     },
 })
@@ -118,14 +114,13 @@ const state = reactive({
 const onBaAccountSubmitPre = () => {
     baAccountFormRef.value?.validate((valid) => {
         if (valid) {
-            clickCaptcha(state.user.captchaId, (captchaInfo: string) => onBaAccountSubmit(captchaInfo), { apiBaseURL: siteConfig.apiUrl })
+            onBaAccountSubmit()
         }
     })
 }
 
-const onBaAccountSubmit = (captchaInfo = '') => {
+const onBaAccountSubmit = () => {
     state.submitLoading = true
-    state.user.captchaInfo = captchaInfo
     baAccountCheckIn(state.user)
         .then((res) => {
             baAccount.dataFill(res.data.userInfo, false)

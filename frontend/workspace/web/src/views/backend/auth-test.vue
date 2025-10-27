@@ -60,7 +60,7 @@ const useMock = ref(true)
 
 const loginForm = reactive({
     username: 'admin',
-    password: 'admin',
+    password: 'admin123',
     tenantId: 'default',
     clientId: 'web-client',
 })

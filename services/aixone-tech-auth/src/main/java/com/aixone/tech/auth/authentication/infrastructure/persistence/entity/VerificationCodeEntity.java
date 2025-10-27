@@ -18,8 +18,8 @@ import java.time.LocalDateTime;
 public class VerificationCodeEntity {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "id", length = 36)
+    private String id;
     
     @Column(name = "phone", length = 20)
     private String phone;

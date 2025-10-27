@@ -272,7 +272,7 @@ import { useRoute } from 'vue-router'
 import loginMounted from '/@/components/mixins/loginMounted'
 import LoginFooterMixin from '/@/components/mixins/loginFooter.vue'
 import type { FormItemRule, FormInstance } from 'element-plus'
-import clickCaptcha from '/@/components/clickCaptcha'
+// import clickCaptcha from '/@/components/clickCaptcha' // 移除验证码功能
 let timer: number
 
 const { t } = useI18n()
@@ -390,16 +390,13 @@ const resize = () => {
 const onSubmitPre = () => {
     formRef.value?.validate((valid) => {
         if (!valid) return
-        if (state.form.tab == 'login' && state.userLoginCaptchaSwitch) {
-            clickCaptcha(state.form.captchaId, (captchaInfo: string) => onSubmit(captchaInfo))
-        } else {
-            onSubmit()
-        }
+        // 移除验证码逻辑，直接提交
+        onSubmit()
     })
 }
-const onSubmit = (captchaInfo = '') => {
+const onSubmit = () => {
     state.formLoading = true
-    state.form.captchaInfo = captchaInfo
+    // 移除验证码相关逻辑
     checkIn('post', state.form)
         .then((res) => {
             userInfo.dataFill(res.data.userInfo, false)
@@ -435,15 +432,15 @@ const sendRegisterCaptchaPre = () => {
     if (state.codeSendCountdown > 0) return
     formRef.value!.validateField([state.form.registerType, 'username', 'password']).then((valid) => {
         if (!valid) return
-        clickCaptcha(state.form.captchaId, (captchaInfo: string) => sendRegisterCaptcha(captchaInfo))
+        // clickCaptcha(state.form.captchaId, (captchaInfo: string) => sendRegisterCaptcha(captchaInfo)) // 移除验证码
+        sendRegisterCaptcha()
     })
 }
-const sendRegisterCaptcha = (captchaInfo: string) => {
+const sendRegisterCaptcha = () => {
     state.sendCaptchaLoading = true
     const func = state.form.registerType == 'email' ? sendEms : sendSms
     func(state.form[state.form.registerType], 'user_register', {
-        captchaInfo,
-        captchaId: state.form.captchaId,
+        // 移除验证码相关参数
     })
         .then((res) => {
             if (res.code == 1) startTiming(60)
@@ -457,15 +454,15 @@ const sendRetrieveCaptchaPre = () => {
     if (state.codeSendCountdown > 0) return
     retrieveFormRef.value!.validateField('account').then((valid) => {
         if (!valid) return
-        clickCaptcha(state.form.captchaId, (captchaInfo: string) => sendRetrieveCaptcha(captchaInfo))
+        // clickCaptcha(state.form.captchaId, (captchaInfo: string) => sendRetrieveCaptcha(captchaInfo)) // 移除验证码
+        sendRetrieveCaptcha()
     })
 }
-const sendRetrieveCaptcha = (captchaInfo: string) => {
+const sendRetrieveCaptcha = () => {
     state.sendCaptchaLoading = true
     const func = state.retrievePasswordForm.type == 'email' ? sendEms : sendSms
     func(state.retrievePasswordForm.account, 'user_retrieve_pwd', {
-        captchaInfo,
-        captchaId: state.form.captchaId,
+        // 移除验证码相关参数
     })
         .then((res) => {
             if (res.code == 1) startTiming(60)

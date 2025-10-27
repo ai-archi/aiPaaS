@@ -20,11 +20,11 @@ public class InMemoryPermissionCache implements PermissionCache {
     }
     @Override
     public void putUserRoles(String userId, List<Role> roles) {
-        userRoleCache.put(userId, roles);
+        userRoleCache.put(userId, roles != null ? roles : Collections.emptyList());
     }
     @Override
     public void putRolePermissions(String roleId, List<Permission> permissions) {
-        rolePermissionCache.put(roleId, permissions);
+        rolePermissionCache.put(roleId, permissions != null ? permissions : Collections.emptyList());
     }
     @Override
     public void clear() {

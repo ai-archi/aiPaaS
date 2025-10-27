@@ -78,11 +78,9 @@ import { useI18n } from 'vue-i18n'
 import { editDefaultLang } from '/@/lang/index'
 import { useConfig } from '/@/stores/config'
 import { useAdminInfo } from '/@/stores/adminInfo'
-import { login } from '/@/api/backend'
-import { uuid } from '/@/utils/random'
+import { loginWithPassword } from '/@/api/backend/auth/auth'
 import { buildValidatorData } from '/@/utils/validate'
 import router from '/@/router'
-import clickCaptcha from '/@/components/clickCaptcha'
 import toggleDark from '/@/utils/useDark'
 import { fullUrl } from '/@/utils/common'
 import { adminBaseRoutePath } from '/@/router/static/adminBase'
@@ -97,15 +95,12 @@ const usernameRef = useTemplateRef('usernameRef')
 const passwordRef = useTemplateRef('passwordRef')
 
 const state = reactive({
-    showCaptcha: false,
     submitLoading: false,
 })
 const form = reactive({
     username: '',
     password: '',
     keep: false,
-    captchaId: uuid(),
-    captchaInfo: '',
 })
 
 const { t } = useI18n()
@@ -129,14 +124,7 @@ onMounted(() => {
         pageBubble.init()
     }, 1000)
 
-    login('get')
-        .then((res) => {
-            state.showCaptcha = res.data.captcha
-            nextTick(() => focusInput())
-        })
-        .catch((err) => {
-            console.log(err)
-        })
+    nextTick(() => focusInput())
 })
 
 onBeforeUnmount(() => {
@@ -147,18 +135,13 @@ onBeforeUnmount(() => {
 const onSubmitPre = () => {
     formRef.value?.validate((valid) => {
         if (valid) {
-            if (state.showCaptcha) {
-                clickCaptcha(form.captchaId, (captchaInfo: string) => onSubmit(captchaInfo))
-            } else {
-                onSubmit()
-            }
+            onSubmit()
         }
     })
 }
 
-const onSubmit = (captchaInfo = '') => {
+const onSubmit = () => {
     state.submitLoading = true
-    form.captchaInfo = captchaInfo
 
     // 使用新的认证接口
     adminInfo

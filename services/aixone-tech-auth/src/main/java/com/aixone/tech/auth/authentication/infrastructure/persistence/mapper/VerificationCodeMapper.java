@@ -11,9 +11,9 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface VerificationCodeMapper {
     
-    @Mapping(source = "codeId", target = "id")
+    @Mapping(source = "id", target = "id")
     VerificationCodeEntity toEntity(VerificationCode verificationCode);
     
-    @Mapping(source = "id", target = "codeId")
+    @Mapping(source = "id", target = "id")
     VerificationCode toDomain(VerificationCodeEntity entity);
 }

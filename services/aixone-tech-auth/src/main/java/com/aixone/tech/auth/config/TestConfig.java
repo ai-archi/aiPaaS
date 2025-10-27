@@ -3,6 +3,7 @@ package com.aixone.tech.auth.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 
 import com.aixone.audit.application.AuditService;
 
@@ -10,6 +11,7 @@ import com.aixone.audit.application.AuditService;
  * 测试配置
  */
 @Configuration
+@Profile("dev")
 public class TestConfig {
 
     @Bean

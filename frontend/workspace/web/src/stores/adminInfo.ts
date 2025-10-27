@@ -58,7 +58,7 @@ export const useAdminInfo = defineStore('adminInfo', {
         /**
          * 使用新认证接口登录
          */
-        async loginWithNewAuth(username: string, password: string, useMock: boolean = true) {
+        async loginWithNewAuth(username: string, password: string, useMock: boolean = false) {
             try {
                 const loginData: LoginRequest = {
                     tenantId: this.tenantId,
@@ -98,7 +98,7 @@ export const useAdminInfo = defineStore('adminInfo', {
         /**
          * 刷新令牌
          */
-        async refreshAuthToken(useMock: boolean = true) {
+        async refreshAuthToken(useMock: boolean = false) {
             try {
                 const refreshData: RefreshTokenRequest = {
                     refreshToken: this.refresh_token,
@@ -129,7 +129,7 @@ export const useAdminInfo = defineStore('adminInfo', {
         /**
          * 验证令牌
          */
-        async validateAuthToken(useMock: boolean = true) {
+        async validateAuthToken(useMock: boolean = false) {
             try {
                 const validateData = {
                     token: this.token,
@@ -152,7 +152,7 @@ export const useAdminInfo = defineStore('adminInfo', {
         /**
          * 使用新认证接口登出
          */
-        async logoutWithNewAuth(useMock: boolean = true) {
+        async logoutWithNewAuth(useMock: boolean = false) {
             try {
                 if (useMock) {
                     await mockLogout(this.tenantId)

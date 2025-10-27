@@ -30,6 +30,15 @@ const staticRoutes: Array<RouteRecordRaw> = [
         },
     },
     {
+        // 认证集成测试页面
+        path: adminBaseRoutePath + '/auth-integration-test',
+        name: 'authIntegrationTest',
+        component: () => import('/@/views/backend/auth-integration-test.vue'),
+        meta: {
+            title: '认证集成测试',
+        },
+    },
+    {
         // 会员登录页
         path: memberCenterBaseRoutePath + '/login',
         name: 'userLogin',
