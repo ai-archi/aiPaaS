@@ -33,8 +33,16 @@ public class TokenBlacklistEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
+    @Column(name = "reason", nullable = false, length = 100)
+    private String reason;
+    
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (reason == null) {
+            reason = "LOGOUT";
+        }
     }
 }

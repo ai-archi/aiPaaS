@@ -148,6 +148,7 @@ const onSubmit = () => {
         .loginWithNewAuth(form.username, form.password)
         .then((res) => {
             // 登录成功，跳转到管理后台
+            // 登出按钮显示由 adminInfo.token 控制，不需要额外设置
             router.push({ path: adminBaseRoutePath })
         })
         .catch((error) => {

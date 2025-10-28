@@ -14,5 +14,6 @@ public interface TokenBlacklistMapper {
     @Mapping(target = "id", ignore = true)
     TokenBlacklistEntity toEntity(TokenBlacklist tokenBlacklist);
     
+    @Mapping(source = "reason", target = "reason")
     TokenBlacklist toDomain(TokenBlacklistEntity entity);
 }

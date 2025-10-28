@@ -204,9 +204,16 @@ const statisticValueStyle: CSSProperties = {
     fontSize: '28px',
 }
 
-index().then((res) => {
-    state.remark = res.data.remark
-})
+// 从后端获取dashboard数据
+index()
+    .then((res) => {
+        // 后端返回：{ remark: "...", statistics: {...} }
+        state.remark = res.data.remark || '欢迎使用AixOne工作台'
+    })
+    .catch((err) => {
+        console.error('获取Dashboard数据失败:', err)
+        state.remark = '欢迎使用AixOne工作台'
+    })
 
 const initCountUp = () => {
     // 虚拟数据

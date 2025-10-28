@@ -30,6 +30,13 @@ const viteConfig = ({ mode }: ConfigEnv): UserConfig => {
         server: {
             port: parseInt(VITE_PORT),
             open: VITE_OPEN != 'false',
+            proxy: {
+                '/api/v1': {
+                    target: 'http://localhost:8084',
+                    changeOrigin: true,
+                    secure: false,
+                },
+            },
         },
         build: {
             cssCodeSplit: false,

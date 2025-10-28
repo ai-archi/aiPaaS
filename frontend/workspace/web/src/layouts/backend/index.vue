@@ -16,7 +16,7 @@ import Streamline from '/@/layouts/backend/container/streamline.vue'
 import Double from '/@/layouts/backend/container/double.vue'
 import { onMounted, onBeforeMount } from 'vue'
 import { Session } from '/@/utils/storage'
-import { index } from '/@/api/backend'
+import { getWorkbenchMenus } from '/@/api/backend'
 import { handleAdminRoute, getFirstRoute, routePush } from '/@/utils/router'
 import router from '/@/router/index'
 import { adminBaseRoutePath } from '/@/router/static/adminBase'
@@ -54,37 +54,45 @@ onBeforeMount(() => {
 
 const init = () => {
     /**
-     * 后台初始化请求，获取站点配置，动态路由等信息
+     * 后台初始化：直接获取workbench菜单
      */
-    index().then((res) => {
-        siteConfig.dataFill(res.data.siteConfig)
-        terminal.changePackageManager(res.data.terminal.npmPackageManager)
-        terminal.changePHPDevelopmentServer(res.data.terminal.phpDevelopmentServer)
-        siteConfig.setInitialize(true)
+    // 设置站点初始化状态
+    siteConfig.setInitialize(true)
+    
+    // 如果用户已登录，设置用户初始化状态
+    if (adminInfo.token) {
+        siteConfig.setUserInitialize(true)
+    }
 
-        if (!isEmpty(res.data.adminInfo)) {
-            adminInfo.dataFill(res.data.adminInfo)
-            siteConfig.setUserInitialize(true)
-        }
-
-        if (res.data.menus) {
-            handleAdminRoute(res.data.menus)
-
-            // 预跳转到上次路径
-            if (route.params.to) {
-                const lastRoute = JSON.parse(route.params.to as string)
-                if (lastRoute.path != adminBaseRoutePath) {
-                    let query = !isEmpty(lastRoute.query) ? lastRoute.query : {}
-                    routePush({ path: lastRoute.path, query: query })
-                    return
+    // 获取菜单
+    getWorkbenchMenus()
+        .then((res) => {
+            console.log('获取菜单结果:', res)
+            
+            // 处理菜单路由
+            if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+                handleAdminRoute(res.data)
+                
+                // 预跳转到上次路径
+                if (route.params.to) {
+                    const lastRoute = JSON.parse(route.params.to as string)
+                    if (lastRoute.path != adminBaseRoutePath) {
+                        let query = !isEmpty(lastRoute.query) ? lastRoute.query : {}
+                        routePush({ path: lastRoute.path, query: query })
+                        return
+                    }
                 }
-            }
 
-            // 跳转到第一个菜单
-            let firstRoute = getFirstRoute(navTabs.state.tabsViewRoutes)
-            if (firstRoute) routePush(firstRoute.path)
-        }
-    })
+                // 跳转到第一个菜单
+                let firstRoute = getFirstRoute(navTabs.state.tabsViewRoutes)
+                if (firstRoute) routePush(firstRoute.path)
+            } else {
+                console.warn('没有获取到菜单数据')
+            }
+        })
+        .catch((error) => {
+            console.error('获取菜单失败:', error)
+        })
 }
 
 const onAdaptiveLayout = () => {

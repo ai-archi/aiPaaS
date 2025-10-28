@@ -102,8 +102,9 @@
         </el-dropdown>
 
         <!-- 管理员信息 -->
+        <!-- 修改：使用 adminInfo.token 判断是否登录，不再依赖 siteConfig.userInitialize -->
         <el-popover
-            v-if="siteConfig.userInitialize"
+            v-if="adminInfo.token"
             @show="onCurrentNavMenu(true, 'adminInfo')"
             @hide="onCurrentNavMenu(false, 'adminInfo')"
             placement="bottom-end"

@@ -456,7 +456,7 @@ graph TD
 |---------|------|------|------|
 | **技术平台** | `tech` | Technical Platform | `axione-tech-auth` |
 | **数据平台** | `data` | Data Platform | `axione-data-warehouse` |
-| **应用平台** | `app` | Application Platform | `axione-app-service-desk` |
+| **应用平台** | `app` | Application Platform | `axione-app-workbench` |
 | **集成平台** | `int` | Integration Platform | `axione-int-gateway` |
 | **智能平台** | `ai` | AI Platform | `axione-ai-knowledge` |
 | **开发平台** | `dev` | Development Platform | `axione-dev-toolchain` |

@@ -154,7 +154,7 @@ const isExternalLink = (menus: RouteRecordRaw[], index: string): boolean => {
     for (const key in menus) {
         const columnIndex = `column-${menus[key].meta?.id}`
         if (columnIndex == index) {
-            return menus[key].meta?.menu_type == 'link'
+            return menus[key].meta?.renderType == 'link'
         }
         if (menus[key].children?.length) {
             return isExternalLink(menus[key].children!, index)
