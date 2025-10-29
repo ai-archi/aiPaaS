@@ -2,6 +2,7 @@
  * 后台公共语言包
  * 覆盖风险：请避免使用页面语言包的目录名、文件名作为翻译 key
  */
+import dashboardZhCn from './zh-cn/dashboard'
 export default {
     Balance: '余额',
     Integral: '积分',
@@ -98,4 +99,5 @@ export default {
             '不被打断，系统暂停了 Vite 的热更新功能，期间前端文件变动将不会实时更新和自动重载网页，现检测到服务暂停期间存在文件更新，需要重启热更新服务。',
         'Reload hot server tips 3': '热更新暂停不影响已经加载好的功能，您可以继续操作，并在一切就绪后再点击重新启动热更新服务。',
     },
+    dashboard: dashboardZhCn,
 }

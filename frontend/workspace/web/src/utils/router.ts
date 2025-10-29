@@ -26,10 +26,9 @@ export const routePush = async (to: RouteLocationRaw) => {
                 type: 'error',
             })
         } else if (isNavigationFailure(failure, NavigationFailureType.duplicated)) {
-            ElNotification({
-                message: i18n.global.t('utils.Navigation failed, it is at the navigation target position!'),
-                type: 'warning',
-            })
+            // 静默处理重复导航，无需提示用户
+            // 这是正常情况，比如刷新页面或重复点击相同菜单
+            console.debug('Navigation to current location suppressed')
         }
     } catch (error) {
         ElNotification({
@@ -66,9 +65,18 @@ export const getFirstRoute = (routes: RouteRecordRaw[]): false | RouteRecordRaw 
  * @param menu 菜单数据
  */
 export const onClickMenu = (menu: RouteRecordRaw) => {
+    console.log('onClickMenu called:', {
+        name: menu.name,
+        path: menu.path,
+        renderType: menu.meta?.renderType,
+        component: menu.component,
+        fullMenu: menu
+    })
+    
     switch (menu.meta?.renderType) {
         case 'iframe':
         case 'tab':
+            console.log('Pushing to path:', menu.path)
             routePush(menu.path)
             break
         case 'link':
@@ -76,6 +84,7 @@ export const onClickMenu = (menu: RouteRecordRaw) => {
             break
 
         default:
+            console.error('Unknown renderType:', menu.meta?.renderType)
             ElNotification({
                 message: i18n.global.t('utils.Navigation failed, the menu type is unrecognized!'),
                 type: 'error',
@@ -122,13 +131,17 @@ export const handleFrontendRoute = (routes: any, menus: any) => {
  * 处理后台的路由
  */
 export const handleAdminRoute = (routes: any) => {
+    console.log('handleAdminRoute called with routes:', routes)
     const viewsComponent = import.meta.glob('/src/views/backend/**/*.vue')
+    console.log('viewsComponent from glob:', Object.keys(viewsComponent).slice(0, 20))
+    
     addRouteAll(viewsComponent, routes, adminBaseRoute.name as string)
     const menuAdminBaseRoute = (adminBaseRoute.path as string) + '/'
 
     // 更新stores中的路由菜单数据
+    // 注意：后端返回的 path 已经包含 /admin/ 前缀，所以这里不需要再加前缀
     const navTabs = useNavTabs()
-    navTabs.setTabsViewRoutes(handleMenuRule(routes, menuAdminBaseRoute))
+    navTabs.setTabsViewRoutes(handleMenuRule(routes, ''))
     navTabs.fillAuthNode(handleAuthNode(routes, menuAdminBaseRoute))
 }
 
@@ -179,7 +192,8 @@ const handleMenuRule = (routes: any, pathPrefix = '/', type = ['menu', 'menu_dir
         ) {
             continue
         }
-        const currentPath = ['link', 'iframe'].includes(routes[key].renderType) ? routes[key].url : pathPrefix + routes[key].path
+        // 直接使用后端返回的完整路径
+        const currentPath = ['link', 'iframe'].includes(routes[key].renderType) ? routes[key].url : routes[key].path
         let children: RouteRecordRaw[] = []
         if (routes[key].children && routes[key].children.length > 0) {
             children = handleMenuRule(routes[key].children, pathPrefix, type)
@@ -234,12 +248,19 @@ const assembleAuthNode = (routes: any, authNode: Map<string, string[]>, prefix =
  * @param analyticRelation 根据 name 从已注册路由分析父级路由
  */
 export const addRouteAll = (viewsComponent: Record<string, any>, routes: any, parentName: string, analyticRelation = false) => {
+    console.log('addRouteAll - viewsComponent keys:', Object.keys(viewsComponent).slice(0, 10))
+    
     for (const idx in routes) {
         if (routes[idx].extend == 'add_menu_only') {
             continue
         }
+        
+        console.log('Processing route:', routes[idx].name, 'component:', routes[idx].component)
+        
         if ((routes[idx].renderType == 'tab' && viewsComponent[routes[idx].component]) || routes[idx].renderType == 'iframe') {
             addRouteItem(viewsComponent, routes[idx], parentName, analyticRelation)
+        } else {
+            console.warn('Route skipped:', routes[idx].name, 'renderType:', routes[idx].renderType, 'component exists:', !!viewsComponent[routes[idx].component])
         }
 
         if (routes[idx].children && routes[idx].children.length > 0) {
@@ -262,8 +283,18 @@ export const addRouteItem = (viewsComponent: Record<string, any>, route: any, pa
         path = (isAdminApp() ? adminBaseRoute.path : memberCenterBaseRoute.path) + '/iframe/' + encodeURIComponent(route.url)
         component = () => import('/@/layouts/common/router-view/iframe.vue')
     } else {
-        path = parentName ? route.path : '/' + route.path
+        // 直接使用后端返回的完整路径，不需要额外处理
+        path = route.path || ''
         component = viewsComponent[route.component]
+        
+        // 调试信息
+        if (!component) {
+            console.error('Component not found:', {
+                component: route.component,
+                availableComponents: Object.keys(viewsComponent),
+                route: route
+            })
+        }
     }
 
     if (route.renderType == 'tab' && analyticRelation) {

@@ -16,7 +16,7 @@ import java.util.UUID;
  * @author AixOne Team
  * @since 1.0.0
  */
-@FeignClient(name = "directory-serve", path = "/api/v1/directory", fallback = DirectoryServiceClient.DirectoryServiceClientFallback.class)
+@FeignClient(name = "directory-serve", url = "http://localhost:8081", path = "/api/v1", fallback = DirectoryServiceClient.DirectoryServiceClientFallback.class)
 public interface DirectoryServiceClient {
     
     /**
@@ -25,8 +25,8 @@ public interface DirectoryServiceClient {
      * @param tenantId 租户ID
      * @return 菜单列表
      */
-    @GetMapping("/menus")
-    List<Map<String, Object>> getMenus(@RequestParam("tenantId") UUID tenantId);
+    @GetMapping("/menus/tenant/{tenantId}")
+    List<Map<String, Object>> getMenus(@PathVariable("tenantId") UUID tenantId);
     
     /**
      * 获取用户角色列表

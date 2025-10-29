@@ -7,6 +7,6 @@ VALUES
     -- 根菜单 (使用默认租户UUID '00000000-0000-0000-0000-000000000000')
     ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000', NULL, 'Dashboard', '仪表盘', '/admin/dashboard/index', 'fa fa-dashboard', 'menu', 'tab', '/src/views/backend/dashboard.vue', NULL, false, 1, true, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000', NULL, 'Settings', '设置', '/admin/settings', 'fa fa-gear', 'menu', 'tab', '/src/views/backend/login.vue', NULL, false, 2, true, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000000', NULL, 'User Management', '用户管理', '/admin/users', 'fa fa-users', 'menu', 'tab', '/src/views/backend/auth-test.vue', NULL, false, 3, true, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000000', NULL, 'User Management', '用户管理', '/admin/users', 'fa fa-users', 'menu', 'tab', '/src/views/backend/auth-integration-test.vue', NULL, false, 3, true, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT (id) DO NOTHING;
 

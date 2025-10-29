@@ -41,21 +41,10 @@ public class MenuAggregationServiceImpl implements MenuAggregationService {
             // 1. 从数据库获取菜单数据
             List<Menu> menus = menuRepository.findByTenantIdOrderByDisplayOrderAsc(tenantId);
             
-            // 2. 如果本地没有数据，从目录服务拉取
-            if (menus.isEmpty()) {
-                log.info("本地没有菜单数据，从目录服务拉取");
-                List<Map<String, Object>> directoryMenus = directoryServiceClient.getMenus(tenantId);
-                menus = mapDirectoryMenusToDomain(directoryMenus, tenantId);
-                if (!menus.isEmpty()) {
-                    menuRepository.saveAll(menus);
-                    log.info("从目录服务同步了{}个菜单", menus.size());
-                }
-            }
-            
-            // 3. 获取用户个性化配置
+            // 2. 获取用户个性化配置
             Map<String, UserMenuCustomDTO> customConfigs = getUserMenuCustomConfig(userId, tenantId);
             
-            // 4. 构建菜单树
+            // 3. 构建菜单树
             List<MenuDTO> menuTree = buildMenuTree(menus, customConfigs);
             
             log.info("聚合菜单完成，共{}个根菜单", menuTree.size());

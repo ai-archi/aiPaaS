@@ -43,6 +43,11 @@ const state = reactive({
 onMounted(() => {
     if (!adminInfo.token) return router.push({ name: 'adminLogin' })
 
+    // 强制清除初始化状态，确保重新获取菜单
+    console.log('强制重新初始化，清除所有缓存状态')
+    siteConfig.setInitialize(false)
+    siteConfig.setUserInitialize(false)
+    
     init()
     setNavTabsWidth()
     useEventListener(window, 'resize', setNavTabsWidth)
@@ -56,6 +61,11 @@ const init = () => {
     /**
      * 后台初始化：直接获取workbench菜单
      */
+    // 强制重新获取菜单，清除可能的缓存
+    console.log('强制重新获取菜单，清除初始化状态')
+    siteConfig.setInitialize(false)
+    siteConfig.setUserInitialize(false)
+    
     // 设置站点初始化状态
     siteConfig.setInitialize(true)
     
@@ -66,26 +76,53 @@ const init = () => {
 
     // 获取菜单
     getWorkbenchMenus()
-        .then((res) => {
+        .then(async (res) => {
             console.log('获取菜单结果:', res)
             
             // 处理菜单路由
             if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+                console.log('开始调用 handleAdminRoute，路由数量:', res.data.length)
                 handleAdminRoute(res.data)
+                console.log('handleAdminRoute 调用完成')
                 
-                // 预跳转到上次路径
+                // 等待路由添加完成
+                await new Promise(resolve => setTimeout(resolve, 100))
+                
+                // 检查是否有 to 参数（从 fallback 重定向过来的）
                 if (route.params.to) {
-                    const lastRoute = JSON.parse(route.params.to as string)
-                    if (lastRoute.path != adminBaseRoutePath) {
-                        let query = !isEmpty(lastRoute.query) ? lastRoute.query : {}
-                        routePush({ path: lastRoute.path, query: query })
+                    let targetPath: string | null = null
+                    try {
+                        console.log('尝试解析 to 参数:', route.params.to)
+                        const lastRoute = JSON.parse(route.params.to as string)
+                        console.log('解析成功（JSON格式），目标路径:', lastRoute.path)
+                        targetPath = lastRoute.path
+                    } catch (e) {
+                        // 如果不是 JSON 格式，直接使用 to 参数作为路径
+                        console.log('to 参数不是 JSON 格式，直接使用为路径:', route.params.to)
+                        targetPath = adminBaseRoutePath + '/' + (route.params.to as string)
+                    }
+                    
+                    if (targetPath && !targetPath.includes('/loading') && targetPath != adminBaseRoutePath) {
+                        console.log('准备跳转到:', targetPath)
+                        await routePush({ path: targetPath })
+                        console.log('跳转完成')
                         return
+                    } else {
+                        console.warn('目标路径无效或包含 loading，将跳转到第一个菜单')
                     }
                 }
-
-                // 跳转到第一个菜单
-                let firstRoute = getFirstRoute(navTabs.state.tabsViewRoutes)
-                if (firstRoute) routePush(firstRoute.path)
+                
+                // 如果是加载页面或未定义的路由，跳转到第一个菜单
+                if (route.name == 'adminMainLoading' || route.path === adminBaseRoutePath || route.path === adminBaseRoutePath + '/') {
+                    let firstRoute = getFirstRoute(navTabs.state.tabsViewRoutes)
+                    if (firstRoute) {
+                        // 确保路径正确
+                        const targetPath = firstRoute.path
+                        console.log('跳转到第一个菜单:', targetPath)
+                        await routePush(targetPath)
+                        console.log('跳转到第一个菜单完成')
+                    }
+                }
             } else {
                 console.warn('没有获取到菜单数据')
             }

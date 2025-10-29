@@ -220,6 +220,12 @@ export function auth(node: string | { name: string; subNodeName?: string }) {
  */
 export const fullUrl = (relativeUrl: string, domain = '') => {
     const siteConfig = useSiteConfig()
+    
+    // 如果是静态资源路径（以 /static/ 开头），直接返回，不拼接 API URL
+    if (relativeUrl && relativeUrl.startsWith('/static/')) {
+        return relativeUrl
+    }
+    
     if (!domain) {
         domain = siteConfig.cdnUrl ? siteConfig.cdnUrl : getUrl()
     }

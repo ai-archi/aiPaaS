@@ -13,8 +13,7 @@ const adminBaseRoute: RouteRecordRaw = {
     path: adminBaseRoutePath,
     name: 'admin',
     component: () => import('/@/layouts/backend/index.vue'),
-    // 直接重定向到 loading 路由
-    redirect: adminBaseRoutePath + '/loading',
+    // 不再重定向到 loading 路由，直接渲染 backend 布局
     meta: {
         title: `pagesTitle.admin`,
     },

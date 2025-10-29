@@ -53,8 +53,10 @@ export async function loadLang(app: App) {
      */
     if (locale == 'zh-cn') {
         assignLocale[locale].push(getLangFileMessage(import.meta.glob('./common/zh-cn/**/*.ts', { eager: true }), locale))
+        assignLocale[locale].push(getLangFileMessage(import.meta.glob('./backend/zh-cn.ts', { eager: true }), locale))
     } else if (locale == 'en') {
         assignLocale[locale].push(getLangFileMessage(import.meta.glob('./common/en/**/*.ts', { eager: true }), locale))
+        assignLocale[locale].push(getLangFileMessage(import.meta.glob('./backend/en.ts', { eager: true }), locale))
     }
 
     const messages = {

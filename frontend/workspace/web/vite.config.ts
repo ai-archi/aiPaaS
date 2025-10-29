@@ -31,6 +31,39 @@ const viteConfig = ({ mode }: ConfigEnv): UserConfig => {
             port: parseInt(VITE_PORT),
             open: VITE_OPEN != 'false',
             proxy: {
+                // 租户相关API代理到目录服务 (8081)
+                '^/tenants': {
+                    target: 'http://localhost:8081/api/v1',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '^/tenant-groups': {
+                    target: 'http://localhost:8081/api/v1',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '/api/v1/tenants': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '/api/v1/tenant-groups': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                // 工作台菜单API代理到工作台服务 (8084)
+                '/api/v1/workbench': {
+                    target: 'http://localhost:8084',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '/workbench': {
+                    target: 'http://localhost:8084/api/v1',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                // 其他API代理到工作台服务 (8084)
                 '/api/v1': {
                     target: 'http://localhost:8084',
                     changeOrigin: true,

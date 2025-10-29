@@ -1,6 +1,7 @@
 /**
  * backend common language package
  */
+import dashboardEn from './en/dashboard'
 export default {
     Balance: 'Balance',
     Integral: 'Integral',
@@ -99,4 +100,5 @@ export default {
         'Reload hot server tips 3':
             'The pause of hot updates does not affect the already loaded functions. You can continue to operate and click to restart the hot update service after everything is ready.',
     },
+    dashboard: dashboardEn,
 }

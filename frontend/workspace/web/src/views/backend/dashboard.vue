@@ -117,7 +117,7 @@
                                     <Icon class="new-user-arrow" color="#8595F4" name="fa fa-angle-right" />
                                 </div>
                                 <div class="new-user-item">
-                                    <img class="new-user-avatar" :src="fullUrl('/static/images/avatar.png')" alt="" />
+                                    <img class="new-user-avatar" src="/static/images/avatar.png" alt="" />
                                     <div class="new-user-base">
                                         <div class="new-user-name">纯属虚构</div>
                                         <div class="new-user-time">12分钟前{{ t('dashboard.Joined us') }}</div>

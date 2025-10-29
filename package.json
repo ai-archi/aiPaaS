@@ -1,8 +1,0 @@
-{
-  "devDependencies": {
-    "eslint": "^9.25.0"
-  },
-  "dependencies": {
-    "xlsx": "^0.18.5"
-  }
-}

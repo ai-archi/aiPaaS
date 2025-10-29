@@ -75,6 +75,7 @@ const staticRoutes: Array<RouteRecordRaw> = [
             }
         },
     },
+
     {
         // 会员中心找不到页面了
         path: memberCenterBaseRoutePath + ':path(.*)*',

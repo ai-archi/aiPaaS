@@ -295,12 +295,13 @@ export class baTableApi {
 
     constructor(controllerUrl: string) {
         this.controllerUrl = controllerUrl
+        // 直接使用REST风格的路径映射
         this.actionUrl = new Map([
-            ['index', controllerUrl + 'index'],
-            ['add', controllerUrl + 'add'],
-            ['edit', controllerUrl + 'edit'],
-            ['del', controllerUrl + 'del'],
-            ['sortable', controllerUrl + 'sortable'],
+            ['index', controllerUrl],
+            ['add', controllerUrl],
+            ['edit', controllerUrl],
+            ['del', controllerUrl],
+            ['sortable', controllerUrl + '/sortable'],
         ])
     }
 
@@ -321,6 +322,15 @@ export class baTableApi {
      * @param params 被编辑行主键等
      */
     edit(params: anyObj) {
+        // REST风格：GET /resource/{id}
+        const id = params.id || params.ids?.[0]
+        if (id) {
+            return createAxios({
+                url: `${this.controllerUrl}/${id}`,
+                method: 'get',
+            })
+        }
+        // 兼容旧格式：通过查询参数传递
         return createAxios({
             url: this.actionUrl.get('edit'),
             method: 'get',
@@ -333,18 +343,30 @@ export class baTableApi {
      * @param ids 被删除数据的主键数组
      */
     del(ids: string[]) {
-        return createAxios(
-            {
-                url: this.actionUrl.get('del'),
-                method: 'DELETE',
-                params: {
-                    ids,
+        if (ids.length === 1) {
+            // 单个删除：DELETE /resource/{id}
+            return createAxios(
+                {
+                    url: `${this.controllerUrl}/${ids[0]}`,
+                    method: 'DELETE',
                 },
-            },
-            {
-                showSuccessMessage: true,
-            }
-        )
+                {
+                    showSuccessMessage: true,
+                }
+            )
+        } else {
+            // 批量删除：POST /resource/batch-delete {ids: [...]}
+            return createAxios(
+                {
+                    url: `${this.controllerUrl}/batch-delete`,
+                    method: 'POST',
+                    data: ids,
+                },
+                {
+                    showSuccessMessage: true,
+                }
+            )
+        }
     }
 
     /**
@@ -353,10 +375,31 @@ export class baTableApi {
      * @param data 要 POST 的数据
      */
     postData(action: string, data: anyObj) {
+        let url = this.controllerUrl
+        let method = 'POST'
+        
+        if (action === 'add') {
+            // 新增：POST /resource
+            method = 'POST'
+        } else if (action === 'edit') {
+            // 编辑：PUT /resource/{id}
+            method = 'PUT'
+            const id = data.id
+            if (id) {
+                url = `${this.controllerUrl}/${id}`
+                // 从data中移除id，因为它在URL中
+                const { id: _, ...restData } = data
+                data = restData
+            }
+        } else {
+            // 其他自定义操作
+            url = this.actionUrl.has(action) ? this.actionUrl.get(action)! : this.controllerUrl + '/' + action
+        }
+        
         return createAxios(
             {
-                url: this.actionUrl.has(action) ? this.actionUrl.get(action) : this.controllerUrl + action,
-                method: 'post',
+                url,
+                method: method.toLowerCase() as any,
                 data,
             },
             {
