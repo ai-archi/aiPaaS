@@ -5,7 +5,6 @@ import com.aixone.tech.auth.authentication.domain.repository.VerificationCodeRep
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -23,15 +22,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class VerificationCodeRepositoryInfrastructureTest {
 
     @Autowired
-    private TestEntityManager entityManager;
-
-    @Autowired
     private VerificationCodeRepository verificationCodeRepository;
 
     @Test
     public void testSaveAndFindVerificationCode() {
         // Given
         VerificationCode verificationCode = new VerificationCode();
+        verificationCode.setId(java.util.UUID.randomUUID().toString()); // 手动设置ID
         verificationCode.setCode("123456");
         verificationCode.setPhone("13800138000");
         verificationCode.setEmail("test@example.com");
@@ -58,6 +55,7 @@ public class VerificationCodeRepositoryInfrastructureTest {
     public void testFindByPhoneAndTenantIdAndCodeAndUsedFalseAndExpiresAtAfter() {
         // Given
         VerificationCode validCode = new VerificationCode();
+        validCode.setId(java.util.UUID.randomUUID().toString());
         validCode.setCode("123456");
         validCode.setPhone("13800138000");
         validCode.setType("SMS");
@@ -67,6 +65,7 @@ public class VerificationCodeRepositoryInfrastructureTest {
         validCode.setCreatedAt(LocalDateTime.now());
 
         VerificationCode expiredCode = new VerificationCode();
+        expiredCode.setId(java.util.UUID.randomUUID().toString());
         expiredCode.setCode("654321");
         expiredCode.setPhone("13800138000");
         expiredCode.setType("SMS");
@@ -94,6 +93,7 @@ public class VerificationCodeRepositoryInfrastructureTest {
     public void testFindByEmailAndTenantIdAndCodeAndUsedFalseAndExpiresAtAfter() {
         // Given
         VerificationCode validCode = new VerificationCode();
+        validCode.setId(java.util.UUID.randomUUID().toString());
         validCode.setCode("123456");
         validCode.setEmail("test@example.com");
         validCode.setType("EMAIL");
@@ -118,6 +118,7 @@ public class VerificationCodeRepositoryInfrastructureTest {
     public void testIsPhoneInCooldown() {
         // Given
         VerificationCode recentCode = new VerificationCode();
+        recentCode.setId(java.util.UUID.randomUUID().toString());
         recentCode.setCode("123456");
         recentCode.setPhone("13800138000");
         recentCode.setType("SMS");
@@ -139,6 +140,7 @@ public class VerificationCodeRepositoryInfrastructureTest {
     public void testIsEmailInCooldown() {
         // Given
         VerificationCode recentCode = new VerificationCode();
+        recentCode.setId(java.util.UUID.randomUUID().toString());
         recentCode.setCode("123456");
         recentCode.setEmail("test@example.com");
         recentCode.setType("EMAIL");

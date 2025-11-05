@@ -2,7 +2,6 @@ package com.aixone.tech.auth.authentication.application.service;
 
 import com.aixone.tech.auth.authentication.application.command.LoginCommand;
 import com.aixone.tech.auth.authentication.application.command.RefreshTokenCommand;
-import com.aixone.tech.auth.authentication.application.dto.auth.LoginRequest;
 import com.aixone.tech.auth.authentication.application.dto.auth.TokenResponse;
 import com.aixone.tech.auth.authentication.domain.event.UserLoginEvent;
 import com.aixone.tech.auth.authentication.domain.event.TokenIssuedEvent;
@@ -20,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -59,38 +57,25 @@ public class AuthenticationApplicationService {
      * 用户登录
      */
     public TokenResponse login(LoginCommand command) {
-        System.out.println("DEBUG: login method called");
-        
         try {
             // 1. 验证客户端
-            System.out.println("DEBUG: Step 1 - Validating client");
-            Client client = validateClient(command.getClientId(), command.getTenantId(), command.getClientSecret());
-            System.out.println("DEBUG: Step 1 completed - Client validated");
+            validateClient(command.getClientId(), command.getTenantId(), command.getClientSecret());
             
-            // 2. 验证用户凭据（这里需要调用目录服务）
-            System.out.println("DEBUG: Step 2 - Validating user credentials");
+            // 2. 验证用户凭据（从认证服务自己的数据库验证）
             String userId = validateUserCredentials(command.getTenantId(), command.getUsername(), command.getPassword());
-            System.out.println("DEBUG: Step 2 completed - User credentials validated, userId=" + userId);
             
             // 3. 生成令牌
-            System.out.println("DEBUG: Step 3 - Generating tokens");
             TokenResponse tokenResponse = generateTokens(command.getTenantId(), userId, command.getClientId());
-            System.out.println("DEBUG: Step 3 completed - Tokens generated");
             
             // 4. 发布登录事件
-            System.out.println("DEBUG: Step 4 - Publishing login event");
             UserLoginEvent loginEvent = new UserLoginEvent(
                 userId, command.getTenantId(), command.getClientId(), 
                 "password", command.getClientIp(), command.getUserAgent()
             );
             eventPublisher.publishEvent(loginEvent);
-            System.out.println("DEBUG: Step 4 completed - Login event published");
             
-            System.out.println("DEBUG: Login method completed successfully");
             return tokenResponse;
         } catch (Exception e) {
-            System.out.println("DEBUG: Exception in login method: " + e.getClass().getSimpleName() + " - " + e.getMessage());
-            e.printStackTrace();
             throw e;
         }
     }
@@ -100,7 +85,7 @@ public class AuthenticationApplicationService {
      */
     public TokenResponse refreshToken(RefreshTokenCommand command) {
         // 1. 验证客户端
-        Client client = validateClient(command.getClientId(), command.getTenantId(), command.getClientSecret());
+        validateClient(command.getClientId(), command.getTenantId(), command.getClientSecret());
         
         // 2. 验证刷新令牌
         Token refreshToken = validateRefreshToken(command.getRefreshToken(), command.getTenantId());
@@ -167,22 +152,16 @@ public class AuthenticationApplicationService {
      * 验证客户端
      */
     private Client validateClient(String clientId, String tenantId, String clientSecret) {
-        System.out.println("DEBUG: validateClient called with clientId=" + clientId + ", tenantId=" + tenantId);
-        
         Optional<Client> clientOpt = clientRepository.findByClientIdAndTenantId(clientId, tenantId);
         if (clientOpt.isEmpty()) {
-            System.out.println("DEBUG: Client not found");
             throw new IllegalArgumentException("客户端不存在");
         }
         
         Client client = clientOpt.get();
-        System.out.println("DEBUG: Client found, secret matches=" + client.getClientSecret().equals(clientSecret));
-        
         if (!client.getClientSecret().equals(clientSecret)) {
             throw new IllegalArgumentException("客户端密钥错误");
         }
         
-        System.out.println("DEBUG: Client validation successful");
         return client;
     }
 
@@ -190,36 +169,27 @@ public class AuthenticationApplicationService {
      * 验证用户凭据
      */
     private String validateUserCredentials(String tenantId, String username, String password) {
-        System.out.println("DEBUG: validateUserCredentials called with tenantId=" + tenantId + ", username=" + username);
-        
         // 从数据库获取用户信息
         Optional<User> userOpt = userRepository.findByUsernameAndTenantId(username, tenantId);
         
         if (userOpt.isEmpty()) {
-            System.out.println("DEBUG: User not found");
             throw new IllegalArgumentException("用户名或密码错误");
         }
         
         User user = userOpt.get();
-        System.out.println("DEBUG: User found, id=" + user.getId() + ", status=" + user.getStatus());
         
         // 检查用户状态
         if (!user.isActive()) {
-            System.out.println("DEBUG: User is not active");
             throw new IllegalArgumentException("用户账户已被禁用");
         }
         
         // 验证密码
         boolean passwordMatches = passwordEncoder.matches(password, user.getHashedPassword());
-        System.out.println("DEBUG: Password matches=" + passwordMatches);
-        
         if (!passwordMatches) {
             throw new IllegalArgumentException("用户名或密码错误");
         }
         
-        String userId = user.getId().toString();
-        System.out.println("DEBUG: Returning userId=" + userId);
-        return userId;
+        return user.getId().toString();
     }
 
     /**

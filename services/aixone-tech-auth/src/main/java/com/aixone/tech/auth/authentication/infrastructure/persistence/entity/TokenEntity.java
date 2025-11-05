@@ -3,7 +3,6 @@ package com.aixone.tech.auth.authentication.infrastructure.persistence.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -41,4 +40,10 @@ public class TokenEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

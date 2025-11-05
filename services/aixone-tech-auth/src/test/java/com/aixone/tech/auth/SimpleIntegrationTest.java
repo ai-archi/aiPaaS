@@ -35,11 +35,5 @@ public class SimpleIntegrationTest {
         ApiResponse<String> response = ApiResponse.success("测试数据");
         assertEquals(Integer.valueOf(200), response.getCode());
         assertEquals("测试数据", response.getData());
-        
-        System.out.println("✅ aixone-common-sdk 集成测试通过！");
-        System.out.println("✅ 常量类: " + CommonConstants.EMPTY_STRING);
-        System.out.println("✅ 工具类: StringUtils.isBlank('hello') = " + StringUtils.isBlank("hello"));
-        System.out.println("✅ 异常类: " + exception.getMessage());
-        System.out.println("✅ API响应: " + response.getData() + " (code: " + response.getCode() + ")");
     }
 }

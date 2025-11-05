@@ -1,7 +1,7 @@
 package com.aixone.tech.auth.authentication.domain.service;
 
 import com.aixone.tech.auth.authentication.domain.model.Token;
-import com.aixone.tech.auth.infrastructure.security.JwtUtils;
+import com.aixone.common.security.JwtUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * Token 领域服务测试
@@ -49,6 +49,9 @@ class TokenDomainServiceTest {
         String userId = "test-user";
         String clientId = "test-client";
         String tenantId = "test-tenant";
+        
+        when(jwtUtils.generateAccessToken(anyString(), anyString(), anyString(), any(), any(), any()))
+            .thenReturn("mock-access-token");
 
         // When
         Token token = tokenDomainService.generateToken(tenantId, userId, clientId);
@@ -62,6 +65,8 @@ class TokenDomainServiceTest {
         assertThat(token.getType()).isEqualTo(Token.TokenType.ACCESS);
         assertThat(token.getExpiresAt()).isAfter(LocalDateTime.now());
         assertThat(token.getCreatedAt()).isBeforeOrEqualTo(LocalDateTime.now());
+        
+        verify(jwtUtils).generateAccessToken(eq(userId), eq(tenantId), eq(clientId), any(), any(), any());
     }
 
     @Test
@@ -112,15 +117,173 @@ class TokenDomainServiceTest {
     }
 
     @Test
-    void testIsTokenExpired_JustExpired() {
-        // Given
-        Token token = new Token();
-        token.setExpiresAt(LocalDateTime.now().minusSeconds(1));
-
+    void testIsTokenExpired_NullToken() {
         // When
-        boolean isExpired = tokenDomainService.isTokenExpired(token);
+        boolean isExpired = tokenDomainService.isTokenExpired(null);
 
         // Then
         assertThat(isExpired).isTrue();
+    }
+
+    @Test
+    void testValidateToken_Valid() {
+        // Given
+        Token token = new Token();
+        token.setToken("valid-token");
+        token.setExpiresAt(LocalDateTime.now().plusHours(1));
+
+        when(jwtUtils.validateToken("valid-token")).thenReturn(true);
+
+        // When
+        boolean isValid = tokenDomainService.validateToken(token);
+
+        // Then
+        assertThat(isValid).isTrue();
+        verify(jwtUtils).validateToken("valid-token");
+    }
+
+    @Test
+    void testValidateToken_Invalid() {
+        // Given
+        Token token = new Token();
+        token.setToken("invalid-token");
+        token.setExpiresAt(LocalDateTime.now().plusHours(1));
+
+        when(jwtUtils.validateToken("invalid-token")).thenReturn(false);
+
+        // When
+        boolean isValid = tokenDomainService.validateToken(token);
+
+        // Then
+        assertThat(isValid).isFalse();
+        verify(jwtUtils).validateToken("invalid-token");
+    }
+
+    @Test
+    void testValidateToken_NullToken() {
+        // When
+        boolean isValid = tokenDomainService.validateToken(null);
+
+        // Then
+        assertThat(isValid).isFalse();
+        verifyNoInteractions(jwtUtils);
+    }
+
+    @Test
+    void testIsTokenForTenant_Valid() {
+        // Given
+        Token token = new Token();
+        token.setTenantId("test-tenant");
+
+        // When
+        boolean isForTenant = tokenDomainService.isTokenForTenant(token, "test-tenant");
+
+        // Then
+        assertThat(isForTenant).isTrue();
+    }
+
+    @Test
+    void testIsTokenForTenant_Invalid() {
+        // Given
+        Token token = new Token();
+        token.setTenantId("test-tenant");
+
+        // When
+        boolean isForTenant = tokenDomainService.isTokenForTenant(token, "wrong-tenant");
+
+        // Then
+        assertThat(isForTenant).isFalse();
+    }
+
+    @Test
+    void testIsTokenForTenant_NullToken() {
+        // When
+        boolean isForTenant = tokenDomainService.isTokenForTenant(null, "test-tenant");
+
+        // Then
+        assertThat(isForTenant).isFalse();
+    }
+
+    @Test
+    void testIsTokenForTenant_NullTenantId() {
+        // Given
+        Token token = new Token();
+        token.setTenantId("test-tenant");
+
+        // When
+        boolean isForTenant = tokenDomainService.isTokenForTenant(token, null);
+
+        // Then
+        assertThat(isForTenant).isFalse();
+    }
+
+    @Test
+    void testIsTokenForUser_Valid() {
+        // Given
+        Token token = new Token();
+        token.setUserId("test-user");
+
+        // When
+        boolean isForUser = tokenDomainService.isTokenForUser(token, "test-user");
+
+        // Then
+        assertThat(isForUser).isTrue();
+    }
+
+    @Test
+    void testIsTokenForUser_Invalid() {
+        // Given
+        Token token = new Token();
+        token.setUserId("test-user");
+
+        // When
+        boolean isForUser = tokenDomainService.isTokenForUser(token, "wrong-user");
+
+        // Then
+        assertThat(isForUser).isFalse();
+    }
+
+    @Test
+    void testIsTokenForUser_NullToken() {
+        // When
+        boolean isForUser = tokenDomainService.isTokenForUser(null, "test-user");
+
+        // Then
+        assertThat(isForUser).isFalse();
+    }
+
+    @Test
+    void testIsTokenForClient_Valid() {
+        // Given
+        Token token = new Token();
+        token.setClientId("test-client");
+
+        // When
+        boolean isForClient = tokenDomainService.isTokenForClient(token, "test-client");
+
+        // Then
+        assertThat(isForClient).isTrue();
+    }
+
+    @Test
+    void testIsTokenForClient_Invalid() {
+        // Given
+        Token token = new Token();
+        token.setClientId("test-client");
+
+        // When
+        boolean isForClient = tokenDomainService.isTokenForClient(token, "wrong-client");
+
+        // Then
+        assertThat(isForClient).isFalse();
+    }
+
+    @Test
+    void testIsTokenForClient_NullToken() {
+        // When
+        boolean isForClient = tokenDomainService.isTokenForClient(null, "test-client");
+
+        // Then
+        assertThat(isForClient).isFalse();
     }
 }

@@ -1,7 +1,10 @@
 package com.aixone.tech.auth.authentication.application.service;
 
 import com.aixone.tech.auth.authentication.application.command.SendVerificationCodeCommand;
+import com.aixone.tech.auth.authentication.application.dto.verification.SendVerificationCodeRequest;
 import com.aixone.tech.auth.authentication.application.dto.verification.SendVerificationCodeResponse;
+import com.aixone.tech.auth.authentication.application.dto.verification.VerificationCodeResponse;
+import com.aixone.tech.auth.authentication.application.dto.verification.VerifyCodeRequest;
 import com.aixone.tech.auth.authentication.domain.model.VerificationCode;
 import com.aixone.tech.auth.authentication.domain.repository.VerificationCodeRepository;
 import com.aixone.tech.auth.authentication.domain.service.VerificationCodeDomainService;
@@ -15,9 +18,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -176,5 +178,137 @@ class VerificationCodeApplicationServiceTest {
         assertThat(isValid).isFalse();
 
         verify(verificationCodeDomainService).verifySmsCode(phone, tenantId, code);
+    }
+
+    @Test
+    void testSendVerificationCode_SMS_Success() {
+        // Given
+        SendVerificationCodeRequest request = new SendVerificationCodeRequest(
+            "test-tenant",
+            "13800138000",
+            null,
+            "SMS"
+        );
+
+        when(verificationCodeDomainService.isPhoneInCooldown("13800138000", "test-tenant"))
+                .thenReturn(false);
+        when(verificationCodeDomainService.generateCode()).thenReturn("123456");
+        when(verificationCodeRepository.save(any(VerificationCode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        VerificationCodeResponse response = verificationCodeService.sendVerificationCode(request);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.isSuccess()).isTrue();
+        assertThat(response.getTenantId()).isEqualTo("test-tenant");
+        assertThat(response.getType()).isEqualTo("SMS");
+        assertThat(response.getDestination()).isEqualTo("13800138000");
+        assertThat(response.getPurpose()).isEqualTo("LOGIN");
+
+        verify(verificationCodeDomainService).isPhoneInCooldown("13800138000", "test-tenant");
+        verify(verificationCodeDomainService).generateCode();
+        verify(verificationCodeRepository).save(any(VerificationCode.class));
+    }
+
+    @Test
+    void testSendVerificationCode_PhoneInCooldown() {
+        // Given
+        SendVerificationCodeRequest request = new SendVerificationCodeRequest(
+            "test-tenant",
+            "13800138000",
+            null,
+            "SMS"
+        );
+
+        when(verificationCodeDomainService.isPhoneInCooldown("13800138000", "test-tenant"))
+                .thenReturn(true);
+
+        // When
+        VerificationCodeResponse response = verificationCodeService.sendVerificationCode(request);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getMessage()).contains("请稍后再试");
+
+        verify(verificationCodeDomainService).isPhoneInCooldown("13800138000", "test-tenant");
+        verify(verificationCodeDomainService, never()).generateCode();
+        verify(verificationCodeRepository, never()).save(any());
+    }
+
+    @Test
+    void testVerifyCode_REST_Success() {
+        // Given
+        VerifyCodeRequest request = new VerifyCodeRequest(
+            "test-tenant",
+            "13800138000",
+            null,
+            "123456",
+            "SMS"
+        );
+
+        VerificationCode verificationCode = new VerificationCode();
+        verificationCode.setId("code-id");
+        verificationCode.setCode("123456");
+        verificationCode.setPhone("13800138000");
+        verificationCode.setTenantId("test-tenant");
+        verificationCode.setType("SMS");
+        verificationCode.setExpiresAt(LocalDateTime.now().plusMinutes(5));
+        verificationCode.setVerified(false);
+
+        when(verificationCodeRepository.findByPhoneAndTenantIdAndTypeAndExpiresAtAfter(
+            eq("13800138000"), eq("test-tenant"), eq("SMS"), any(LocalDateTime.class)))
+            .thenReturn(verificationCode);
+
+        // When
+        VerificationCodeResponse response = verificationCodeService.verifyCode(request);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.isSuccess()).isTrue();
+        assertThat(response.getMessage()).contains("验证码验证成功");
+
+        verify(verificationCodeRepository).findByPhoneAndTenantIdAndTypeAndExpiresAtAfter(
+            eq("13800138000"), eq("test-tenant"), eq("SMS"), any(LocalDateTime.class));
+        verify(verificationCodeRepository).deleteByCodeId("code-id");
+    }
+
+    @Test
+    void testVerifyCode_REST_InvalidCode() {
+        // Given
+        VerifyCodeRequest request = new VerifyCodeRequest(
+            "test-tenant",
+            "13800138000",
+            null,
+            "wrong-code",
+            "SMS"
+        );
+
+        VerificationCode verificationCode = new VerificationCode();
+        verificationCode.setId("code-id");
+        verificationCode.setCode("123456");
+        verificationCode.setPhone("13800138000");
+        verificationCode.setTenantId("test-tenant");
+        verificationCode.setType("SMS");
+        verificationCode.setExpiresAt(LocalDateTime.now().plusMinutes(5));
+        verificationCode.setVerified(false);
+
+        when(verificationCodeRepository.findByPhoneAndTenantIdAndTypeAndExpiresAtAfter(
+            eq("13800138000"), eq("test-tenant"), eq("SMS"), any(LocalDateTime.class)))
+            .thenReturn(verificationCode);
+
+        // When
+        VerificationCodeResponse response = verificationCodeService.verifyCode(request);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getMessage()).contains("验证码错误");
+
+        verify(verificationCodeRepository).findByPhoneAndTenantIdAndTypeAndExpiresAtAfter(
+            eq("13800138000"), eq("test-tenant"), eq("SMS"), any(LocalDateTime.class));
+        verify(verificationCodeRepository, never()).deleteByCodeId(any());
     }
 }

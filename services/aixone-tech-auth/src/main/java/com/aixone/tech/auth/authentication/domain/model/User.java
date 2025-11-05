@@ -19,6 +19,7 @@ public class User {
     private String username;
     private String hashedPassword;
     private String email;
+    private String phone;
     private String avatarUrl;
     private String bio;
     private String status;

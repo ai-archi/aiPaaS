@@ -15,16 +15,21 @@
 
 ## 一、服务概述
 
-认证授权服务是AixOne技术平台的核心安全服务，提供统一的身份认证、授权管理和单点登录能力。作为技术平台的基础设施服务，为整个AixOne生态系统提供标准化的安全认证支撑。
+认证服务是AixOne技术平台的核心安全服务，提供统一的身份认证和Token管理能力。作为技术平台的基础设施服务，为整个AixOne生态系统提供标准化的安全认证支撑。
 
 ### 1.1 服务定位
 
-认证授权服务是技术平台的核心安全服务，负责用户登录、Token 颁发、校验、OAuth2 授权、权限控制等。为所有微服务提供安全、标准的认证能力，支持 JWT、OAuth2 等主流协议，并支持多种认证方式和多租户架构。
+认证服务是技术平台的核心安全服务，专注于**身份认证**和**Token管理**，不包含业务权限决策功能。为所有微服务提供安全、标准的认证能力，支持 JWT、OAuth2 等主流协议，并支持多种认证方式和多租户架构。
+
+**职责边界**：
+- ✅ **身份认证**：用户登录、多因子认证、OAuth2流程
+- ✅ **Token管理**：Token颁发、校验、刷新、黑名单管理、用户登出
+- ✅ **管理接口**：提供内部管理接口（不直接对外暴露，由Workbench服务统一封装对外提供管理界面）
 
 ### 1.2 核心价值
 
 - **统一身份认证**：为整个平台提供统一的身份认证入口
-- **标准化授权**：基于RBAC+ABAC混合权限模型，提供细粒度权限控制
+- **安全Token管理**：提供安全、标准的Token管理能力
 - **安全防护**：多层次安全机制，保障平台安全
 - **高可用保障**：支持高并发、高可用的认证服务
 - **可扩展性**：支持多种认证方式和第三方集成
@@ -38,27 +43,24 @@
 - **多因子认证**：支持MFA增强安全性
 - **单点登录**：支持SSO统一登录体验
 - **多租户认证**：支持租户级身份隔离和认证
+- **独立认证管理**：认证服务独立维护认证用户信息（用户名、密码等），不依赖其他服务
 
-### 2.2 授权管理
-- **权限控制**：基于RBAC+ABAC混合权限模型
-- **角色管理**：支持角色分配和权限继承
-- **细粒度控制**：支持资源级、操作级权限控制
-- **动态权限**：支持基于上下文的动态权限决策
-- **多租户授权**：支持租户级权限隔离和授权
-
-### 2.3 令牌管理
+### 2.2 令牌管理
 - **JWT令牌**：标准的无状态令牌格式
 - **令牌颁发**：Access Token和Refresh Token管理
 - **令牌校验**：令牌有效性验证和黑名单管理
 - **令牌刷新**：支持令牌自动刷新机制
+- **用户登出**：用户下线时将令牌加入黑名单
 - **多租户令牌**：支持租户级令牌隔离和管理
 
-### 2.4 OAuth2授权
+### 2.3 OAuth2认证
 - **标准协议**：支持OAuth2授权码、密码、客户端等授权模式
 - **第三方集成**：支持支付宝、微信、阿里云等第三方登录
 - **授权范围**：支持细粒度授权范围控制
 - **安全回调**：安全的授权回调处理
 - **多租户OAuth2**：支持租户级OAuth2客户端管理
+
+**注意**：OAuth2的"授权"是指第三方应用的授权，不是业务权限决策。业务权限决策由Directory服务提供。
 
 ---
 
@@ -71,38 +73,37 @@
 - **数据库**：PostgreSQL（主存储）+ Redis（缓存和会话）
 - **加密算法**：AES-256 + RSA-2048，BCrypt密码加密
 - **依赖组件**：Spring Authorization Server，Spring Cloud，JJWT
+- **权限控制**：Spring Security + JWT权限信息（从Token中提取权限进行访问控制，可在yaml中配置）
 
 ### 3.2 技术架构图
 
 ```mermaid
 graph TB
-    subgraph "认证授权服务"
+    subgraph "认证服务"
         A[认证网关]
         B[身份认证模块]
-        C[权限管理模块]
         D[令牌管理模块]
         E[多因子认证模块]
-        F[OAuth2授权模块]
-        G[多租户管理模块]
+        F[OAuth2认证模块]
+        M[管理接口模块]
     end
     
     subgraph "数据存储"
         H[令牌数据]
-        I[权限缓存]
+        I[认证用户数据]
         J[审计日志]
-        K[多租户配置]
     end
     
     A --> B
-    A --> C
     B --> D
     B --> E
-    C --> F
-    D --> G
+    B --> F
+    D --> M
     E --> H
-    F --> I
-    G --> J
-    B --> K
+    B --> I
+    M --> J
+    M --> H
+    M --> I
 ```
 
 ---
@@ -114,10 +115,9 @@ graph TB
 | 数据类型 | 数据内容 | 存储方案 | 更新频率 | 安全等级 | 多租户隔离 |
 |---------|----------|----------|----------|----------|------------|
 | **令牌数据** | JWT Token、Refresh Token | Redis | 实时更新 | 高 | 租户级隔离 |
-| **权限缓存** | 用户角色权限缓存 | Redis | 实时更新 | 高 | 租户级隔离 |
 | **审计数据** | 登录日志、操作记录 | PostgreSQL | 实时更新 | 中 | 租户级隔离 |
 | **会话数据** | 用户会话、临时状态 | Redis | 实时更新 | 中 | 租户级隔离 |
-| **多租户配置** | 租户认证配置、OAuth2配置 | PostgreSQL | 按需更新 | 高 | 租户级隔离 |
+| **多租户适配** | 租户级数据隔离、多租户查询过滤 | 逻辑隔离 | 实时 | 高 | 租户级隔离 |
 
 ### 4.2 数据安全
 
@@ -129,7 +129,7 @@ graph TB
 
 #### 4.2.2 访问控制
 - **身份认证**：多因子认证
-- **权限控制**：RBAC + ABAC
+- **Token校验**：Token有效性验证（签名、过期、黑名单）
 - **数据分类**：按敏感级别分类
 - **审计日志**：完整的操作审计
 
@@ -166,20 +166,27 @@ graph TB
 | result       | String  | 操作结果     | 是   |
 | timestamp    | DateTime| 操作时间     | 是   |
 
-#### 4.3.4 TenantConfig（租户配置）
+#### 4.3.4 AuthUser（认证用户）
 | 字段         | 类型    | 说明         | 必填 |
 |--------------|---------|--------------|------|
-| tenant_id    | String  | 租户ID       | 是   |
-| auth_config  | String  | 认证配置     | 否   |
-| oauth_config | String  | OAuth2配置   | 否   |
-| security_config | String | 安全配置     | 否   |
+| id           | UUID    | 用户ID       | 是   |
+| username     | String  | 用户名       | 是   |
+| email        | String  | 邮箱         | 否   |
+| phone        | String  | 手机号       | 否   |
+| hashed_password | String | 密码哈希     | 是   |
+| tenant_id    | String  | 所属租户     | 是   |
+| status       | String  | 用户状态     | 是   |
 | created_at   | DateTime| 创建时间     | 是   |
+| updated_at   | DateTime| 更新时间     | 是   |
+
+**注意**：认证用户与Directory服务的用户主数据是分离的，通过邮箱或唯一标识进行关联，但不直接依赖。
 
 ### 4.4 关联关系
 - 客户端与 Token：一对多（按租户隔离）
-- 用户与 Token：一对多（用户数据来自目录服务，按租户隔离）
-- 用户与审计日志：一对多（按租户隔离）
-- 租户与配置：一对一
+- 认证用户与 Token：一对多（认证用户数据由认证服务独立管理，按租户隔离）
+- 认证用户与审计日志：一对多（按租户隔离）
+
+**注意**：认证服务不管理租户配置，仅做多租户数据适配（通过tenant_id进行数据隔离）。
 
 ---
 
@@ -223,25 +230,175 @@ graph TB
 #### 5.2.3 用户登出
 - **接口**：POST /api/v1/auth/logout
 - **参数**：token（JWT中包含tenant_id）
-- **说明**：将令牌加入黑名单
+- **说明**：将令牌加入黑名单，用户下线
 
-### 5.3 权限校验接口
+**注意**：
+- 业务权限校验由Directory服务提供，请调用 `POST /api/v1/directory/check-permission`
+- Token中可以包含权限信息（由业务服务在生成Token时添加），但Auth服务不管理权限
 
-#### 5.3.1 权限校验
-- **接口**：POST /api/v1/auth/check-permission
-- **参数**：tenant_id, user_id, resource, action
-- **返回**：权限校验结果
+### 5.3 管理接口（内部接口，不直接对外暴露）
 
-### 5.4 多租户配置接口
+**重要说明**：
+- 本节列出的所有管理接口均为Auth服务的内部接口，不直接对前端提供服务。前端应通过Workbench服务提供的接口访问管理功能。
+- **权限校验**：
+  - 所有管理接口使用Spring Security进行权限校验，从Token中提取用户权限信息进行访问控制
+  - 权限信息在生成Token时由业务服务添加到Token中（权限数据由Directory服务管理）
+  - 使用Spring Security的`@PreAuthorize`注解或配置文件进行权限检查，不依赖Directory服务
+  - 权限点定义如下（可在yaml配置文件中配置）：
+    - 用户管理：`auth:user:read`、`auth:user:create`、`auth:user:update`、`auth:user:delete`、`auth:user:password:reset`
+    - Token管理：`auth:token:read`、`auth:token:revoke`
+    - 客户端管理：`auth:client:read`、`auth:client:create`、`auth:client:update`、`auth:client:delete`
+    - 审计日志：`auth:audit:read`
+    - 登录设备管理：`auth:device:read`、`auth:device:logout`
 
-#### 5.4.1 租户配置查询
-- **接口**：GET /api/v1/auth/tenant/{tenantId}/config
-- **返回**：租户认证配置
+#### 5.3.1 已登录用户查询
+- **接口**：GET /api/v1/auth/internal/users/active
+- **参数**：tenant_id（必填），user_id（可选），page, size
+- **返回**：已登录用户列表（包含用户ID、登录时间、设备信息、Token数量等）
+- **说明**：查询当前活跃的已登录用户
 
-#### 5.4.2 租户配置更新
-- **接口**：PUT /api/v1/auth/tenant/{tenantId}/config
-- **参数**：auth_config, oauth_config, security_config
-- **说明**：更新租户级认证配置
+#### 5.3.2 用户登录设备查询
+- **接口**：GET /api/v1/auth/internal/users/{userId}/devices
+- **参数**：tenant_id（必填），user_id（路径参数）
+- **返回**：用户所有登录设备列表（设备ID、设备类型、登录IP、登录时间、最后活跃时间等）
+- **说明**：查询同一用户在多台设备上的登录情况
+
+#### 5.3.3 强制用户下线
+- **接口**：POST /api/v1/auth/internal/users/{userId}/logout-all
+- **参数**：tenant_id（必填），user_id（路径参数）
+- **返回**：下线结果（下线设备数量）
+- **说明**：强制用户所有设备下线，将所有Token加入黑名单
+
+#### 5.3.4 指定设备下线
+- **接口**：POST /api/v1/auth/internal/users/{userId}/devices/{deviceId}/logout
+- **参数**：tenant_id（必填），user_id（路径参数），device_id（路径参数）
+- **返回**：下线结果
+- **说明**：强制指定设备下线，将相关Token加入黑名单
+
+#### 5.3.5 认证用户管理接口
+
+##### 5.3.5.1 创建认证用户
+- **接口**：POST /api/v1/auth/internal/users
+- **参数**：tenant_id, username, password, email, phone
+- **返回**：认证用户信息（不含密码）
+- **说明**：创建新的认证用户
+
+##### 5.3.5.2 查询认证用户
+- **接口**：GET /api/v1/auth/internal/users/{userId}
+- **参数**：tenant_id（必填），user_id（路径参数）
+- **返回**：认证用户信息（不含密码）
+
+##### 5.3.5.3 查询认证用户列表
+- **接口**：GET /api/v1/auth/internal/users
+- **参数**：tenant_id（必填），username（可选），email（可选），status（可选），page, size
+- **返回**：认证用户列表（不含密码）
+
+##### 5.3.5.4 更新认证用户
+- **接口**：PUT /api/v1/auth/internal/users/{userId}
+- **参数**：tenant_id（必填），user_id（路径参数），username, email, phone, status
+- **返回**：更新后的认证用户信息
+- **说明**：更新认证用户信息（不包括密码，密码通过单独接口修改）
+
+##### 5.3.5.5 修改用户密码
+- **接口**：PUT /api/v1/auth/internal/users/{userId}/password
+- **参数**：tenant_id（必填），user_id（路径参数），old_password, new_password
+- **返回**：修改结果
+- **说明**：修改认证用户密码
+
+##### 5.3.5.6 重置用户密码
+- **接口**：POST /api/v1/auth/internal/users/{userId}/password/reset
+- **参数**：tenant_id（必填），user_id（路径参数），new_password
+- **返回**：重置结果
+- **说明**：管理员重置用户密码（不需要旧密码）
+
+##### 5.3.5.7 删除认证用户
+- **接口**：DELETE /api/v1/auth/internal/users/{userId}
+- **参数**：tenant_id（必填），user_id（路径参数）
+- **返回**：删除结果
+- **说明**：删除认证用户（同时将用户所有Token加入黑名单）
+
+#### 5.3.6 Token管理接口
+
+##### 5.3.6.1 查询用户Token列表
+- **接口**：GET /api/v1/auth/internal/tokens
+- **参数**：tenant_id（必填），user_id（可选），client_id（可选），type（可选），page, size
+- **返回**：Token列表（Token值、类型、过期时间、创建时间等）
+
+##### 5.3.6.2 撤销Token
+- **接口**：POST /api/v1/auth/internal/tokens/{token}/revoke
+- **参数**：tenant_id（必填），token（路径参数）
+- **返回**：撤销结果
+- **说明**：将指定Token加入黑名单
+
+##### 5.3.6.3 批量撤销用户Token
+- **接口**：POST /api/v1/auth/internal/users/{userId}/tokens/revoke-all
+- **参数**：tenant_id（必填），user_id（路径参数）
+- **返回**：撤销结果（撤销Token数量）
+- **说明**：撤销用户所有Token
+
+#### 5.3.7 客户端管理接口
+
+##### 5.3.7.1 创建OAuth2客户端
+- **接口**：POST /api/v1/auth/internal/clients
+- **参数**：tenant_id, client_id, client_secret, redirect_uri, scopes, grant_types
+- **返回**：客户端信息
+
+##### 5.3.7.2 查询客户端列表
+- **接口**：GET /api/v1/auth/internal/clients
+- **参数**：tenant_id（必填），page, size
+- **返回**：客户端列表
+
+##### 5.3.7.3 查询客户端详情
+- **接口**：GET /api/v1/auth/internal/clients/{clientId}
+- **参数**：tenant_id（必填），client_id（路径参数）
+- **返回**：客户端信息
+
+##### 5.3.7.4 更新客户端
+- **接口**：PUT /api/v1/auth/internal/clients/{clientId}
+- **参数**：tenant_id（必填），client_id（路径参数），redirect_uri, scopes, grant_types
+- **返回**：更新后的客户端信息
+
+##### 5.3.7.5 删除客户端
+- **接口**：DELETE /api/v1/auth/internal/clients/{clientId}
+- **参数**：tenant_id（必填），client_id（路径参数）
+- **返回**：删除结果
+
+### 5.4 审计日志接口
+
+#### 5.4.1 查询审计日志
+- **接口**：GET /api/v1/auth/internal/audit-logs
+- **参数**：tenant_id（必填），user_id（可选），action（可选），start_time（可选），end_time（可选），page, size
+- **返回**：审计日志列表（日志ID、用户ID、操作类型、资源、结果、时间、客户端IP、User-Agent等）
+
+#### 5.4.2 查询用户审计日志
+- **接口**：GET /api/v1/auth/internal/users/{userId}/audit-logs
+- **参数**：tenant_id（必填），user_id（路径参数），action（可选），start_time（可选），end_time（可选），page, size
+- **返回**：用户审计日志列表
+
+#### 5.4.3 查询登录日志
+- **接口**：GET /api/v1/auth/internal/audit-logs/login
+- **参数**：tenant_id（必填），user_id（可选），start_time（可选），end_time（可选），result（可选：SUCCESS/FAILURE），page, size
+- **返回**：登录日志列表
+
+#### 5.4.4 查询登出日志
+- **接口**：GET /api/v1/auth/internal/audit-logs/logout
+- **参数**：tenant_id（必填），user_id（可选），start_time（可选），end_time（可选），page, size
+- **返回**：登出日志列表
+
+**重要说明**：
+- **内部接口不直接对外暴露**：所有管理接口均为内部接口（路径包含`/internal`），需要服务间认证，**不直接对前端提供服务**
+- **统一由Workbench封装**：Auth服务的管理接口由Workbench服务统一调用，Workbench服务负责封装、权限校验、数据转换后对外提供管理界面和API
+- **接口访问路径**：
+  - Auth服务内部接口：`/api/v1/auth/internal/*`（仅服务间调用）
+  - Workbench对外接口：`/api/v1/workbench/auth/*`（前端调用）
+- **权限校验**：
+  - **Auth服务层面**：管理接口使用Spring Security从Token中提取权限信息进行访问控制，不依赖Directory服务。权限信息在生成Token时已包含在Token中（由业务服务从Directory获取后添加到Token）
+  - **Workbench服务层面**：在对外接口层面也进行权限校验（双重保护）
+  - **权限数据管理**：权限数据完全由Directory服务管理，Auth服务只从Token中读取权限信息进行访问控制
+- **职责划分**：
+  - Auth服务：提供内部管理接口，负责认证数据管理，使用Spring Security从Token中提取权限信息进行访问控制
+  - Workbench服务：调用Auth内部接口，对外提供统一的管理界面和API，负责权限校验、数据封装、前端适配
+  - Directory服务：管理权限数据，业务服务从Directory获取权限信息后添加到Token中
 
 ---
 
@@ -274,7 +431,12 @@ graph TB
 - **认证要求**：所有接口默认需认证（除注册、登录、授权码获取等开放接口）
 - **认证方式**：Spring Security + JWT/OAuth2 统一认证
 - **令牌传递**：Token 需通过 Authorization: Bearer <token> 头部传递
-- **权限控制**：支持基于角色/权限的访问控制（如 @PreAuthorize）
+- **权限控制**：
+  - 权限数据管理：Auth服务不管理权限数据，权限完全由Directory服务管理
+  - 权限校验：Auth服务的管理接口使用Spring Security从Token中提取权限信息进行访问控制，不依赖Directory服务
+  - 权限点定义：管理接口的权限点可在yaml配置文件中配置（如`auth:user:read`、`auth:user:create`、`auth:token:revoke`等）
+  - 权限信息来源：Token中的权限信息由业务服务在生成Token时添加（从Directory服务获取）
+- **管理功能**：Auth服务提供内部管理接口（不直接对外暴露），Workbench服务统一封装对外提供管理界面和API
 - **安全机制**：Token 黑名单、过期、刷新等安全机制完善
 - **防护措施**：注册、验证码等接口需防刷、限流
 
@@ -288,16 +450,21 @@ graph TB
 sequenceDiagram
     participant U as 用户
     participant A as 认证服务
-    participant D as 目录服务
-    participant T as 租户配置
+    participant DB as 认证数据库
     U->>A: 提交登录信息(tenant_id, username, password)
-    A->>T: 获取租户认证配置
-    T->>A: 返回租户配置
-    A->>D: 验证用户信息(tenant_id, username, password)
-    D->>A: 返回用户信息
-    A->>A: 校验信息，颁发Token(包含tenant_id)
+    A->>DB: 查询认证用户信息(tenant_id, username)
+    DB->>A: 返回认证用户信息（密码哈希）
+    A->>A: 验证密码，校验用户状态
+    A->>A: 颁发Token(包含tenant_id, user_id)
     A->>U: 返回access_token, refresh_token
+    Note over A,DB: 同一用户在不同租户下有独立的认证信息<br/>认证信息通过tenant_id+username唯一标识
 ```
+
+**多租户认证信息隔离说明**：
+- **同一用户在不同租户下的认证信息是多份独立的**：同一个用户（如用户名为`user1`）在不同租户（如`tenant1`和`tenant2`）下，在认证服务中会创建两套独立的认证用户记录
+- **唯一标识**：认证用户通过`tenant_id + username`（或`tenant_id + email`）唯一标识
+- **数据隔离**：不同租户下的认证用户数据完全隔离，互不影响
+- **Token隔离**：同一用户在租户A下的Token无法在租户B下使用，Token中包含tenant_id进行验证
 
 ### 7.2 多租户OAuth2登录流程
 
@@ -307,44 +474,72 @@ sequenceDiagram
     participant U as 用户
     participant A as 认证服务
     participant P as 第三方提供商
-    participant T as 租户配置
+    participant DB as 认证数据库
     C->>A: 跳转授权页(tenant_id)
-    A->>T: 获取租户OAuth2配置
-    T->>A: 返回OAuth2配置
     A->>P: 重定向到第三方授权(包含tenant_id)
     U->>P: 登录并授权
     P->>A: 返回授权码
     A->>P: 用授权码换取用户信息
-    P->>A: 返回用户信息
-    A->>A: 验证用户信息并颁发Token(包含tenant_id)
+    P->>A: 返回用户信息(如email)
+    A->>DB: 查询认证用户(tenant_id, email)
+    alt 认证用户不存在
+        DB->>A: 返回空
+        A->>DB: 创建认证用户(tenant_id, email, ...)
+        DB->>A: 返回新创建的认证用户
+    else 认证用户已存在
+        DB->>A: 返回认证用户信息
+    end
+    A->>A: 验证用户信息并颁发Token(包含tenant_id, user_id)
     A->>C: 返回access_token, refresh_token
+    Note over A,DB: 同一用户在不同租户下有独立的认证信息<br/>认证信息通过tenant_id+email唯一标识
 ```
 
-### 7.3 多租户权限校验流程
+**多租户认证信息隔离说明**：
+- **同一用户在不同租户下的认证信息是多份独立的**：同一个用户（如邮箱为`user@example.com`）在不同租户（如`tenant1`和`tenant2`）下，在认证服务中会创建两套独立的认证用户记录
+- **唯一标识**：认证用户通过`tenant_id + email`（或`tenant_id + username`）唯一标识
+- **数据隔离**：不同租户下的认证用户数据完全隔离，互不影响
+- **Token隔离**：同一用户在租户A下的Token无法在租户B下使用，Token中包含tenant_id进行验证
+
+### 7.3 Token校验流程
 
 ```mermaid
 sequenceDiagram
     participant C as 客户端
     participant A as 认证服务
-    participant D as 目录服务
-    participant T as 租户配置
     C->>A: 携带Token发起请求
-    A->>A: 解析Token获取tenant_id
-    A->>T: 获取租户权限配置
-    T->>A: 返回权限配置
-    A->>A: 校验Token有效性
-    A->>A: RBAC校验（租户级角色权限）
-    alt RBAC通过
-        A->>A: ABAC校验（租户级属性策略）
-        alt ABAC通过
-            A-->>C: 允许访问
-        else ABAC不通过
-            A-->>C: 403 Forbidden
-        end
-    else RBAC不通过
-        A-->>C: 403 Forbidden
+    A->>A: 解析Token获取tenant_id、user_id
+    A->>A: 校验Token有效性（签名、过期、黑名单）
+    alt Token有效
+        A-->>C: 返回Token信息（用户ID、租户ID等）
+    else Token无效
+        A-->>C: 返回401 Unauthorized
     end
-    Note over A: 权限信息通过API调用目录服务获取，支持缓存优化
+    Note over A: Token校验不涉及权限决策，权限校验由业务服务调用Directory服务提供
+```
+<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>
+read_file
+
+### 7.4 业务权限校验流程（已迁移到Directory服务）
+
+业务权限校验已迁移到Directory服务，业务服务应调用Directory的权限校验接口：
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant B as 业务服务
+    participant A as 认证服务
+    participant D as 目录服务
+    C->>B: 业务请求（携带Token）
+    B->>A: 校验Token有效性
+    A-->>B: Token有效，返回用户信息
+    B->>D: 权限校验（用户ID、资源、操作）
+    D->>D: RBAC+ABAC权限决策
+    D-->>B: 返回权限校验结果
+    alt 权限校验通过
+        B-->>C: 返回业务数据
+    else 权限校验失败
+        B-->>C: 返回403 Forbidden
+    end
 ```
 
 ---
@@ -394,13 +589,28 @@ sequenceDiagram
 - expires_at (DateTime) - 过期时间
 - created_at (DateTime) - 创建时间
 
-#### 8.1.6 租户配置表（tenant_configs）
-- tenant_id (String, PK) - 租户ID
-- auth_config (String) - 认证配置JSON
-- oauth_config (String) - OAuth2配置JSON
-- security_config (String) - 安全配置JSON
+#### 8.1.6 认证用户表（auth_users）
+- id (UUID, PK) - 用户ID
+- username (String) - 用户名
+- email (String) - 邮箱（可选，用于关联Directory服务用户）
+- phone (String) - 手机号（可选）
+- hashed_password (String) - 密码哈希（BCrypt）
+- tenant_id (String) - 所属租户
+- status (String) - 用户状态（ACTIVE, INACTIVE, LOCKED）
 - created_at (DateTime) - 创建时间
 - updated_at (DateTime) - 更新时间
+- 索引：username + tenant_id（唯一），email + tenant_id（唯一）
+
+**注意**：
+- 认证用户表由认证服务独立管理，不依赖Directory服务
+- 认证用户与Directory服务的用户主数据通过邮箱或唯一标识关联，但两者完全独立
+- 认证服务只负责身份认证，不管理用户详细信息（姓名、组织等）
+
+**注意**：
+- Auth服务独立运行，不依赖Directory服务
+- Auth服务不管理权限数据，权限数据由Directory服务管理
+- 认证用户信息和用户主数据信息完全分离，通过邮箱或唯一标识进行关联
+- Auth服务不管理租户配置，仅做多租户数据适配（通过tenant_id进行数据隔离）
 
 ### 8.2 多租户数据隔离策略
 
@@ -468,165 +678,146 @@ services/axione-tech-auth/
 - **组件**：REST控制器、事件监听器、gRPC服务
 - **特点**：协议适配，调用应用层服务
 
----
+### 9.3 Spring Security权限配置
 
-## 十、RBAC+ABAC混合权限模型
+#### 9.3.1 权限校验方式
 
-### 10.1 模型原理
+管理接口使用Spring Security进行权限校验，从Token中提取权限信息进行访问控制：
 
-- **RBAC（基于角色的访问控制）**：用户通过角色获得基础权限，适合大部分通用权限场景，结构清晰、易于管理。
-- **ABAC（基于属性的访问控制）**：权限决策基于用户、资源、环境等多维属性和策略表达式，支持细粒度、动态、上下文相关的权限需求。
-- **混合模型**：先用RBAC判定用户是否具备基础访问权限，再用ABAC策略进行更细粒度的动态校验。
-
-### 10.2 权限决策流程
-
-1. **RBAC校验**：判断用户是否具备访问资源的基础角色权限。
-2. **ABAC校验**：在RBAC通过后，进一步根据请求上下文、资源属性、环境属性等，应用ABAC策略表达式进行判定。
-3. **最终决策**：两者都通过才允许访问，否则拒绝。
-
-### 10.3 典型ABAC策略示例
-
-- 用户属性：部门、岗位、级别、标签
-- 资源属性：归属租户、敏感级别、创建人
-- 环境属性：请求IP、时间、设备类型
-- 策略表达式示例：
-  - 用户部门=资源部门 且 访问时间在9-18点 且 资源敏感级别<2
-  - 用户级别>=资源要求级别
-
-### 10.4 伪代码示例
-
+**方式一：使用`@PreAuthorize`注解**
 ```java
-boolean checkAccess(User user, Resource resource, Action action, Context ctx) {
-    // 1. RBAC校验
-    if (!rbacService.hasRolePermission(user, resource, action)) {
-        return false;
-    }
-    // 2. ABAC校验
-    if (!abacService.evaluate(user, resource, action, ctx)) {
-        return false;
-    }
-    return true;
+@PreAuthorize("hasAuthority('auth:user:read')")
+@GetMapping("/internal/users/active")
+public ResponseEntity<List<User>> getActiveUsers(...) {
+    // ...
 }
 ```
 
-### 10.5 架构设计建议
+**方式二：在yaml配置文件中配置**
+```yaml
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # JWT配置
+    authorization:
+      # 权限配置
+      rules:
+        - path: /api/v1/auth/internal/users/**
+          permissions: 
+            - auth:user:read
+            - auth:user:create
+        - path: /api/v1/auth/internal/tokens/**
+          permissions:
+            - auth:token:read
+            - auth:token:revoke
+```
 
-- **主数据管理**：用户、角色、资源、属性等主数据由 directory-serve 维护，认证服务通过API调用获取权限信息
-- **权限决策引擎**：支持RBAC+ABAC组合判定，可内嵌于认证服务或独立部署
-- **策略管理**：支持表达式配置、热更新（如数据库、配置中心、策略DSL等）
-- **审计与监控**：记录每次权限决策的详细上下文，便于追溯和合规
-- **性能优化**：权限信息缓存，减少对目录服务的频繁调用
+#### 9.3.2 Token权限信息提取
 
-### 10.6 行业参考
+- **权限信息来源**：Token中的`permissions`字段（由业务服务在生成Token时从Directory服务获取后添加）
+- **权限提取**：Spring Security自动从Token的Claims中提取权限信息
+- **权限匹配**：使用Spring Security的权限表达式进行匹配
 
-- 阿里云、AWS、Google Cloud等主流云平台均采用RBAC+ABAC混合模型，兼顾企业级权限管理和灵活的细粒度控制。
+#### 9.3.3 权限点配置
 
-> 通过RBAC+ABAC混合模型，平台可实现既规范又灵活的权限体系，满足复杂业务和安全合规需求。
+管理接口的权限点可在yaml配置文件中配置，便于统一管理和维护：
+
+```yaml
+auth:
+  permissions:
+    user:
+      read: auth:user:read
+      create: auth:user:create
+      update: auth:user:update
+      delete: auth:user:delete
+      password-reset: auth:user:password:reset
+    token:
+      read: auth:token:read
+      revoke: auth:token:revoke
+    client:
+      read: auth:client:read
+      create: auth:client:create
+      update: auth:client:update
+      delete: auth:client:delete
+    audit:
+      read: auth:audit:read
+    device:
+      read: auth:device:read
+      logout: auth:device:logout
+```
 
 ---
 
-## 十一、研发计划与执行步骤
+## 十、权限与Token设计
 
-### 11.1 项目现状
+### 10.1 权限管理职责
 
-- **项目状态**：全新项目，需要从头开发
-- **架构基础**：已确定DDD四层架构和项目结构
-- **技术选型**：Spring Boot 3.5+ + Spring Security + PostgreSQL + Redis
-- **多租户支持**：完整的多租户架构设计
+Auth服务**不管理任何权限**，权限完全由Directory服务提供：
 
-### 11.2 开发阶段规划
+- ✅ **Token信息**：Token中可以包含权限信息（由业务服务在生成Token时添加）
 
-#### 11.2.1 第一阶段：基础架构搭建（2-3周）
-- [ ] 搭建项目结构
-- [ ] 实现DDD四层架构基础框架
-- [ ] 配置Spring Boot + Spring Security基础环境
-- [ ] 搭建PostgreSQL + Redis数据库环境
-- [ ] 实现基础的JWT令牌生成和校验
+### 10.2 Token中的权限信息
 
-#### 11.2.2 第二阶段：核心功能开发（4-5周）
-- [ ] 实现多租户数据隔离和配置管理
-- [ ] 开发用户认证功能（用户名密码、短信、邮箱、OAuth2）
-- [ ] 实现令牌管理（生成、校验、刷新、黑名单）
-- [ ] 开发OAuth2客户端管理（多租户支持）
-- [ ] 实现基础权限校验功能
+业务服务在生成Token时，可以将用户权限信息添加到Token中：
 
-#### 11.2.3 第三阶段：高级功能开发（3-4周）
-- [ ] 实现RBAC+ABAC混合权限模型
-- [ ] 开发领域事件和事件驱动架构
-- [ ] 实现与目录服务的集成
-- [ ] 开发多级缓存策略（多租户缓存隔离）
-- [ ] 实现审计日志和监控功能
+```java
+// Token生成示例（业务服务调用Auth服务生成Token时）
+TokenResponse tokenResponse = authService.generateToken(
+    userId,
+    tenantId,
+    clientId,
+    roles,        // 从Directory服务获取
+    permissions,  // 从Directory服务获取
+    abacAttributes // 从Directory服务获取
+);
+```
 
-#### 11.2.4 第四阶段：测试与优化（2-3周）
-- [ ] 编写单元测试和集成测试
-- [ ] 性能测试和优化
-- [ ] 安全测试和加固
-- [ ] 文档完善和API文档生成
-- [ ] 部署和运维文档
+**注意**：
+- Auth服务仅负责生成和校验Token，不验证Token中的权限信息
+- Token中的权限信息由业务服务从Directory服务获取后添加
+- 权限校验由Directory服务提供，业务服务应调用Directory的权限校验接口
 
-### 11.3 技术实现重点
+### 10.3 权限校验流程
 
-#### 11.3.1 DDD架构实现
-- **领域层**：建立认证、授权、令牌等聚合根
-- **应用层**：实现CQRS模式，分离命令和查询
-- **基础设施层**：实现仓储模式和数据持久化
-- **接口层**：实现REST API和事件监听
+```
+权限校验流程：
 
-#### 11.3.2 多租户支持
-- **数据隔离**：所有表包含tenant_id字段
-- **缓存隔离**：Redis Key使用tenant_id前缀
-- **配置管理**：支持租户级认证配置
-- **安全隔离**：租户级权限校验和审计
+1. 业务服务接收请求：
+   业务服务 → 提取Token → 调用Auth服务校验Token有效性
 
-#### 11.3.3 外部服务集成
-- **目录服务**：用户、角色、权限主数据同步
-- **事件中心**：领域事件发布和订阅
-- **通知服务**：验证码发送和通知
+2. 权限校验（由Directory服务提供）：
+   业务服务 → Directory服务（权限校验）
+   Note: Directory服务如需验证Token，可调用Auth服务的Token校验接口
 
-### 11.4 开发规范
+3. 权限决策：
+   Directory服务 → RBAC+ABAC权限决策
+   Directory服务 → 返回权限校验结果
+```
 
-#### 11.4.1 代码规范
-- **DDD分层**：严格遵循四层架构，保持依赖方向正确
-- **命名规范**：使用清晰的领域术语和业务语言
-- **注释规范**：关键业务逻辑必须有详细注释
-- **测试规范**：测试覆盖率不低于80%
+### 10.4 管理功能提供
 
-#### 11.4.2 质量保证
-- **代码审查**：所有代码必须经过同行审查
-- **持续集成**：自动化构建、测试、部署
-- **性能监控**：关键指标监控和告警
-- **安全扫描**：定期进行安全漏洞扫描
+认证服务提供内部管理接口，Workbench服务统一封装对外提供管理界面：
 
-### 11.5 风险控制
+- **Auth服务内部接口**：
+  - 提供已登录用户查询、多设备登录管理、认证用户CRUD、Token管理、客户端管理、审计日志查询等内部接口（`/api/v1/auth/internal/*`路径）
+  - **不直接对外暴露**：内部接口需要服务间认证，不直接对前端提供服务
+  - **仅服务间调用**：只能由其他服务（如Workbench）通过服务间认证调用
+  - **权限校验**：管理接口使用Spring Security从Token中提取权限信息进行访问控制，不依赖Directory服务。权限信息在生成Token时已包含在Token中
+- **Workbench服务**：
+  - 调用Auth服务的内部接口获取数据
+  - 进行权限校验、数据转换、前端适配
+  - 对外提供统一的管理界面和API（`/api/v1/workbench/auth/*`路径）
+  - 前端统一通过Workbench服务访问管理功能
+- **Directory服务**：提供权限校验能力
 
-#### 11.5.1 技术风险
-- **多租户数据隔离**：确保租户间数据完全隔离
-- **性能优化**：缓存策略和数据库查询优化
-- **安全加固**：防止SQL注入、XSS等安全漏洞
+### 10.5 服务职责总结
 
-#### 11.5.2 项目风险
-- **进度控制**：按阶段里程碑进行进度跟踪
-- **质量保证**：每个阶段完成后进行质量评审
-- **团队协作**：建立有效的沟通和协作机制
+| 服务 | 职责 |
+|------|------|
+| **Auth服务** | 身份认证、Token管理、用户登出、认证用户管理、内部管理接口 |
+| **Directory服务** | 权限数据管理、权限决策、权限校验 |
+| **Workbench服务** | 调用Auth内部接口，对外提供管理界面和API |
+| **业务服务** | 业务逻辑、调用Directory进行权限校验 |
 
-### 11.6 成功标准
-
-#### 11.6.1 功能标准
-- [ ] 支持多租户认证和授权
-- [ ] 实现完整的OAuth2流程
-- [ ] 支持RBAC+ABAC混合权限模型
-- [ ] 与目录服务完整集成
-
-#### 11.6.2 性能标准
-- [ ] 认证响应时间 < 100ms
-- [ ] 权限校验响应时间 < 50ms
-- [ ] 支持1000+并发用户
-- [ ] 系统可用性 > 99.9%
-
-#### 11.6.3 质量标准
-- [ ] 代码测试覆盖率 > 80%
-- [ ] 无严重安全漏洞
-- [ ] 完整的API文档
-- [ ] 完善的运维文档
-
-> 本研发计划作为项目开发的执行指南，建议每完成一个阶段及时评审和调整，确保项目按时高质量交付。

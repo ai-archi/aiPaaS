@@ -1,7 +1,6 @@
 package com.aixone.tech.auth.authentication.application.command;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 /**
  * 用户登录命令

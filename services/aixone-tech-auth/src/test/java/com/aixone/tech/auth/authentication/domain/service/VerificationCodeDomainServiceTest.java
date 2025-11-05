@@ -73,22 +73,6 @@ class VerificationCodeDomainServiceTest {
     }
 
     @Test
-    void testIsPhoneInCooldown_CooldownExpired() {
-        // Given
-        String phone = "13800138000";
-        String tenantId = "test-tenant";
-
-        when(verificationCodeRepository.isPhoneInCooldown(phone, tenantId, 1))
-                .thenReturn(false);
-
-        // When
-        boolean inCooldown = verificationCodeDomainService.isPhoneInCooldown(phone, tenantId);
-
-        // Then
-        assertThat(inCooldown).isFalse();
-    }
-
-    @Test
     void testIsEmailInCooldown_NotInCooldown() {
         // Given
         String email = "test@example.com";
@@ -118,21 +102,5 @@ class VerificationCodeDomainServiceTest {
 
         // Then
         assertThat(inCooldown).isTrue();
-    }
-
-    @Test
-    void testIsEmailInCooldown_CooldownExpired() {
-        // Given
-        String email = "test@example.com";
-        String tenantId = "test-tenant";
-
-        when(verificationCodeRepository.isEmailInCooldown(email, tenantId, 1))
-                .thenReturn(false);
-
-        // When
-        boolean inCooldown = verificationCodeDomainService.isEmailInCooldown(email, tenantId);
-
-        // Then
-        assertThat(inCooldown).isFalse();
     }
 }

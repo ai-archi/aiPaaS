@@ -12,6 +12,7 @@ public interface TokenMapper {
 
     TokenMapper INSTANCE = Mappers.getMapper(TokenMapper.class);
 
+    @Mapping(target = "id", ignore = true) // Entity的id由数据库自动生成，忽略映射
     @Mapping(source = "token", target = "token")
     @Mapping(source = "tenantId", target = "tenantId")
     @Mapping(source = "userId", target = "userId")
@@ -43,6 +44,13 @@ public interface TokenMapper {
      */
     @Named("stringToTokenType")
     default Token.TokenType stringToTokenType(String type) {
-        return type != null ? Token.TokenType.valueOf(type) : null;
+        if (type == null || type.isEmpty()) {
+            return null;
+        }
+        try {
+            return Token.TokenType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }

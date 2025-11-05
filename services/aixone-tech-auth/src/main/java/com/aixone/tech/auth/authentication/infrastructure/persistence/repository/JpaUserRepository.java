@@ -51,4 +51,11 @@ public class JpaUserRepository implements UserRepository {
     public boolean existsByUsernameAndTenantId(String username, String tenantId) {
         return jpaRepository.existsByUsernameAndTenantId(username, tenantId);
     }
+    
+    @Override
+    public java.util.List<User> findByTenantId(String tenantId) {
+        return jpaRepository.findByTenantId(tenantId).stream()
+            .map(mapper::toDomain)
+            .collect(java.util.stream.Collectors.toList());
+    }
 }

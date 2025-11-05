@@ -1,13 +1,12 @@
 package com.aixone.tech.auth.authentication.domain.service;
 
 import com.aixone.tech.auth.authentication.domain.model.Token;
-import com.aixone.tech.auth.infrastructure.security.JwtUtils;
+import com.aixone.common.security.JwtUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * 令牌领域服务
@@ -56,6 +55,15 @@ public class TokenDomainService {
                                     LocalDateTime expiresAt) {
         String tokenValue = jwtUtils.generateRefreshToken(userId, tenantId, clientId);
         return new Token(tokenValue, tenantId, userId, clientId, expiresAt, Token.TokenType.REFRESH);
+    }
+    
+    /**
+     * 生成刷新令牌（无clientId的重载方法）
+     */
+    public Token generateRefreshToken(String tenantId, String userId, LocalDateTime expiresAt) {
+        // 如果没有clientId，使用默认值或从上下文获取
+        String tokenValue = jwtUtils.generateRefreshToken(userId, tenantId, "default-client");
+        return new Token(tokenValue, tenantId, userId, "default-client", expiresAt, Token.TokenType.REFRESH);
     }
 
     /**
@@ -116,11 +124,4 @@ public class TokenDomainService {
         return token.belongsToClient(clientId);
     }
 
-    /**
-     * 生成令牌值
-     */
-    private String generateTokenValue() {
-        return UUID.randomUUID().toString().replace("-", "") + 
-               System.currentTimeMillis();
-    }
 }

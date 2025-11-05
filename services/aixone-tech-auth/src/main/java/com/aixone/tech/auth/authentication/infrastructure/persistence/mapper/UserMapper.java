@@ -27,10 +27,6 @@ public class UserMapper {
         user.setCreatedAt(entity.getCreatedAt());
         user.setUpdatedAt(entity.getUpdatedAt());
         
-        // 调试信息
-        System.out.println("DEBUG: UserEntity ID: " + entity.getId());
-        System.out.println("DEBUG: User ID after mapping: " + user.getId());
-        
         return user;
     }
     

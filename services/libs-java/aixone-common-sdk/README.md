@@ -54,6 +54,12 @@
 - `AbacAttributes` - ABAC 属性管理
 - `SessionException` - 会话相关异常
 
+### 8. 安全工具类 (`com.aixone.common.security`)
+- `JwtUtils` - JWT Token 生成和解析工具类
+  - 支持生成 Access Token 和 Refresh Token
+  - 支持 Token 验证和解析
+  - 支持从 Token 中提取用户ID、租户ID、角色、权限等信息
+
 ## 会话上下文管理
 
 本SDK内置了完整的会话上下文管理能力，支持多租户、JWT Token 解析和 ABAC 属性管理：
@@ -78,6 +84,41 @@ public abstract class Entity<ID> {
     }
 }
 ```
+
+### 使用JWT工具类
+
+```java
+@Autowired
+private JwtUtils jwtUtils;
+
+// 生成Access Token
+String accessToken = jwtUtils.generateAccessToken(
+    userId, 
+    tenantId, 
+    clientId, 
+    roles, 
+    permissions, 
+    abacAttributes
+);
+
+// 生成Refresh Token
+String refreshToken = jwtUtils.generateRefreshToken(userId, tenantId, clientId);
+
+// 验证Token
+boolean isValid = jwtUtils.validateToken(token);
+
+// 从Token中提取信息
+String userId = jwtUtils.getUserIdFromToken(token);
+String tenantId = jwtUtils.getTenantIdFromToken(token);
+Set<String> roles = jwtUtils.getRolesFromToken(token);
+Set<String> permissions = jwtUtils.getPermissionsFromToken(token);
+```
+
+**配置要求**：
+- `jwt.secret`: JWT签名密钥
+- `jwt.issuer`: JWT发行者
+- `jwt.expiration`: Access Token过期时间（毫秒）
+- `jwt.refresh-expiration`: Refresh Token过期时间（毫秒）
 
 ## 使用方式
 

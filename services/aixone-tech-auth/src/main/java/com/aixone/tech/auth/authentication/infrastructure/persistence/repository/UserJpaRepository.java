@@ -20,4 +20,6 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, UUID> {
     Optional<UserEntity> findByEmailAndTenantId(String email, String tenantId);
     
     void deleteByUsernameAndTenantId(String username, String tenantId);
+    
+    java.util.List<UserEntity> findByTenantId(String tenantId);
 }

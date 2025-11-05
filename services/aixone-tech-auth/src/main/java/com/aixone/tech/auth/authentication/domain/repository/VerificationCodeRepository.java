@@ -2,7 +2,6 @@ package com.aixone.tech.auth.authentication.domain.repository;
 
 import com.aixone.tech.auth.authentication.domain.model.VerificationCode;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 /**

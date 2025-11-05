@@ -9,10 +9,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 客户端管理控制器
+ * 客户端管理控制器（内部接口）
+ * 注意：管理功能由Workbench服务对外提供，此接口仅用于内部调用
+ * 实际使用时，Workbench服务应调用此接口或直接调用DomainService
  */
 @RestController
-@RequestMapping("/admin/clients")
+@RequestMapping("/api/v1/auth/internal/clients")
 public class ClientManagementController {
 
     private final ClientDomainService clientDomainService;
@@ -22,7 +24,8 @@ public class ClientManagementController {
     }
 
     /**
-     * 创建客户端
+     * 创建客户端（内部接口）
+     * 注意：此接口仅用于内部调用，对外管理功能由Workbench服务提供
      */
     @PostMapping
     public ResponseEntity<Client> createClient(@RequestBody CreateClientRequest request) {
@@ -38,7 +41,8 @@ public class ClientManagementController {
     }
 
     /**
-     * 获取租户的所有客户端
+     * 获取租户的所有客户端（内部接口）
+     * 注意：此接口仅用于内部调用，对外管理功能由Workbench服务提供
      */
     @GetMapping
     public ResponseEntity<List<Client>> getClients(@RequestParam String tenantId) {

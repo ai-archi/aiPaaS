@@ -19,4 +19,9 @@ public interface UserRepository {
     void deleteById(UUID id);
     
     boolean existsByUsernameAndTenantId(String username, String tenantId);
+    
+    /**
+     * 根据租户ID查找所有用户
+     */
+    java.util.List<User> findByTenantId(String tenantId);
 }

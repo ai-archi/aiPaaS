@@ -42,6 +42,11 @@ const viteConfig = ({ mode }: ConfigEnv): UserConfig => {
                     changeOrigin: true,
                     secure: false,
                 },
+                '^/menus': {
+                    target: 'http://localhost:8081/api/v1',
+                    changeOrigin: true,
+                    secure: false,
+                },
                 '/api/v1/tenants': {
                     target: 'http://localhost:8081',
                     changeOrigin: true,

@@ -11,9 +11,9 @@ public interface ClientMapper {
 
     ClientMapper INSTANCE = Mappers.getMapper(ClientMapper.class);
 
-    @Mapping(source = "clientId", target = "id")
+    @Mapping(target = "id", ignore = true) // Entity的id由数据库自动生成，忽略映射
     ClientEntity toEntity(Client client);
 
-    @Mapping(source = "id", target = "clientId")
+    // Domain模型没有id字段，直接映射clientId
     Client toDomain(ClientEntity clientEntity);
 }

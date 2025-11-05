@@ -320,7 +320,7 @@ export const arrayFullUrl = (relativeUrls: string | string[], domain = '') => {
 
 /**
  * 格式化时间戳
- * @param dateTime 时间戳
+ * @param dateTime 时间戳或日期字符串（支持ISO 8601格式）
  * @param fmt 格式化方式，默认：yyyy-mm-dd hh:MM:ss
  */
 export const timeFormat = (dateTime: string | number | null = null, fmt = 'yyyy-mm-dd hh:MM:ss') => {
@@ -331,11 +331,42 @@ export const timeFormat = (dateTime: string | number | null = null, fmt = 'yyyy-
     if (isNull(dateTime)) {
         dateTime = Number(new Date())
     }
-    if (dateTime.toString().length === 10) {
-        dateTime = +dateTime * 1000
+    
+    let date: Date
+    
+    // 统一转换为 Date 对象
+    if (typeof dateTime === 'string') {
+        // 如果是字符串，尝试直接解析为日期（支持ISO 8601格式）
+        date = new Date(dateTime)
+        if (isNaN(date.getTime())) {
+            // 如果解析失败，尝试作为数字时间戳处理
+            const num = Number(dateTime)
+            if (!isNaN(num)) {
+                // 如果是10位数字，视为秒级时间戳
+                if (num.toString().length === 10) {
+                    date = new Date(num * 1000)
+                } else {
+                    date = new Date(num)
+                }
+            } else {
+                return '-'
+            }
+        }
+    } else if (typeof dateTime === 'number') {
+        // 处理数字时间戳
+        if (dateTime.toString().length === 10) {
+            date = new Date(dateTime * 1000)
+        } else {
+            date = new Date(dateTime)
+        }
+    } else {
+        date = new Date()
     }
-
-    const date = new Date(Number(dateTime))
+    
+    // 如果日期无效，返回 '-'
+    if (isNaN(date.getTime())) {
+        return '-'
+    }
     let ret
     const opt: anyObj = {
         'y+': date.getFullYear().toString(), // 年

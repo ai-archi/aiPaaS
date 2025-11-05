@@ -1,12 +1,15 @@
 package com.aixone.tech.auth.config;
 
+import com.aixone.common.security.JwtUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -18,7 +21,14 @@ import java.util.Arrays;
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true) // 启用@PreAuthorize注解支持
 public class SecurityConfig {
+    
+    private final JwtUtils jwtUtils;
+    
+    public SecurityConfig(JwtUtils jwtUtils) {
+        this.jwtUtils = jwtUtils;
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -26,9 +36,19 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(authz -> authz
-                // 允许所有请求
+                // 公开接口：登录、注册、验证码等（支持context-path）
+                .requestMatchers("/auth/login", "/auth/refresh", "/auth/logout", 
+                                "/auth/validate", "/auth/sms/**", "/auth/email/**",
+                                "/auth/{provider}/**",
+                                "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout",
+                                "/api/v1/auth/validate", "/api/v1/auth/sms/**", "/api/v1/auth/email/**",
+                                "/api/v1/auth/{provider}/**").permitAll()
+                // 管理接口需要权限验证
+                .requestMatchers("/auth/internal/**", "/api/v1/auth/internal/**").authenticated()
+                // 其他接口默认允许（可以根据需要调整）
                 .anyRequest().permitAll()
             )
+            .addFilterBefore(new JwtAuthenticationFilter(jwtUtils), UsernamePasswordAuthenticationFilter.class)
             .httpBasic(basic -> basic.disable())
             .formLogin(form -> form.disable())
             .sessionManagement(session -> session.disable());

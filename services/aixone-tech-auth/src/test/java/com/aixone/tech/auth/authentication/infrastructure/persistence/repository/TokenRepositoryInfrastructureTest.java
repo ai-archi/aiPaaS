@@ -1,18 +1,16 @@
 package com.aixone.tech.auth.authentication.infrastructure.persistence.repository;
 
 import com.aixone.tech.auth.authentication.domain.model.Token;
-import com.aixone.tech.auth.authentication.domain.repository.TokenRepository;
-import com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity;
-import com.aixone.tech.auth.authentication.infrastructure.persistence.mapper.TokenMapper;
+import com.aixone.tech.auth.authentication.infrastructure.persistence.repository.JpaTokenRepository;
+import com.aixone.tech.auth.authentication.infrastructure.persistence.repository.TokenJpaRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,39 +21,61 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Token Repository 基础设施层测试
  */
-@SpringBootTest
+@DataJpaTest
 @ActiveProfiles("test")
-@Transactional
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@ComponentScan(
+    basePackages = "com.aixone.tech.auth",
+    excludeFilters = {
+        @ComponentScan.Filter(
+            type = FilterType.ASSIGNABLE_TYPE,
+            classes = com.aixone.tech.auth.config.TestDataConfig.class
+        ),
+        @ComponentScan.Filter(
+            type = FilterType.REGEX,
+            pattern = "com\\.aixone\\.tech\\.auth\\.config\\.TestDataConfig"
+        )
+    }
+)
+@Rollback(false) // 禁用自动回滚，确保数据在测试中可见
 public class TokenRepositoryInfrastructureTest {
 
     @Autowired
-    private TokenRepository tokenRepository;
+    private JpaTokenRepository jpaTokenRepository;
+    
+    @Autowired
+    private TokenJpaRepository jpaRepository;
+    
+    @Autowired
+    private EntityManager entityManager;
 
     @Test
     public void testSaveAndFindToken() {
         // Given
-        Token token = new Token();
-        token.setToken("test-token-exists");
-        token.setUserId("test-user");
-        token.setClientId("test-client");
-        token.setTenantId("test-tenant");
-        token.setType(Token.TokenType.ACCESS);
-        token.setExpiresAt(LocalDateTime.now().plusHours(1));
-        token.setCreatedAt(LocalDateTime.now());
+        com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity entity = 
+            new com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity();
+        entity.setToken("test-token-exists");
+        entity.setUserId("test-user");
+        entity.setClientId("test-client");
+        entity.setTenantId("test-tenant");
+        entity.setType("ACCESS");
+        entity.setExpiresAt(LocalDateTime.now().plusHours(1));
+        entity.setCreatedAt(LocalDateTime.now());
 
-        // When
-        System.out.println("Before save: " + token);
-        Token savedToken = tokenRepository.save(token);
-        System.out.println("After save: " + savedToken);
-        System.out.println("Before find");
-        Optional<Token> foundToken = tokenRepository.findByToken("test-token-exists");
-        System.out.println("Found token: " + foundToken);
+        // When - save using JPA repository to ensure persistence
+        jpaRepository.save(entity);
+        jpaRepository.flush();
+        entityManager.clear(); // Clear to force a fresh query
+        
+        // Query using JPA repository directly
+        Optional<com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity> foundEntity = 
+            jpaRepository.findByToken("test-token-exists");
+        
+        // Query using domain repository (real implementation)
+        Optional<Token> foundToken = jpaTokenRepository.findByToken("test-token-exists");
 
         // Then
-        assertThat(savedToken).isNotNull();
-        assertThat(savedToken.getToken()).isEqualTo("test-token-exists");
-        assertThat(foundToken).isPresent();
+        assertThat(foundEntity).as("Direct JPA query should find the entity").isPresent();
+        assertThat(foundToken).as("Repository query should find the token").isPresent();
         assertThat(foundToken.get().getToken()).isEqualTo("test-token-exists");
         assertThat(foundToken.get().getUserId()).isEqualTo("test-user");
     }
@@ -63,29 +83,33 @@ public class TokenRepositoryInfrastructureTest {
     @Test
     public void testFindByUserIdAndTenantId() {
         // Given
-        Token token1 = new Token();
-        token1.setToken("token-1");
-        token1.setUserId("test-user");
-        token1.setClientId("client-1");
-        token1.setTenantId("test-tenant");
-        token1.setType(Token.TokenType.ACCESS);
-        token1.setExpiresAt(LocalDateTime.now().plusHours(1));
-        token1.setCreatedAt(LocalDateTime.now());
+        com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity entity1 = 
+            new com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity();
+        entity1.setToken("token-1");
+        entity1.setUserId("test-user");
+        entity1.setClientId("client-1");
+        entity1.setTenantId("test-tenant");
+        entity1.setType("ACCESS");
+        entity1.setExpiresAt(LocalDateTime.now().plusHours(1));
+        entity1.setCreatedAt(LocalDateTime.now());
 
-        Token token2 = new Token();
-        token2.setToken("token-2");
-        token2.setUserId("test-user");
-        token2.setClientId("client-2");
-        token2.setTenantId("test-tenant");
-        token2.setType(Token.TokenType.REFRESH);
-        token2.setExpiresAt(LocalDateTime.now().plusDays(7));
-        token2.setCreatedAt(LocalDateTime.now());
+        com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity entity2 = 
+            new com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity();
+        entity2.setToken("token-2");
+        entity2.setUserId("test-user");
+        entity2.setClientId("client-2");
+        entity2.setTenantId("test-tenant");
+        entity2.setType("REFRESH");
+        entity2.setExpiresAt(LocalDateTime.now().plusDays(7));
+        entity2.setCreatedAt(LocalDateTime.now());
 
-        tokenRepository.save(token1);
-        tokenRepository.save(token2);
+        entityManager.persist(entity1);
+        entityManager.persist(entity2);
+        entityManager.flush();
+        entityManager.clear();
 
         // When
-        List<Token> tokens = tokenRepository.findByUserIdAndTenantId("test-user", "test-tenant");
+        List<Token> tokens = jpaTokenRepository.findByUserIdAndTenantId("test-user", "test-tenant");
 
         // Then
         assertThat(tokens).hasSize(2);
@@ -95,29 +119,33 @@ public class TokenRepositoryInfrastructureTest {
     @Test
     public void testFindByClientIdAndTenantId() {
         // Given
-        Token token1 = new Token();
-        token1.setToken("token-user-1");
-        token1.setUserId("user-1");
-        token1.setClientId("test-client");
-        token1.setTenantId("test-tenant");
-        token1.setType(Token.TokenType.ACCESS);
-        token1.setExpiresAt(LocalDateTime.now().plusHours(1));
-        token1.setCreatedAt(LocalDateTime.now());
+        com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity entity1 = 
+            new com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity();
+        entity1.setToken("token-user-1");
+        entity1.setUserId("user-1");
+        entity1.setClientId("test-client");
+        entity1.setTenantId("test-tenant");
+        entity1.setType("ACCESS");
+        entity1.setExpiresAt(LocalDateTime.now().plusHours(1));
+        entity1.setCreatedAt(LocalDateTime.now());
 
-        Token token2 = new Token();
-        token2.setToken("token-user-2");
-        token2.setUserId("user-2");
-        token2.setClientId("test-client");
-        token2.setTenantId("test-tenant");
-        token2.setType(Token.TokenType.REFRESH);
-        token2.setExpiresAt(LocalDateTime.now().plusDays(7));
-        token2.setCreatedAt(LocalDateTime.now());
+        com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity entity2 = 
+            new com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity();
+        entity2.setToken("token-user-2");
+        entity2.setUserId("user-2");
+        entity2.setClientId("test-client");
+        entity2.setTenantId("test-tenant");
+        entity2.setType("REFRESH");
+        entity2.setExpiresAt(LocalDateTime.now().plusDays(7));
+        entity2.setCreatedAt(LocalDateTime.now());
 
-        tokenRepository.save(token1);
-        tokenRepository.save(token2);
+        entityManager.persist(entity1);
+        entityManager.persist(entity2);
+        entityManager.flush();
+        entityManager.clear();
 
         // When
-        List<Token> tokens = tokenRepository.findByClientIdAndTenantId("test-client", "test-tenant");
+        List<Token> tokens = jpaTokenRepository.findByClientIdAndTenantId("test-client", "test-tenant");
 
         // Then
         assertThat(tokens).hasSize(2);
@@ -127,20 +155,23 @@ public class TokenRepositoryInfrastructureTest {
     @Test
     public void testExistsByToken() {
         // Given
-        Token token = new Token();
-        token.setToken("test-token-exists-check");
-        token.setUserId("test-user");
-        token.setClientId("test-client");
-        token.setTenantId("test-tenant");
-        token.setType(Token.TokenType.ACCESS);
-        token.setExpiresAt(LocalDateTime.now().plusHours(1));
-        token.setCreatedAt(LocalDateTime.now());
+        com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity entity = 
+            new com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity();
+        entity.setToken("test-token-exists-check");
+        entity.setUserId("test-user");
+        entity.setClientId("test-client");
+        entity.setTenantId("test-tenant");
+        entity.setType("ACCESS");
+        entity.setExpiresAt(LocalDateTime.now().plusHours(1));
+        entity.setCreatedAt(LocalDateTime.now());
 
-        tokenRepository.save(token);
+        entityManager.persist(entity);
+        entityManager.flush();
+        entityManager.clear();
 
         // When
-        boolean exists = tokenRepository.existsByToken("test-token-exists-check");
-        boolean notExists = tokenRepository.existsByToken("non-existent-token");
+        boolean exists = jpaTokenRepository.existsByToken("test-token-exists-check");
+        boolean notExists = jpaTokenRepository.existsByToken("non-existent-token");
 
         // Then
         assertThat(exists).isTrue();
@@ -159,42 +190,46 @@ public class TokenRepositoryInfrastructureTest {
         token.setExpiresAt(LocalDateTime.now().plusHours(1));
         token.setCreatedAt(LocalDateTime.now());
 
-        tokenRepository.save(token);
+        jpaTokenRepository.save(token);
 
         // When
-        tokenRepository.delete("test-token-delete");
+        jpaTokenRepository.delete("test-token-delete");
 
         // Then
-        Optional<Token> foundToken = tokenRepository.findByToken("test-token-delete");
+        Optional<Token> foundToken = jpaTokenRepository.findByToken("test-token-delete");
         assertThat(foundToken).isEmpty();
     }
 
     @Test
     public void testFindExpiredTokens() {
         // Given
-        Token expiredToken = new Token();
-        expiredToken.setToken("expired-token");
-        expiredToken.setUserId("test-user");
-        expiredToken.setClientId("test-client");
-        expiredToken.setTenantId("test-tenant");
-        expiredToken.setType(Token.TokenType.ACCESS);
-        expiredToken.setExpiresAt(LocalDateTime.now().minusHours(1)); // 已过期
-        expiredToken.setCreatedAt(LocalDateTime.now().minusHours(2));
+        com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity expiredEntity = 
+            new com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity();
+        expiredEntity.setToken("expired-token");
+        expiredEntity.setUserId("test-user");
+        expiredEntity.setClientId("test-client");
+        expiredEntity.setTenantId("test-tenant");
+        expiredEntity.setType("ACCESS");
+        expiredEntity.setExpiresAt(LocalDateTime.now().minusHours(1)); // 已过期
+        expiredEntity.setCreatedAt(LocalDateTime.now().minusHours(2));
 
-        Token validToken = new Token();
-        validToken.setToken("valid-token");
-        validToken.setUserId("test-user");
-        validToken.setClientId("test-client");
-        validToken.setTenantId("test-tenant");
-        validToken.setType(Token.TokenType.ACCESS);
-        validToken.setExpiresAt(LocalDateTime.now().plusHours(1)); // 未过期
-        validToken.setCreatedAt(LocalDateTime.now());
+        com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity validEntity = 
+            new com.aixone.tech.auth.authentication.infrastructure.persistence.entity.TokenEntity();
+        validEntity.setToken("valid-token");
+        validEntity.setUserId("test-user");
+        validEntity.setClientId("test-client");
+        validEntity.setTenantId("test-tenant");
+        validEntity.setType("ACCESS");
+        validEntity.setExpiresAt(LocalDateTime.now().plusHours(1)); // 未过期
+        validEntity.setCreatedAt(LocalDateTime.now());
 
-        tokenRepository.save(expiredToken);
-        tokenRepository.save(validToken);
+        entityManager.persist(expiredEntity);
+        entityManager.persist(validEntity);
+        entityManager.flush();
+        entityManager.clear();
 
         // When
-        List<Token> expiredTokens = tokenRepository.findExpiredTokens();
+        List<Token> expiredTokens = jpaTokenRepository.findExpiredTokens();
 
         // Then
         assertThat(expiredTokens).hasSize(1);

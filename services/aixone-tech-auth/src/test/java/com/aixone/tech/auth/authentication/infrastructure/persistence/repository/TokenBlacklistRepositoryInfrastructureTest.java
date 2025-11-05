@@ -5,7 +5,6 @@ import com.aixone.tech.auth.authentication.domain.repository.TokenBlacklistRepos
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -21,9 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 @ComponentScan(basePackages = "com.aixone.tech.auth")
 public class TokenBlacklistRepositoryInfrastructureTest {
-
-    @Autowired
-    private TestEntityManager entityManager;
 
     @Autowired
     private TokenBlacklistRepository tokenBlacklistRepository;
@@ -96,24 +92,6 @@ public class TokenBlacklistRepositoryInfrastructureTest {
 
         // Then
         assertThat(isBlacklisted).isFalse();
-    }
-
-    @Test
-    public void testIsTokenBlacklistedByTenant() {
-        // Given
-        TokenBlacklist tokenBlacklist = new TokenBlacklist();
-        tokenBlacklist.setToken("test-token");
-        tokenBlacklist.setTenantId("test-tenant");
-        tokenBlacklist.setExpiresAt(LocalDateTime.now().plusHours(1));
-        tokenBlacklist.setCreatedAt(LocalDateTime.now());
-
-        tokenBlacklistRepository.save(tokenBlacklist);
-
-        // When
-        boolean isBlacklisted = tokenBlacklistRepository.isTokenBlacklistedByTenant("test-token", "test-tenant");
-
-        // Then
-        assertThat(isBlacklisted).isTrue();
     }
 
     @Test

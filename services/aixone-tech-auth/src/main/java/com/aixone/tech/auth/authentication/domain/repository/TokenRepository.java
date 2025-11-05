@@ -63,4 +63,9 @@ public interface TokenRepository {
      * 删除过期令牌
      */
     void deleteExpiredTokens();
+    
+    /**
+     * 根据租户ID查找所有令牌
+     */
+    List<Token> findByTenantId(String tenantId);
 }

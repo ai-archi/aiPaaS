@@ -4,7 +4,8 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 
@@ -12,7 +13,6 @@ import org.springframework.validation.beanvalidation.MethodValidationPostProcess
  * 测试配置类
  */
 @TestConfiguration
-@EnableWebSecurity
 public class TestSecurityConfig {
 
     @Bean
@@ -21,14 +21,18 @@ public class TestSecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/api/v1/auth/**").permitAll()
-                .anyRequest().permitAll()
+                .anyRequest().permitAll() // 测试环境允许所有请求
             )
             .httpBasic(basic -> basic.disable())
             .formLogin(form -> form.disable())
             .sessionManagement(session -> session.disable());
         return http.build();
+    }
+
+    @Bean
+    @Primary
+    public PasswordEncoder testPasswordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean

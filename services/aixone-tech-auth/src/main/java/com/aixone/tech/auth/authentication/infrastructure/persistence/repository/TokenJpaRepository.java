@@ -30,6 +30,9 @@ public interface TokenJpaRepository extends JpaRepository<TokenEntity, Long> {
     @Query("SELECT t FROM TokenEntity t WHERE t.expiresAt < :now")
     List<TokenEntity> findExpiredTokens(@Param("now") LocalDateTime now);
     
+    @Query("SELECT t FROM TokenEntity t WHERE t.tenantId = :tenantId")
+    List<TokenEntity> findByTenantId(@Param("tenantId") String tenantId);
+    
     void deleteByUserIdAndTenantId(String userId, String tenantId);
     
     void deleteByClientIdAndTenantId(String clientId, String tenantId);

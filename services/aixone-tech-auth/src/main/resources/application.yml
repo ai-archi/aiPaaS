@@ -25,7 +25,7 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate  # 使用validate，由Flyway管理数据库结构
     show-sql: false
     properties:
       hibernate:

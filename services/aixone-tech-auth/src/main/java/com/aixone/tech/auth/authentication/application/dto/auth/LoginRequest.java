@@ -1,7 +1,5 @@
 package com.aixone.tech.auth.authentication.application.dto.auth;
 
-import java.time.LocalDateTime;
-
 /**
  * 登录请求DTO
  */

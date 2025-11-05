@@ -93,4 +93,12 @@ public class JpaTokenRepository implements TokenRepository {
                 .map(mapper::toDomain)
                 .toList();
     }
+    
+    @Override
+    public List<Token> findByTenantId(String tenantId) {
+        return jpaRepository.findByTenantId(tenantId)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
 }
