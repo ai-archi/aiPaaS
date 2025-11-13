@@ -1,0 +1,21 @@
+export default {
+    'Permission management': 'Permission Management',
+    'Permission list': 'Permission List',
+    'Add permission': 'Add Permission',
+    'Edit permission': 'Edit Permission',
+    'Delete permission': 'Delete Permission',
+    'Permission name': 'Permission Name',
+    'Permission code': 'Permission Code',
+    'Resource': 'Resource',
+    'Action': 'Action',
+    'Permission type': 'Permission Type',
+    'Functional permission': 'Functional Permission',
+    'Data permission': 'Data Permission',
+    'ABAC conditions': 'ABAC Conditions',
+    'Description': 'Description',
+    'Permission details': 'Permission Details',
+    'Assign to role': 'Assign to Role',
+    'Role permissions': 'Role Permissions',
+    'Remove permission': 'Remove Permission',
+}
+

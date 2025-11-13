@@ -115,6 +115,7 @@ function createAxios<Data = any, T = ApiPromise<Data>>(axiosConfig: AxiosRequest
             options.loading && closeLoading(options) // 关闭loading
 
             if (response.config.responseType == 'json') {
+                // 统一响应码格式：code=200 表示成功
                 if (response.data && response.data.code !== 200) {
                     if (response.data.code == 409) {
                         if (!window.tokenRefreshing) {
@@ -176,7 +177,7 @@ function createAxios<Data = any, T = ApiPromise<Data>>(axiosConfig: AxiosRequest
                     if (options.showCodeMessage) {
                         ElNotification({
                             type: 'error',
-                            message: response.data.msg,
+                            message: response.data.message || response.data.msg,
                             zIndex: SYSTEM_ZINDEX,
                         })
                     }
@@ -199,11 +200,11 @@ function createAxios<Data = any, T = ApiPromise<Data>>(axiosConfig: AxiosRequest
                         }
                         router.push({ path: routerPath })
                     }
-                    // code不等于1, 页面then内的具体逻辑就不执行了
+                    // code不等于200, 页面then内的具体逻辑就不执行了
                     return Promise.reject(response.data)
                 } else if (options.showSuccessMessage && response.data && response.data.code == 200) {
                     ElNotification({
-                        message: response.data.msg ? response.data.msg : i18n.global.t('axios.Operation successful'),
+                        message: response.data.message || response.data.msg || i18n.global.t('axios.Operation successful'),
                         type: 'success',
                         zIndex: SYSTEM_ZINDEX,
                     })

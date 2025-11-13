@@ -10,4 +10,5 @@ public interface GroupRepository {
     void save(Group group);
     Optional<Group> findById(String id);
     List<Group> findByTenantId(String tenantId);
+    void deleteById(String id);
 } 

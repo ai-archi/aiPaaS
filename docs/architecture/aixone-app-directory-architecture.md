@@ -93,7 +93,8 @@ graph TB
         end
         
         subgraph AppModulesPending["核心模块（待实现）"]
-            PermissionModule["权限管理<br/>模块"]
+            PermissionRuleModule["权限规则管理<br/>模块"]
+            PermissionDataModule["权限数据管理<br/>模块"]
             DecisionModule["权限决策<br/>引擎"]
             ValidationModule["权限校验<br/>模块"]
             FilterModule["权限过滤<br/>模块"]
@@ -107,7 +108,11 @@ graph TB
         RoleLogic["角色管理<br/>业务逻辑"]
         GroupLogic["群组管理<br/>业务逻辑"]
         MenuLogic["菜单管理<br/>业务逻辑"]
-        PermissionLogic["权限决策<br/>业务逻辑"]
+        PermissionRuleLogic["权限规则管理<br/>业务逻辑"]
+        PermissionDataLogic["权限数据管理<br/>业务逻辑"]
+        PermissionDecisionLogic["权限决策<br/>业务逻辑"]
+        PermissionValidationLogic["权限校验<br/>业务逻辑"]
+        PermissionFilterLogic["权限过滤<br/>业务逻辑"]
     end
     
     subgraph DataAccess["数据访问层 (Data Access Layer)"]
@@ -117,7 +122,8 @@ graph TB
         RoleDAO["角色数据<br/>数据访问"]
         GroupDAO["群组数据<br/>数据访问"]
         MenuDAO["菜单数据<br/>数据访问"]
-        PermissionDAO["权限数据<br/>数据访问"]
+        PermissionRuleDAO["权限规则数据<br/>数据访问"]
+        PermissionDataDAO["权限数据<br/>数据访问"]
     end
     
     subgraph Data["数据层 (Data Layer)"]
@@ -138,7 +144,8 @@ graph TB
     DirectoryService --> RoleModule
     DirectoryService --> GroupModule
     DirectoryService --> MenuModule
-    DirectoryService -.-> PermissionModule
+    DirectoryService -.-> PermissionRuleModule
+    DirectoryService -.-> PermissionDataModule
     DirectoryService -.-> DecisionModule
     DirectoryService -.-> ValidationModule
     DirectoryService -.-> FilterModule
@@ -149,10 +156,11 @@ graph TB
     RoleModule --> RoleLogic
     GroupModule --> GroupLogic
     MenuModule --> MenuLogic
-    PermissionModule -.-> PermissionLogic
-    DecisionModule -.-> PermissionLogic
-    ValidationModule -.-> PermissionLogic
-    FilterModule -.-> PermissionLogic
+    PermissionRuleModule -.-> PermissionRuleLogic
+    PermissionDataModule -.-> PermissionDataLogic
+    DecisionModule -.-> PermissionDecisionLogic
+    ValidationModule -.-> PermissionValidationLogic
+    FilterModule -.-> PermissionFilterLogic
     
     TenantLogic --> TenantDAO
     UserLogic --> UserDAO
@@ -174,8 +182,10 @@ graph TB
     GroupDAO --> Redis
     MenuDAO --> PostgreSQL
     MenuDAO --> Redis
-    PermissionDAO -.-> PostgreSQL
-    PermissionDAO -.-> Redis
+    PermissionRuleDAO -.-> PostgreSQL
+    PermissionRuleDAO -.-> Redis
+    PermissionDataDAO -.-> PostgreSQL
+    PermissionDataDAO -.-> Redis
     
     DirectoryService --> Kafka
 ```
@@ -192,10 +202,11 @@ graph TB
 | **角色管理模块** | 角色管理 | 角色创建、更新、删除、查询，用户-角色关系管理，群组-角色关系管理 | ✅ 已实现 |
 | **群组管理模块** | 群组管理 | 群组创建、更新、删除、查询，群组-成员关系管理，群组-角色关系管理 | ✅ 已实现 |
 | **菜单主数据管理模块** | 菜单主数据管理 | 菜单创建、更新、删除、查询、层级管理，菜单树查询 | ✅ 已实现 |
-| **权限数据管理模块** | 权限数据管理 | 权限管理、角色-权限关系管理、权限继承 | ⏳ 待实现（已引入aixone-permission-sdk，待集成） |
-| **权限决策引擎模块** | 权限决策 | RBAC权限决策、ABAC权限决策、混合权限决策 | ⏳ 待实现（已引入aixone-permission-sdk，待集成） |
-| **权限校验模块** | 权限校验接口 | 功能级权限校验、数据级权限校验、批量权限校验 | ⏳ 待实现（已引入aixone-permission-sdk，待集成） |
-| **权限过滤模块** | 权限过滤能力 | 菜单权限过滤、资源权限过滤、数据权限过滤 | ⏳ 待实现（已引入aixone-permission-sdk，待集成） |
+| **权限规则管理模块** | 权限规则管理 | 管理接口的权限验证规则（路径-权限映射）、权限规则CRUD | ⏳ 待实现 |
+| **权限数据管理模块** | 权限数据管理 | 权限管理、角色-权限关系管理、权限继承 | ⏳ 待实现 |
+| **权限决策引擎模块** | 权限决策 | RBAC权限决策、ABAC权限决策、混合权限决策 | ⏳ 待实现 |
+| **权限校验模块** | 权限校验接口 | 功能级权限校验、数据级权限校验、批量权限校验 | ⏳ 待实现 |
+| **权限过滤模块** | 权限过滤能力 | 菜单权限过滤、资源权限过滤、数据权限过滤 | ⏳ 待实现 |
 
 ### 2.2 领域模型设计
 
@@ -298,9 +309,30 @@ graph TB
 - created_at: DateTime (创建时间)
 - updated_at: DateTime (更新时间)
 
+**权限规则实体（PermissionRule）**：
+- ⏳ **待实现**：权限规则实体用于管理接口的权限验证
+- rule_id: UUID (规则ID)
+- pattern: String (路径模式，Ant风格，支持通配符 `**`, `*`)
+- methods: Set<String> (HTTP方法列表：GET、POST、PUT、DELETE等)
+- permission: String (权限标识，如 `admin:menu:read`)
+- description: String (规则描述)
+- enabled: Boolean (是否启用)
+- created_at: DateTime (创建时间)
+- updated_at: DateTime (更新时间)
+
 **权限实体（Permission）**：
-- ⏳ **待实现**：权限实体将在权限模块实现时添加
-- 计划包含：permission_id、tenant_id、name、code、resource、action、type、description、abac_conditions等字段
+- ⏳ **待实现**：权限实体用于RBAC/ABAC权限决策
+- permission_id: UUID (权限ID)
+- tenant_id: UUID (租户ID)
+- name: String (权限名称)
+- code: String (权限编码，唯一)
+- resource: String (资源标识)
+- action: String (操作：READ/WRITE/DELETE等)
+- type: PermissionType (权限类型：FUNCTIONAL/DATA)
+- description: String (权限描述)
+- abac_conditions: Map<String, Object> (ABAC条件，JSON格式)
+- created_at: DateTime (创建时间)
+- updated_at: DateTime (更新时间)
 
 #### 2.2.2 领域服务
 
@@ -371,6 +403,7 @@ graph TB
 - 方法：
   - createGroup(tenantId, request): 创建群组
   - getGroup(tenantId, groupId): 查询群组
+  - findGroups(pageRequest, tenantId, name): 分页查询群组列表（支持名称过滤）
   - assignUsersToGroup(groupId, userIds): 分配用户到群组
   - removeUsersFromGroup(groupId, userIds): 从群组移除用户
   - assignRolesToGroup(groupId, roleIds): 分配角色到群组
@@ -399,8 +432,17 @@ graph TB
   - removeRolePermission(roleId, permissionId): 移除角色权限
   - getRolePermissions(roleId): 获取角色权限列表
 
+**权限规则管理服务（PermissionRuleManagementService）**：
+- ⏳ **待实现**：管理接口的权限验证规则
+- 计划方法：
+  - createPermissionRule(command): 创建权限规则
+  - updatePermissionRule(ruleId, command): 更新权限规则
+  - deletePermissionRule(ruleId): 删除权限规则
+  - findPermissionRuleByPath(path, method): 根据路径和方法查找权限规则
+  - findAllPermissionRules(): 查询所有权限规则
+
 **权限决策服务（PermissionDecisionService）**：
-- ⏳ **待实现**：提供权限决策能力（通过aixone-permission-sdk集成）
+- ⏳ **待实现**：提供权限决策能力，支持RBAC+ABAC混合权限模型
 - 计划方法：
   - checkPermission(userId, resource, action): 检查用户权限（RBAC）
   - checkPermissionWithABAC(userId, resource, action, context): 检查用户权限（ABAC）
@@ -409,7 +451,7 @@ graph TB
   - filterResourcesByPermission(userId, resources): 过滤资源权限
 
 **权限校验服务（PermissionValidationService）**：
-- ⏳ **待实现**：提供权限校验接口（通过aixone-permission-sdk集成）
+- ⏳ **待实现**：提供权限校验接口
 - 计划方法：
   - validatePermission(userId, resource, action): 校验权限
   - validatePermissions(userId, permissions): 批量校验权限
@@ -462,16 +504,18 @@ sequenceDiagram
 #### 2.3.2 菜单权限过滤流程
 
 ```
-1. 工作台服务调用目录服务的菜单权限过滤接口
-2. 目录服务获取菜单主数据
-3. 目录服务获取用户权限信息（角色、权限等）
-4. 目录服务权限决策引擎处理：
+1. 前端调用目录服务的菜单查询接口（如 GET /api/v1/menus）
+2. 目录服务从token获取用户ID和租户ID
+3. 目录服务获取菜单主数据
+4. 目录服务获取用户权限信息（角色、权限等）
+5. 目录服务权限决策引擎处理：
    a. 遍历菜单列表
    b. 检查菜单的可见角色和所需权限
-   c. 执行权限决策
+   c. 执行权限决策（RBAC/ABAC）
    d. 过滤不可见菜单
-5. 目录服务返回过滤后的菜单列表
-6. 工作台服务应用个性化配置
+6. 目录服务返回过滤后的菜单列表
+7. 前端调用工作台服务获取个性化配置
+8. 前端合并菜单和个性化配置，渲染最终菜单
 ```
 
 #### 2.3.3 用户角色分配流程
@@ -656,6 +700,18 @@ sequenceDiagram
 
 **注意**：菜单-角色关系表已规划，但代码中待实现。
 
+**权限规则表（permission_rules）**：
+| 字段名 | 类型 | 说明 |
+|-------|------|------|
+| rule_id | UUID | 主键 |
+| pattern | VARCHAR | 路径模式（Ant风格，支持通配符） |
+| methods | VARCHAR[] | HTTP方法列表（GET、POST、PUT、DELETE等） |
+| permission | VARCHAR | 权限标识（如 admin:menu:read） |
+| description | VARCHAR | 规则描述 |
+| enabled | BOOLEAN | 是否启用 |
+| created_at | TIMESTAMP | 创建时间 |
+| updated_at | TIMESTAMP | 更新时间 |
+
 **权限表（permissions）**：
 | 字段名 | 类型 | 说明 |
 |-------|------|------|
@@ -693,6 +749,7 @@ sequenceDiagram
 | directory:menu:{tenantId}:tree | String | 1小时 | 菜单树缓存 |
 | directory:role:{roleId}:permissions:{tenantId} | Set | 24小时 | 角色权限缓存 |
 | directory:permission:{permissionId}:{tenantId} | Hash | 24小时 | 权限信息缓存 |
+| directory:permission:rule:{pattern}:{method} | Hash | 1小时 | 权限规则缓存 |
 | directory:permission:check:{userId}:{resource}:{action}:{tenantId} | String | 1小时 | 权限校验结果缓存 |
 
 **缓存更新策略**：
@@ -840,8 +897,8 @@ sequenceDiagram
 #### 3.5.1 功能权限校验
 
 **校验接口**：
-- `POST /api/v1/directory/permissions/check`：单权限校验
-- `POST /api/v1/directory/permissions/check-batch`：批量权限校验
+- `POST /api/v1/permissions/check`：单权限校验
+- `POST /api/v1/permissions/check-batch`：批量权限校验
 
 **校验流程**：
 1. 提取用户ID和租户ID
@@ -861,16 +918,22 @@ sequenceDiagram
 
 #### 3.6.1 菜单权限过滤
 
-**过滤接口**：
-- `POST /api/v1/directory/menus/filter`：菜单权限过滤
+**权限过滤方式**：
+- 权限过滤将集成到所有菜单查询接口中，无需单独的filter接口
+- 所有菜单查询接口自动根据用户权限过滤返回结果
+- 前端直接调用 `GET /api/v1/menus` 等接口，自动获取用户可见的菜单
 
-**过滤流程**：
-1. 获取菜单主数据
-2. 获取用户权限信息
-3. 遍历菜单列表
-4. 执行权限决策
-5. 过滤不可见菜单
-6. 返回过滤后的菜单列表
+**过滤流程**（待权限模块实现后集成）：
+1. 从token获取用户ID和租户ID
+2. 获取菜单主数据
+3. 获取用户权限信息（角色、权限等）
+4. 遍历菜单列表
+5. 执行权限决策（RBAC/ABAC）
+6. 过滤不可见菜单
+7. 返回过滤后的菜单列表
+
+**资源权限过滤接口**：
+- ⏳ `POST /api/v1/resources/filter`：资源权限过滤（待实现）
 
 #### 3.6.2 资源权限过滤
 
@@ -923,16 +986,17 @@ sequenceDiagram
 - 权限过滤和权限校验
 
 **接口规范**：
-- `GET /api/v1/menus/tenant/{tenantId}`：获取菜单主数据（树形结构）
-- `GET /api/v1/menus/tenant/{tenantId}/roots`：获取租户下根菜单
-- ⏳ `GET /api/v1/directory/users/{userId}/roles`：获取用户角色（待实现）
-- ⏳ `GET /api/v1/directory/users/{userId}/permissions`：获取用户权限（待实现）
-- ⏳ `POST /api/v1/directory/permissions/check`：权限校验（菜单、资源等）（待实现）
-- ⏳ `POST /api/v1/directory/menus/filter`：菜单权限过滤（返回用户可见菜单）（待实现）
+- `GET /api/v1/menus`：获取菜单列表（前端直接调用，tenantId从token自动获取）
+- `GET /api/v1/menus?parentId=null`：获取根菜单（前端直接调用）
+- ⏳ `GET /api/v1/users/{userId}/roles`：获取用户角色（待实现）
+- ⏳ `GET /api/v1/users/{userId}/permissions`：获取用户权限（待实现）
+- ⏳ `POST /api/v1/permissions/check`：权限校验（菜单、资源等）（待实现）
+- ⏳ `POST /api/v1/permissions/check-batch`：批量权限校验（待实现）
+- ⏳ `POST /api/v1/resources/filter`：资源权限过滤（待实现）
 
 **职责划分**：
-- **目录服务**：负责菜单主数据管理、权限数据管理、权限决策、权限过滤
-- **工作台服务**：负责调用目录服务获取数据和权限过滤结果，应用个性化配置
+- **目录服务**：负责菜单主数据管理、权限数据管理、权限决策、权限过滤（权限过滤将集成到所有接口中）
+- **工作台服务**：负责用户个性化配置管理，前端直接调用目录服务获取菜单
 
 #### 4.1.3 与业务服务的集成
 
@@ -944,9 +1008,9 @@ sequenceDiagram
 - 权限过滤接口
 
 **接口规范**：
-- ⏳ `POST /api/v1/directory/permissions/check`：权限校验（待实现）
-- ⏳ `POST /api/v1/directory/permissions/check-batch`：批量权限校验（待实现）
-- ⏳ `POST /api/v1/directory/resources/filter`：资源权限过滤（待实现）
+- ⏳ `POST /api/v1/permissions/check`：权限校验（待实现）
+- ⏳ `POST /api/v1/permissions/check-batch`：批量权限校验（待实现）
+- ⏳ `POST /api/v1/resources/filter`：资源权限过滤（待实现）
 
 **职责划分**：
 - **目录服务**：负责权限数据管理、权限决策、权限校验、权限过滤
@@ -1016,11 +1080,12 @@ sequenceDiagram
 #### 5.1.2 权限控制
 
 **权限控制职责**：
-- **目录服务**：负责所有权限相关功能（权限数据管理、权限决策、权限校验、权限过滤）
-- **其他服务**：调用目录服务进行权限校验，不进行权限决策
+- **目录服务**：负责所有权限相关功能（权限规则管理、权限数据管理、权限决策、权限校验、权限过滤）
+- **其他服务**：通过 `aixone-permission-sdk` 调用目录服务进行权限校验，不进行权限决策
 
 **权限控制方式**：
-- **管理接口权限**：管理接口需要管理员权限
+- **管理接口权限**：通过权限规则管理模块进行动态权限验证，权限规则存储在数据库中，支持动态配置
+- **业务接口权限**：通过权限决策引擎进行RBAC/ABAC权限决策
 - **数据权限**：基于租户的数据权限控制
 - **操作权限**：基于角色的操作权限控制
 
@@ -1167,38 +1232,95 @@ sequenceDiagram
 
 #### 7.1.5 群组管理API
 
-**群组管理**：
-- `GET /api/v1/tenants/{tenantId}/groups/{groupId}`：获取群组详情
-- `POST /api/v1/tenants/{tenantId}/groups`：创建群组
-- `POST /api/v1/tenants/{tenantId}/groups/{groupId}/members`：分配用户到群组
-- `DELETE /api/v1/tenants/{tenantId}/groups/{groupId}/members`：从群组移除用户
-- `POST /api/v1/tenants/{tenantId}/groups/{groupId}/roles`：分配角色到群组
-- `DELETE /api/v1/tenants/{tenantId}/groups/{groupId}/roles`：从群组移除角色
+**业务接口（租户隔离）**：
+- `GET /api/v1/groups`：获取当前租户的群组列表（分页，支持名称过滤）
+- `GET /api/v1/groups/{groupId}`：获取群组详情
+- `POST /api/v1/groups`：创建群组
+- `PUT /api/v1/groups/{groupId}`：更新群组
+- `DELETE /api/v1/groups/{groupId}`：删除群组
+- `GET /api/v1/groups/{groupId}/members`：获取群组成员列表
+- `PUT /api/v1/groups/{groupId}/members`：更新群组成员集合（批量替换）
+- `PUT /api/v1/groups/{groupId}/members/{userId}`：添加成员到群组
+- `DELETE /api/v1/groups/{groupId}/members/{userId}`：从群组移除成员
+- `GET /api/v1/groups/{groupId}/roles`：获取群组的角色列表
+- `PUT /api/v1/groups/{groupId}/roles`：更新群组的角色集合（批量替换）
+- `PUT /api/v1/groups/{groupId}/roles/{roleId}`：分配角色给群组
+- `DELETE /api/v1/groups/{groupId}/roles/{roleId}`：移除群组的角色
+
+**管理接口（跨租户）**：
+- `GET /api/v1/admin/groups`：管理员查询群组列表（可跨租户，tenantId通过查询参数传递）
+- `GET /api/v1/admin/groups/{groupId}`：管理员查询群组详情（跨租户，tenantId通过查询参数传递，可选）
+- `POST /api/v1/admin/groups`：管理员创建群组（tenantId通过查询参数或请求体传递）
+- `PUT /api/v1/admin/groups/{groupId}`：管理员更新群组（可跨租户，tenantId通过查询参数传递，可选）
+- `DELETE /api/v1/admin/groups/{groupId}`：管理员删除群组（可跨租户，tenantId通过查询参数传递，可选）
+
+**说明**：
+- 所有业务接口的`tenantId`从`SessionContext.getTenantId()`自动获取
+- 查询接口自动过滤当前租户的数据
+- 创建/更新接口自动设置`tenantId`为当前租户
+- **RESTful规范**：
+  - 查询接口：`GET /api/v1/groups/{groupId}/members`、`GET /api/v1/groups/{groupId}/roles` 表示子资源查询
+  - 单个关联操作：`PUT /api/v1/groups/{groupId}/members/{userId}` 添加、`DELETE /api/v1/groups/{groupId}/members/{userId}` 删除
+  - 批量替换操作：`PUT /api/v1/groups/{groupId}/members` 带请求体替换整个集合
+- 管理员接口使用 `/api/v1/admin/groups`，tenantId通过查询参数传递
 
 #### 7.1.6 菜单管理API
 
-**菜单管理**：
-- `GET /api/v1/menus`：获取菜单列表（分页，支持名称、标题、类型过滤和排序）
+**业务接口（租户隔离）**：
+- `GET /api/v1/menus`：获取当前租户的菜单列表（分页，支持名称、标题、类型过滤和排序，支持parentId查询根菜单）
 - `GET /api/v1/menus/{menuId}`：获取菜单详情
-- `GET /api/v1/menus/tenant/{tenantId}`：获取租户下所有菜单（树形结构）
-- `GET /api/v1/menus/tenant/{tenantId}/roots`：获取租户下根菜单
+- `GET /api/v1/menus/{menuId}/children`：获取菜单的子菜单
 - `POST /api/v1/menus`：创建菜单
 - `PUT /api/v1/menus/{menuId}`：更新菜单
 - `DELETE /api/v1/menus/{menuId}`：删除菜单
 
-**注意**：菜单API路径为 `/api/v1/menus`（未包含directory前缀），菜单-角色关系管理待实现。
+**管理接口（跨租户）**：
+- `GET /api/v1/admin/menus`：管理员查询菜单列表（可跨租户，tenantId通过查询参数传递）
+- `GET /api/v1/admin/menus/{menuId}`：管理员查询菜单详情（可跨租户，tenantId通过查询参数传递，可选）
+- `POST /api/v1/admin/menus`：管理员创建菜单（tenantId通过查询参数或请求体传递）
+- `PUT /api/v1/admin/menus/{menuId}`：管理员更新菜单（可跨租户，tenantId通过查询参数传递，可选）
+- `DELETE /api/v1/admin/menus/{menuId}`：管理员删除菜单（可跨租户，tenantId通过查询参数传递，可选）
+
+**说明**：
+- 获取根菜单：使用 `GET /api/v1/menus?parentId=null` 或 `GET /api/v1/menus?parentId=`（空字符串）
+- 所有业务接口的`tenantId`从`SessionContext.getTenantId()`自动获取
+- 管理接口的`tenantId`通过查询参数传递，支持跨租户操作
+- 菜单API路径为 `/api/v1/menus`（未包含directory前缀），菜单-角色关系管理待实现
 
 #### 7.1.7 权限管理API（待实现）
 
-**权限管理**：
-- ⏳ `GET /api/v1/directory/permissions`：获取权限列表（待实现）
-- ⏳ `GET /api/v1/directory/permissions/{permissionId}`：获取权限详情（待实现）
-- ⏳ `POST /api/v1/directory/permissions`：创建权限（待实现）
-- ⏳ `PUT /api/v1/directory/permissions/{permissionId}`：更新权限（待实现）
-- ⏳ `DELETE /api/v1/directory/permissions/{permissionId}`：删除权限（待实现）
-- ⏳ `POST /api/v1/directory/permissions/check`：权限校验（待实现）
-- ⏳ `POST /api/v1/directory/permissions/check-batch`：批量权限校验（待实现）
-- ⏳ `POST /api/v1/directory/menus/filter`：菜单权限过滤（待实现）
+**权限规则管理**（管理接口权限验证）：
+- ⏳ `GET /api/v1/permissions`：获取权限规则列表（分页，支持pattern、method过滤）（待实现）
+- ⏳ `GET /api/v1/permissions/{permissionId}`：获取权限规则详情（待实现）
+- ⏳ `POST /api/v1/permissions`：创建权限规则（待实现）
+- ⏳ `PUT /api/v1/permissions/{permissionId}`：更新权限规则（待实现）
+- ⏳ `DELETE /api/v1/permissions/{permissionId}`：删除权限规则（待实现）
+
+**权限数据管理**（RBAC/ABAC权限）：
+- ⏳ `GET /api/v1/permissions/data`：获取权限数据列表（分页，支持resource、action过滤）（待实现）
+- ⏳ `GET /api/v1/permissions/data/{permissionId}`：获取权限数据详情（待实现）
+- ⏳ `POST /api/v1/permissions/data`：创建权限数据（待实现）
+- ⏳ `PUT /api/v1/permissions/data/{permissionId}`：更新权限数据（待实现）
+- ⏳ `DELETE /api/v1/permissions/data/{permissionId}`：删除权限数据（待实现）
+- ⏳ `POST /api/v1/roles/{roleId}/permissions`：分配权限给角色（待实现）
+- ⏳ `DELETE /api/v1/roles/{roleId}/permissions/{permissionId}`：移除角色权限（待实现）
+
+**权限校验接口**：
+- ⏳ `POST /api/v1/permissions/check`：单权限校验（待实现）
+  - 请求体：`{userId, resource, action, context?}`
+  - 返回：`{hasPermission: boolean}`
+- ⏳ `POST /api/v1/permissions/check-batch`：批量权限校验（待实现）
+  - 请求体：`{userId, permissions: [{resource, action}], context?}`
+  - 返回：`{results: [{resource, action, hasPermission}]}`
+
+**权限过滤接口**：
+- ⏳ `POST /api/v1/resources/filter`：资源权限过滤（待实现）
+  - 请求体：`{userId, resources: [ResourceDto], resourceType, action}`
+  - 返回：`{filteredResources: [ResourceDto]}`
+
+**说明**：
+- 菜单权限过滤将集成到所有菜单查询接口中，无需单独的filter接口
+- 所有菜单查询接口（如 `GET /api/v1/menus`）将自动根据用户权限过滤返回结果
 
 #### 7.1.8 API响应规范
 
@@ -1250,16 +1372,18 @@ sequenceDiagram
 **时间**：2024年Q2
 
 **目标**：
-1. ⏳ 集成aixone-permission-sdk，实现UserPermissionProvider
+1. ⏳ 实现权限规则管理模块（管理接口权限验证）
 2. ⏳ 实现权限数据管理（权限实体、角色-权限关系）
-3. ⏳ 实现基础权限决策引擎（RBAC）
+3. ⏳ 实现权限决策引擎（RBAC+ABAC混合模型）
 4. ⏳ 实现权限校验接口
-5. ⏳ 实现菜单-角色关系管理
+5. ⏳ 实现权限过滤接口
+6. ⏳ 实现菜单-角色关系管理
 
 **关键里程碑**：
-- ⏳ 权限SDK集成完成
+- ⏳ 权限规则管理模块上线
 - ⏳ 权限决策引擎上线
 - ⏳ 权限校验接口上线
+- ⏳ 权限过滤接口上线
 - ⏳ 菜单-角色关系管理上线
 
 #### 8.1.3 第三阶段：功能完善（P1）
@@ -1470,11 +1594,13 @@ services/aixone-app-directory/
 - **缓存**：Redis 7.0+（已配置，待使用）
 - **对象映射**：MapStruct（DTO映射）
 - **密码加密**：Spring Security BCrypt
-- **依赖**：aixone-common-sdk、aixone-permission-sdk（已引入，待集成）
+- **依赖**：aixone-common-sdk
 
 **待集成的技术栈**：
 - **消息队列**：Kafka（事件发布，待实现）
-- **权限SDK**：aixone-permission-sdk（权限功能集成，待实现）
+
+**说明**：
+- `aixone-permission-sdk` 是提供给其他微服务使用的SDK，用于集成Directory服务的权限校验功能，Directory服务本身不依赖该SDK
 
 ## 10. 实施状态
 
@@ -1501,7 +1627,8 @@ services/aixone-app-directory/
 #### 10.2.1 权限功能模块
 - ⏳ **权限实体管理**：权限的创建、更新、删除、查询
 - ⏳ **角色-权限关系**：角色权限分配和查询
-- ⏳ **权限决策引擎**：RBAC权限决策、ABAC权限决策、混合权限决策（通过aixone-permission-sdk集成）
+- ⏳ **权限规则管理**：管理接口的权限验证规则（路径-权限映射）
+- ⏳ **权限决策引擎**：RBAC权限决策、ABAC权限决策、混合权限决策（Directory服务自己实现）
 - ⏳ **权限校验接口**：功能级权限校验、数据级权限校验、批量权限校验
 - ⏳ **权限过滤功能**：菜单权限过滤、资源权限过滤、数据权限过滤
 
@@ -1510,7 +1637,7 @@ services/aixone-app-directory/
 - ⏳ **组织管理接口**：组织管理的REST API（代码中已有服务，但Controller待补充）
 - ⏳ **事件发布**：领域事件发布到Kafka
 - ⏳ **缓存策略**：Redis缓存策略实现
-- ⏳ **权限SDK集成**：完善aixone-permission-sdk的集成（UserPermissionProvider实现）
+- ⏳ **权限SDK提供**：为其他微服务提供aixone-permission-sdk，用于集成Directory服务的权限校验功能
 
 #### 10.2.3 性能优化
 - ⏳ **查询优化**：索引优化、批量查询优化
@@ -1525,9 +1652,9 @@ services/aixone-app-directory/
 1. **主数据管理**：负责身份主数据和菜单主数据的管理，确保数据一致性
 2. **DDD分层架构**：采用领域驱动设计，清晰的职责边界和依赖方向
 3. **多租户支持**：支持企业级的多租户需求，实现数据隔离
-4. **权限统一管理**：权限相关功能（权限数据管理、权限决策、权限校验、权限过滤）将由目录服务提供（待实现）
-5. **权限决策集中化**：权限决策引擎将集中化，确保权限决策的一致性（待实现）
-6. **混合权限模型**：计划支持RBAC+ABAC混合权限模型，满足复杂权限需求（待实现）
+4. **权限统一管理**：权限相关功能（权限规则管理、权限数据管理、权限决策、权限校验、权限过滤）均由目录服务提供（待实现）
+5. **权限决策集中化**：权限决策引擎集中化，支持RBAC+ABAC混合权限模型，确保权限决策的一致性（待实现）
+6. **权限SDK提供**：为其他微服务提供 `aixone-permission-sdk`，用于集成Directory服务的权限校验功能
 
 ### 11.2 实施进度
 
@@ -1538,8 +1665,10 @@ services/aixone-app-directory/
 - ✅ 多租户数据隔离
 
 **进行中**：
-- ⏳ 权限SDK集成（aixone-permission-sdk）
-- ⏳ 权限功能模块实现
+- ⏳ 权限规则管理模块实现
+- ⏳ 权限数据管理模块实现
+- ⏳ 权限决策引擎实现
+- ⏳ 权限校验和过滤功能实现
 
 **待开始**：
 - ⏳ 权限决策引擎实现

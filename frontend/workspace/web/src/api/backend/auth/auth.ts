@@ -43,7 +43,7 @@ export interface ValidateTokenRequest {
  */
 export function loginWithPassword(data: LoginRequest) {
     return createAxios({
-        url: '/auth/login',
+        url: '/api/v1/auth/login',
         method: 'post',
         data,
     })
@@ -54,7 +54,7 @@ export function loginWithPassword(data: LoginRequest) {
  */
 export function loginWithSms(data: LoginRequest) {
     return createAxios({
-        url: '/auth/sms/login',
+        url: '/api/v1/auth/sms/login',
         method: 'post',
         data,
     })
@@ -65,7 +65,7 @@ export function loginWithSms(data: LoginRequest) {
  */
 export function loginWithEmail(data: LoginRequest) {
     return createAxios({
-        url: '/auth/email/login',
+        url: '/api/v1/auth/email/login',
         method: 'post',
         data,
     })
@@ -76,7 +76,7 @@ export function loginWithEmail(data: LoginRequest) {
  */
 export function refreshToken(data: RefreshTokenRequest) {
     return createAxios({
-        url: '/auth/refresh',
+        url: '/api/v1/auth/refresh',
         method: 'post',
         data,
     })
@@ -87,7 +87,7 @@ export function refreshToken(data: RefreshTokenRequest) {
  */
 export function logout(tenantId: string) {
     return createAxios({
-        url: '/auth/logout',
+        url: '/api/v1/auth/logout',
         method: 'post',
         params: { tenantId },
     })
@@ -98,7 +98,7 @@ export function logout(tenantId: string) {
  */
 export function validateToken(data: ValidateTokenRequest) {
     return createAxios({
-        url: '/auth/validate',
+        url: '/api/v1/auth/validate',
         method: 'post',
         data,
     })
@@ -109,7 +109,7 @@ export function validateToken(data: ValidateTokenRequest) {
  */
 export function sendSmsCode(phone: string, tenantId: string) {
     return createAxios({
-        url: '/verification-codes/send',
+        url: '/api/v1/verification-codes/send',
         method: 'post',
         data: {
             phone,
@@ -124,7 +124,7 @@ export function sendSmsCode(phone: string, tenantId: string) {
  */
 export function sendEmailCode(email: string, tenantId: string) {
     return createAxios({
-        url: '/verification-codes/send',
+        url: '/api/v1/verification-codes/send',
         method: 'post',
         data: {
             email,
@@ -139,7 +139,7 @@ export function sendEmailCode(email: string, tenantId: string) {
  */
 export function verifyCode(code: string, phone?: string, email?: string, tenantId: string = 'default') {
     return createAxios({
-        url: '/verification-codes/verify',
+        url: '/api/v1/verification-codes/verify',
         method: 'post',
         data: {
             code,
@@ -155,7 +155,7 @@ export function verifyCode(code: string, phone?: string, email?: string, tenantI
  */
 export function checkPermission(userId: string, resource: string, action: string, tenantId: string = 'default') {
     return createAxios({
-        url: '/auth/check-permission',
+        url: '/api/v1/auth/check-permission',
         method: 'post',
         data: {
             userId,

@@ -48,4 +48,12 @@ export default {
     'Expand generic search': '展开公共搜索',
     'Link address': '链接地址',
     'No route found to jump~': '没有找到可以跳转的路由~',
+    'Yes': '是',
+    'No': '否',
+    'JSON format, optional': 'JSON格式，可选',
+    'Please input JSON format': '请输入JSON格式',
+    'Please select at least one HTTP method': '请至少选择一个HTTP方法',
+    'Support Ant path matching, e.g., /api/v1/users/**': '支持Ant路径匹配，例如：/api/v1/users/**',
+    'Format: resource:action or admin:resource:action': '格式：resource:action 或 admin:resource:action',
+    'Higher number means higher priority': '数字越大优先级越高',
 }

@@ -100,6 +100,21 @@ public class AuthenticationApplicationService {
     }
 
     /**
+     * 从 token 中获取用户ID
+     */
+    public String getUserIdFromToken(String token, String tenantId) {
+        Optional<Token> tokenOpt = tokenRepository.findByToken(token);
+        if (tokenOpt.isPresent()) {
+            Token tokenEntity = tokenOpt.get();
+            // 验证租户
+            if (tokenEntity.belongsToTenant(tenantId)) {
+                return tokenEntity.getUserId();
+            }
+        }
+        return null;
+    }
+
+    /**
      * 用户登出
      */
     public void logout(String token, String tenantId) {

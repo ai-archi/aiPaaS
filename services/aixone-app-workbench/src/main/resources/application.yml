@@ -64,13 +64,21 @@ spring:
     baseline-version: 0
     validate-on-migrate: false
     ignore-missing-migrations: true
-
-# Nacos Configuration (暂时禁用，用于独立运行)
-spring.cloud.nacos.discovery:
-  enabled: false
-  server-addr: localhost:8848
-  namespace: 
-  group: DEFAULT_GROUP
+  
+  # Nacos 服务发现配置
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: public
+        group: DEFAULT_GROUP
+        enabled: true
+        register-enabled: true
+        ip: ${spring.cloud.client.ip-address:}
+        port: ${server.port:8084}
+        metadata:
+          management.context-path: /actuator
+          user-context-path: ${server.servlet.context-path:}
 
 # Feign Configuration
 feign:

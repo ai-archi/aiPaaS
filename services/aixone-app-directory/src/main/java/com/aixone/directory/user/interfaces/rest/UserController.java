@@ -23,6 +23,11 @@ public class UserController {
         return ResponseEntity.created(URI.create(String.format("/api/v1/tenants/%s/users/%s", tenantId, newUserDto.getId()))).build();
     }
 
+    @GetMapping
+    public ResponseEntity<java.util.List<UserDto>> getUsers(@PathVariable String tenantId) {
+        return ResponseEntity.ok(userApplicationService.getUsers(tenantId));
+    }
+
     @GetMapping("/{userId}")
     public ResponseEntity<UserDto> getUser(@PathVariable String tenantId, @PathVariable String userId) {
         return userApplicationService.getUser(tenantId, userId)

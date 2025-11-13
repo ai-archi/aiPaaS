@@ -27,117 +27,73 @@
                     :rules="rules"
                     v-if="!baTable.form.loading"
                 >
-                    <el-form-item prop="username" :label="t('user.user.User name')">
+                    <el-form-item prop="username" :label="t('user.Username')">
                         <el-input
                             v-model="baTable.form.items!.username"
                             type="string"
-                            :placeholder="t('Please input field', { field: t('user.user.User name') + '(' + t('user.user.Login account') + ')' })"
+                            :placeholder="t('Please input field', { field: t('user.Username') })"
                         ></el-input>
                     </el-form-item>
-                    <el-form-item prop="nickname" :label="t('user.user.nickname')">
-                        <el-input
-                            v-model="baTable.form.items!.nickname"
-                            type="string"
-                            :placeholder="t('Please input field', { field: t('user.user.nickname') })"
-                        ></el-input>
-                    </el-form-item>
-                    <FormItem
-                        type="remoteSelect"
-                        :label="t('user.user.group')"
-                        v-model="baTable.form.items!.group_id"
-                        prop="group_id"
-                        :placeholder="t('user.user.group')"
-                        :input-attr="{
-                            params: { isTree: true, search: [{ field: 'status', val: '1', operator: 'eq' }] },
-                            field: 'name',
-                            remoteUrl: '/admin/user.Group/index',
-                        }"
-                    />
-                    <FormItem :label="t('user.user.avatar')" type="image" v-model="baTable.form.items!.avatar" />
-                    <el-form-item prop="email" :label="t('user.user.email')">
+                    <el-form-item prop="email" :label="t('user.Email')">
                         <el-input
                             v-model="baTable.form.items!.email"
-                            type="string"
-                            :placeholder="t('Please input field', { field: t('user.user.email') })"
+                            type="email"
+                            :placeholder="t('Please input field', { field: t('user.Email') })"
                         ></el-input>
                     </el-form-item>
-                    <el-form-item prop="mobile" :label="t('user.user.mobile')">
-                        <el-input
-                            v-model="baTable.form.items!.mobile"
-                            type="string"
-                            :placeholder="t('Please input field', { field: t('user.user.mobile') })"
-                        ></el-input>
-                    </el-form-item>
-                    <FormItem
-                        :label="t('user.user.Gender')"
-                        v-model="baTable.form.items!.gender"
-                        type="radio"
-                        :input-attr="{
-                            border: true,
-                            content: { 0: t('Unknown'), 1: t('user.user.male'), 2: t('user.user.female') },
-                        }"
-                    />
-                    <el-form-item :label="t('user.user.birthday')">
-                        <el-date-picker
-                            class="w100"
-                            value-format="YYYY-MM-DD"
-                            v-model="baTable.form.items!.birthday"
-                            type="date"
-                            :placeholder="t('Please select field', { field: t('user.user.birthday') })"
-                        />
-                    </el-form-item>
-                    <el-form-item v-if="baTable.form.operate == 'Edit'" :label="t('user.user.balance')">
-                        <el-input v-model="baTable.form.items!.money" readonly>
-                            <template #append>
-                                <el-button @click="changeAccount('money')">{{ t('user.user.Adjustment balance') }}</el-button>
-                            </template>
-                        </el-input>
-                    </el-form-item>
-                    <el-form-item v-if="baTable.form.operate == 'Edit'" :label="t('user.user.integral')">
-                        <el-input v-model="baTable.form.items!.score" readonly>
-                            <template #append>
-                                <el-button @click="changeAccount('score')">{{ t('user.user.Adjust integral') }}</el-button>
-                            </template>
-                        </el-input>
-                    </el-form-item>
-                    <el-form-item prop="password" :label="t('user.user.password')">
+                    <el-form-item v-if="baTable.form.operate === 'Add'" prop="password" :label="t('user.Password')">
                         <el-input
                             v-model="baTable.form.items!.password"
                             type="password"
-                            autocomplete="new-password"
-                            :placeholder="
-                                baTable.form.operate == 'Add'
-                                    ? t('Please input field', { field: t('user.user.password') })
-                                    : t('user.user.Please leave blank if not modified')
-                            "
+                            :placeholder="t('Please input field', { field: t('user.Password') })"
+                            show-password
                         ></el-input>
                     </el-form-item>
-                    <el-form-item prop="motto" :label="t('user.user.Personal signature')">
-                        <el-input
-                            @keyup.enter.stop=""
-                            @keyup.ctrl.enter="baTable.onSubmit(formRef)"
-                            v-model="baTable.form.items!.motto"
-                            type="textarea"
-                            :placeholder="t('Please input field', { field: t('user.user.Personal signature') })"
-                        ></el-input>
+                    <el-form-item prop="orgId" :label="t('user.Organization')">
+                        <el-select
+                            v-model="baTable.form.items!.orgId"
+                            :placeholder="t('Please select field', { field: t('user.Organization') })"
+                            filterable
+                            clearable
+                        >
+                            <el-option
+                                v-for="org in organizationList"
+                                :key="org.id"
+                                :label="org.name"
+                                :value="org.id"
+                            />
+                        </el-select>
                     </el-form-item>
-                    <FormItem
-                        :label="t('State')"
-                        v-model="baTable.form.items!.status"
-                        type="radio"
-                        :input-attr="{
-                            border: true,
-                            content: { disable: t('Disable'), enable: t('Enable') },
-                        }"
-                    />
+                    <el-form-item prop="deptId" :label="t('user.Department')">
+                        <el-select
+                            v-model="baTable.form.items!.deptId"
+                            :placeholder="t('Please select field', { field: t('user.Department') })"
+                            filterable
+                            clearable
+                        >
+                            <el-option
+                                v-for="dept in departmentList"
+                                :key="dept.id"
+                                :label="dept.name"
+                                :value="dept.id"
+                            />
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item prop="status" :label="t('user.Status')">
+                        <el-radio-group v-model="baTable.form.items!.status">
+                            <el-radio label="ACTIVE">{{ t('user.Active') }}</el-radio>
+                            <el-radio label="INACTIVE">{{ t('user.Inactive') }}</el-radio>
+                            <el-radio label="SUSPENDED">{{ t('user.Suspended') }}</el-radio>
+                        </el-radio-group>
+                    </el-form-item>
                 </el-form>
             </div>
         </el-scrollbar>
         <template #footer>
-            <div :style="'width: calc(100% - ' + baTable.form.labelWidth! / 1.8 + 'px)'">
-                <el-button @click="baTable.toggleForm('')">{{ t('Cancel') }}</el-button>
+            <div>
+                <el-button @click="baTable.toggleForm">{{ t('Cancel') }}</el-button>
                 <el-button v-blur :loading="baTable.form.submitLoading" @click="baTable.onSubmit(formRef)" type="primary">
-                    {{ baTable.form.operateIds && baTable.form.operateIds.length > 1 ? t('Save and edit next item') : t('Save') }}
+                    {{ t('Save') }}
                 </el-button>
             </div>
         </template>
@@ -145,94 +101,81 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, inject, watch, useTemplateRef } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import type { FormInstance } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import type baTableClass from '/@/utils/baTable'
-import { regularPassword } from '/@/utils/validate'
-import type { FormItemRule } from 'element-plus'
-import FormItem from '/@/components/formItem/index.vue'
-import router from '/@/router/index'
-import { buildValidatorData } from '/@/utils/validate'
+import { useAdminInfo } from '/@/stores/adminInfo'
 import { useConfig } from '/@/stores/config'
+import { getOrganizationList } from '/@/api/backend/organization/organization'
+import { getDepartmentList } from '/@/api/backend/department/department'
+import { inject } from 'vue'
 
-const config = useConfig()
-const formRef = useTemplateRef('formRef')
-const baTable = inject('baTable') as baTableClass
+defineOptions({
+    name: 'user/user/popupForm',
+})
 
 const { t } = useI18n()
+const config = useConfig()
+const adminInfo = useAdminInfo()
+const baTable = inject('baTable') as any
 
-const rules: Partial<Record<string, FormItemRule[]>> = reactive({
-    username: [buildValidatorData({ name: 'required', title: t('user.user.User name') }), buildValidatorData({ name: 'account' })],
-    nickname: [buildValidatorData({ name: 'required', title: t('user.user.nickname') })],
-    group_id: [buildValidatorData({ name: 'required', message: t('Please select field', { field: t('user.user.group') }) })],
-    email: [buildValidatorData({ name: 'email', title: t('user.user.email') })],
-    mobile: [buildValidatorData({ name: 'mobile' })],
+const formRef = ref<FormInstance>()
+const organizationList = ref<any[]>([])
+const departmentList = ref<any[]>([])
+
+const rules = reactive({
+    username: [
+        {
+            required: true,
+            message: t('Please input field', { field: t('user.Username') }),
+            trigger: 'blur',
+        },
+    ],
+    email: [
+        {
+            required: true,
+            type: 'email',
+            message: t('Please input field', { field: t('user.Email') }),
+            trigger: 'blur',
+        },
+    ],
     password: [
         {
-            validator: (rule: any, val: string, callback: Function) => {
-                if (baTable.form.operate == 'Add') {
-                    if (!val) {
-                        return callback(new Error(t('Please input field', { field: t('user.user.password') })))
-                    }
-                } else {
-                    if (!val) {
-                        return callback()
-                    }
-                }
-                if (!regularPassword(val)) {
-                    return callback(new Error(t('validate.Please enter the correct password')))
-                }
-                return callback()
-            },
+            required: true,
+            message: t('Please input field', { field: t('user.Password') }),
             trigger: 'blur',
         },
     ],
 })
 
-const changeAccount = (type: string) => {
-    baTable.toggleForm()
-    router.push({
-        name: type == 'money' ? 'user/moneyLog' : 'user/scoreLog',
-        query: {
-            user_id: baTable.form.items!.id,
-        },
-    })
+// 加载组织列表
+const loadOrganizations = async () => {
+    try {
+        const res = await getOrganizationList({ pageNum: 1, pageSize: 1000 })
+        if (res.data?.list) {
+            organizationList.value = res.data.list
+        }
+    } catch (error) {
+        console.error('加载组织列表失败:', error)
+    }
 }
 
-watch(
-    () => baTable.form.operate,
-    (newVal) => {
-        rules.password![0].required = newVal == 'Add'
+// 加载部门列表
+const loadDepartments = async () => {
+    try {
+        const res = await getDepartmentList({ pageNum: 1, pageSize: 1000 })
+        if (res.data?.list) {
+            departmentList.value = res.data.list
+        }
+    } catch (error) {
+        console.error('加载部门列表失败:', error)
     }
-)
+}
+
+onMounted(() => {
+    loadOrganizations()
+    loadDepartments()
+})
 </script>
 
-<style scoped lang="scss">
-.avatar-uploader {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    border-radius: var(--el-border-radius-small);
-    box-shadow: var(--el-box-shadow-light);
-    border: 1px dashed var(--el-border-color);
-    cursor: pointer;
-    overflow: hidden;
-    width: 110px;
-    height: 110px;
-}
-.avatar-uploader:hover {
-    border-color: var(--el-color-primary);
-}
-.avatar {
-    width: 110px;
-    height: 110px;
-    display: block;
-}
-.image-slot {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-}
-</style>
+<style scoped lang="scss"></style>

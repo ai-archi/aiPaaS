@@ -41,41 +41,50 @@ public class SessionInterceptor implements HandlerInterceptor {
             String token = extractToken(request);
             
             if (token != null) {
-                // 验证Token有效性
-                if (!tokenParser.isValid(token)) {
-                    logger.warn("Invalid token provided for request: {}", request.getRequestURI());
-                    if (requireAuth) {
-                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                        return false;
-                    }
-                } else {
-                    // 解析Token并设置上下文
-                    SessionContext.SessionInfo sessionInfo = tokenParser.parse(token);
-                    
-                    // 验证租户ID（如果提供了租户头）
-                    String headerTenantId = request.getHeader(tenantHeader);
-                    if (headerTenantId != null && !headerTenantId.equals(sessionInfo.getTenantId())) {
-                        logger.warn("Tenant ID mismatch: token tenant={}, header tenant={}", 
-                                sessionInfo.getTenantId(), headerTenantId);
-                        if (requireAuth) {
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            return false;
-                        }
-                    }
-                    
-                    // 检查会话是否过期
-                    if (sessionInfo.isExpired()) {
-                        logger.warn("Session expired for user: {}", sessionInfo.getUserId());
+                try {
+                    // 验证Token有效性
+                    if (!tokenParser.isValid(token)) {
+                        logger.warn("Invalid token provided for request: {}", request.getRequestURI());
                         if (requireAuth) {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             return false;
                         }
+                    } else {
+                        // 解析Token并设置上下文
+                        SessionContext.SessionInfo sessionInfo = tokenParser.parse(token);
+                        
+                        // 验证租户ID（如果提供了租户头）
+                        String headerTenantId = request.getHeader(tenantHeader);
+                        if (headerTenantId != null && !headerTenantId.equals(sessionInfo.getTenantId())) {
+                            logger.warn("Tenant ID mismatch: token tenant={}, header tenant={}", 
+                                    sessionInfo.getTenantId(), headerTenantId);
+                            if (requireAuth) {
+                                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                                return false;
+                            }
+                        }
+                        
+                        // 检查会话是否过期
+                        if (sessionInfo.isExpired()) {
+                            logger.warn("Session expired for user: {}", sessionInfo.getUserId());
+                            if (requireAuth) {
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                return false;
+                            }
+                        }
+                        
+                        // 设置会话上下文
+                        SessionContext.set(sessionInfo);
+                        logger.debug("Session context set for user: {}, tenant: {}", 
+                                sessionInfo.getUserId(), sessionInfo.getTenantId());
                     }
-                    
-                    // 设置会话上下文
-                    SessionContext.set(sessionInfo);
-                    logger.debug("Session context set for user: {}, tenant: {}", 
-                            sessionInfo.getUserId(), sessionInfo.getTenantId());
+                } catch (Exception e) {
+                    logger.warn("Error parsing token for request: {}, error: {}", request.getRequestURI(), e.getMessage());
+                    if (requireAuth) {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        return false;
+                    }
+                    // 如果不需要认证，继续执行（tenantId 将为 null，由 Controller 处理）
                 }
             } else if (requireAuth) {
                 logger.warn("No token provided for protected resource: {}", request.getRequestURI());

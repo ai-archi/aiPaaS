@@ -5,14 +5,14 @@ server:
 
 spring:
   application:
-    name: axione-tech-auth
+    name: aixone-tech-auth
   
   profiles:
     active: dev
   
   # JPA PostgreSQL Configuration
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/aixone_auth
+    url: jdbc:postgresql://localhost:5432/aixone_auth
     username: ai_xone
     password: ai_xone
     driver-class-name: org.postgresql.Driver
@@ -36,11 +36,14 @@ spring:
   
   # Flyway Configuration for Database Migration
   flyway:
-    url: jdbc:postgresql://127.0.0.1:5432/aixone_auth
+    url: jdbc:postgresql://localhost:5432/aixone_auth
     user: ai_xone
     password: ai_xone
     locations: classpath:db/migration
     baseline-on-migrate: true
+    baseline-version: 0
+    validate-on-migrate: false
+    ignore-missing-migrations: true
   
   # Redis Configuration
   data:
@@ -48,7 +51,28 @@ spring:
       host: localhost
       port: 6379
       database: 0
-      timeout: 10s
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 2000ms
+  
+  # Nacos 服务发现配置
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: public
+        group: DEFAULT_GROUP
+        enabled: true
+        register-enabled: true
+        ip: ${spring.cloud.client.ip-address:}
+        port: ${server.port:8080}
+        metadata:
+          management.context-path: /actuator
+          user-context-path: ${server.servlet.context-path:}
 
 # JWT配置
 jwt:
@@ -62,6 +86,18 @@ multitenant:
   enabled: true
   default-tenant: default
   tenant-header: X-Tenant-ID
+
+# Session拦截器配置（排除公开接口）
+session:
+  require-auth: true
+  exclude-patterns:
+    - /api/v1/auth/login
+    - /api/v1/auth/refresh
+    - /api/v1/auth/logout
+    - /api/v1/auth/validate
+    - /api/v1/auth/sms/**
+    - /api/v1/auth/email/**
+    - /api/v1/verification-codes/**
 
 # 安全配置
 security:
@@ -94,4 +130,10 @@ management:
         include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true

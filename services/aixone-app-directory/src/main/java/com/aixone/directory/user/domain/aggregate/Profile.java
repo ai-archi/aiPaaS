@@ -24,10 +24,16 @@ public class Profile {
         if (other == null) {
             return this;
         }
-        return this.toBuilder()
-                .username(other.getUsername() != null ? other.getUsername() : this.getUsername())
-                .avatarUrl(other.getAvatarUrl() != null ? other.getAvatarUrl() : this.getAvatarUrl())
-                .bio(other.getBio() != null ? other.getBio() : this.getBio())
-                .build();
+        Profile.ProfileBuilder builder = this.toBuilder();
+        if (other.getUsername() != null) {
+            builder.username(other.getUsername());
+        }
+        if (other.getAvatarUrl() != null) {
+            builder.avatarUrl(other.getAvatarUrl());
+        }
+        if (other.getBio() != null) {
+            builder.bio(other.getBio());
+        }
+        return builder.build();
     }
 } 

@@ -46,21 +46,36 @@ spring:
       database: 0
       timeout: 10s
 
-  # Nacos Configuration
+  # Nacos 服务发现配置
   cloud:
     nacos:
       discovery:
-        server-addr: 127.0.0.1:8848
+        server-addr: localhost:8848
         namespace: public
-        access-key: serverIdentity
-        secret-key: security
+        group: DEFAULT_GROUP
+        enabled: true
+        register-enabled: true
+        ip: ${spring.cloud.client.ip-address:}
+        port: ${server.port:8081}
+        metadata:
+          management.context-path: /actuator
+          user-context-path: ${server.servlet.context-path:}
       config:
-        server-addr: 127.0.0.1:8848
+        server-addr: localhost:8848
         file-extension: yaml
         namespace: public
         group: DEFAULT_GROUP
-        access-key: serverIdentity
-        secret-key: security
+        enabled: false  # 配置中心暂时禁用，如需使用可启用
+
+# JWT Configuration
+jwt:
+  secret: aixone-tech-auth-secret-key-for-jwt-token-generation-and-validation
+  issuer: aixone-tech-auth
+
+# Security Configuration
+security:
+  jwt:
+    secret: ${jwt.secret}
 
 # Logging Configuration
 logging:

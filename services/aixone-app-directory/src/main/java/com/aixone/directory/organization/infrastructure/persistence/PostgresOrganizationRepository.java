@@ -41,8 +41,12 @@ public class PostgresOrganizationRepository implements OrganizationRepository {
     public Optional<Organization> findById(String id) {
         return organizationJpaRepository.findById(id).map(dbo -> {
             Organization org = organizationMapper.toDomainSimple(dbo);
-            org.getDepartments().addAll(dbo.getDepartments().stream().map(departmentMapper::toDomain).collect(Collectors.toSet()));
-            org.getPositions().addAll(dbo.getPositions().stream().map(positionMapper::toDomain).collect(Collectors.toSet()));
+            if (org.getDepartments() != null) {
+                org.getDepartments().addAll(dbo.getDepartments().stream().map(departmentMapper::toDomain).collect(Collectors.toSet()));
+            }
+            if (org.getPositions() != null) {
+                org.getPositions().addAll(dbo.getPositions().stream().map(positionMapper::toDomain).collect(Collectors.toSet()));
+            }
             return org;
         });
     }
@@ -53,10 +57,31 @@ public class PostgresOrganizationRepository implements OrganizationRepository {
         return organizationJpaRepository.findByTenantIdAndName(tenantId, name)
                 .map(dbo -> {
                     Organization org = organizationMapper.toDomainSimple(dbo);
-                    org.getDepartments().addAll(dbo.getDepartments().stream().map(departmentMapper::toDomain).collect(Collectors.toSet()));
-                    org.getPositions().addAll(dbo.getPositions().stream().map(positionMapper::toDomain).collect(Collectors.toSet()));
+                    if (org.getDepartments() != null) {
+                        org.getDepartments().addAll(dbo.getDepartments().stream().map(departmentMapper::toDomain).collect(Collectors.toSet()));
+                    }
+                    if (org.getPositions() != null) {
+                        org.getPositions().addAll(dbo.getPositions().stream().map(positionMapper::toDomain).collect(Collectors.toSet()));
+                    }
                     return org;
                 });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<Organization> findByTenantId(String tenantId) {
+        return organizationJpaRepository.findByTenantId(tenantId).stream()
+                .map(dbo -> {
+                    Organization org = organizationMapper.toDomainSimple(dbo);
+                    if (org.getDepartments() != null) {
+                        org.getDepartments().addAll(dbo.getDepartments().stream().map(departmentMapper::toDomain).collect(Collectors.toSet()));
+                    }
+                    if (org.getPositions() != null) {
+                        org.getPositions().addAll(dbo.getPositions().stream().map(positionMapper::toDomain).collect(Collectors.toSet()));
+                    }
+                    return org;
+                })
+                .collect(Collectors.toList());
     }
 
     @Override

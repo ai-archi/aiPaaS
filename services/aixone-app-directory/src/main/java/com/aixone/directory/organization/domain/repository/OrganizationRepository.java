@@ -35,6 +35,14 @@ public interface OrganizationRepository {
     Optional<Organization> findByTenantIdAndName(String tenantId, String name);
 
     /**
+     * 根据租户ID查找所有组织。
+     *
+     * @param tenantId 租户ID
+     * @return 组织列表
+     */
+    java.util.List<Organization> findByTenantId(String tenantId);
+
+    /**
      * 根据ID删除组织。
      *
      * @param id 组织ID

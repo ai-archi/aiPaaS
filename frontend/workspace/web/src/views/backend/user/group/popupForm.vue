@@ -35,28 +35,14 @@
                             :placeholder="t('Please input field', { field: t('user.group.Group name') })"
                         ></el-input>
                     </el-form-item>
-                    <el-form-item prop="auth" :label="t('user.group.jurisdiction')">
-                        <el-tree
-                            ref="treeRef"
-                            :key="baTable.form.extend!.treeKey"
-                            :default-checked-keys="baTable.form.extend!.defaultCheckedKeys"
-                            :default-expand-all="true"
-                            show-checkbox
-                            node-key="id"
-                            :props="{ children: 'children', label: 'title', class: treeNodeClass }"
-                            :data="baTable.form.extend!.menuRules"
-                            class="w100"
-                        />
+                    <el-form-item prop="description" :label="t('user.group.Description')">
+                        <el-input
+                            v-model="baTable.form.items!.description"
+                            type="textarea"
+                            :rows="3"
+                            :placeholder="t('Please input field', { field: t('user.group.Description') })"
+                        ></el-input>
                     </el-form-item>
-                    <FormItem
-                        :label="t('State')"
-                        v-model="baTable.form.items!.status"
-                        type="radio"
-                        :input-attr="{
-                            border: true,
-                            content: { 0: t('Disable'), 1: t('Enable') },
-                        }"
-                    />
                 </el-form>
             </div>
         </el-scrollbar>
@@ -72,74 +58,31 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, inject, useTemplateRef } from 'vue'
+import { ref, reactive } from 'vue'
+import type { FormInstance } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import type baTableClass from '/@/utils/baTable'
-import type { ElTree, FormItemRule } from 'element-plus'
-import FormItem from '/@/components/formItem/index.vue'
-import type Node from 'element-plus/es/components/tree/src/model/node'
-import { buildValidatorData } from '/@/utils/validate'
 import { useConfig } from '/@/stores/config'
+import { inject } from 'vue'
 
-const config = useConfig()
-const formRef = useTemplateRef('formRef')
-const treeRef = useTemplateRef('treeRef')
-const baTable = inject('baTable') as baTableClass
+defineOptions({
+    name: 'user/group/popupForm',
+})
 
 const { t } = useI18n()
+const config = useConfig()
+const baTable = inject('baTable') as any
 
-const rules: Partial<Record<string, FormItemRule[]>> = reactive({
-    name: [buildValidatorData({ name: 'required', title: t('user.group.Group name') })],
-    auth: [
+const formRef = ref<FormInstance>()
+
+const rules = reactive({
+    name: [
         {
             required: true,
-            validator: (rule: any, val: string, callback: Function) => {
-                let ids = getCheckeds()
-                if (ids.length <= 0) {
-                    return callback(new Error(t('Please select field', { field: t('user.group.jurisdiction') })))
-                }
-                return callback()
-            },
+            message: t('Please input field', { field: t('user.group.Group name') }),
+            trigger: 'blur',
         },
     ],
 })
-
-const getCheckeds = () => {
-    return treeRef.value!.getCheckedKeys().concat(treeRef.value!.getHalfCheckedKeys())
-}
-
-const treeNodeClass = (data: anyObj, node: Node) => {
-    if (node.isLeaf) return ''
-    let addClass = true
-    for (const key in node.childNodes) {
-        if (!node.childNodes[key].isLeaf) {
-            addClass = false
-        }
-    }
-    return addClass ? 'penultimate-node' : ''
-}
-
-defineExpose({
-    getCheckeds,
-})
 </script>
 
-<style scoped lang="scss">
-:deep(.penultimate-node) {
-    .el-tree-node__children {
-        padding-left: 60px;
-        white-space: pre-wrap;
-        line-height: 12px;
-        .el-tree-node {
-            display: inline-block;
-        }
-        .el-tree-node__content {
-            padding-left: 5px !important;
-            padding-right: 5px;
-            .el-tree-node__expand-icon {
-                display: none;
-            }
-        }
-    }
-}
-</style>
+<style scoped lang="scss"></style>

@@ -1,4 +1,0 @@
-OpenJDK 64-Bit Server VM warning: Option -Xdebug was deprecated in JDK 22 and will likely be removed in a future release.
-ERROR: transport error 202: bind failed: Address already in use
-ERROR: JDWP Transport dt_socket failed to initialize, TRANSPORT_INIT(510)
-JDWP exit error AGENT_ERROR_TRANSPORT_INIT(197): No transports initialized [src/jdk.jdwp.agent/share/native/libjdwp/debugInit.c:700]

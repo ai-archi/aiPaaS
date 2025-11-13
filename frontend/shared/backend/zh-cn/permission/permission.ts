@@ -1,0 +1,21 @@
+export default {
+    'Permission management': '权限管理',
+    'Permission list': '权限列表',
+    'Add permission': '添加权限',
+    'Edit permission': '编辑权限',
+    'Delete permission': '删除权限',
+    'Permission name': '权限名称',
+    'Permission code': '权限编码',
+    'Resource': '资源',
+    'Action': '操作',
+    'Permission type': '权限类型',
+    'Functional permission': '功能权限',
+    'Data permission': '数据权限',
+    'ABAC conditions': 'ABAC条件',
+    'Description': '描述',
+    'Permission details': '权限详情',
+    'Assign to role': '分配给角色',
+    'Role permissions': '角色权限',
+    'Remove permission': '移除权限',
+}
+

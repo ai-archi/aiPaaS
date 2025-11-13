@@ -1,5 +1,6 @@
 package com.aixone.tech.auth.authentication.interfaces.rest;
 
+import com.aixone.common.api.ApiResponse;
 import com.aixone.tech.auth.authentication.application.dto.management.*;
 import com.aixone.tech.auth.authentication.application.service.ManagementApplicationService;
 import org.springframework.data.domain.Page;
@@ -9,9 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -34,13 +33,13 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:user:read')")
     @GetMapping("/users/active")
-    public ResponseEntity<Map<String, Object>> getActiveUsers(@RequestParam String tenantId) {
-        List<ActiveUserResponse> users = managementService.getActiveUsers(tenantId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", users);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<List<ActiveUserResponse>>> getActiveUsers(@RequestParam String tenantId) {
+        try {
+            List<ActiveUserResponse> users = managementService.getActiveUsers(tenantId);
+            return ResponseEntity.ok(ApiResponse.success(users, "获取已登录用户列表成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "获取已登录用户列表失败: " + e.getMessage()));
+        }
     }
     
     /**
@@ -48,15 +47,15 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:device:read')")
     @GetMapping("/users/{userId}/devices")
-    public ResponseEntity<Map<String, Object>> getUserDevices(
+    public ResponseEntity<ApiResponse<List<ActiveUserResponse.DeviceInfo>>> getUserDevices(
             @PathVariable String userId,
             @RequestParam String tenantId) {
-        List<ActiveUserResponse.DeviceInfo> devices = managementService.getUserDevices(userId, tenantId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", devices);
-        return ResponseEntity.ok(response);
+        try {
+            List<ActiveUserResponse.DeviceInfo> devices = managementService.getUserDevices(userId, tenantId);
+            return ResponseEntity.ok(ApiResponse.success(devices, "获取用户设备列表成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "获取用户设备列表失败: " + e.getMessage()));
+        }
     }
     
     /**
@@ -64,15 +63,15 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:device:logout')")
     @PostMapping("/users/{userId}/logout-all")
-    public ResponseEntity<Map<String, Object>> logoutAllDevices(
+    public ResponseEntity<ApiResponse<Void>> logoutAllDevices(
             @PathVariable String userId,
             @RequestParam String tenantId) {
-        managementService.logoutAllDevices(userId, tenantId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", Map.of());
-        return ResponseEntity.ok(response);
+        try {
+            managementService.logoutAllDevices(userId, tenantId);
+            return ResponseEntity.ok(ApiResponse.success(null, "登出所有设备成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "登出所有设备失败: " + e.getMessage()));
+        }
     }
     
     /**
@@ -80,16 +79,16 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:device:logout')")
     @PostMapping("/users/{userId}/devices/{deviceId}/logout")
-    public ResponseEntity<Map<String, Object>> logoutDevice(
+    public ResponseEntity<ApiResponse<Void>> logoutDevice(
             @PathVariable String userId,
             @PathVariable String deviceId,
             @RequestParam String tenantId) {
-        managementService.logoutDevice(userId, deviceId, tenantId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", Map.of());
-        return ResponseEntity.ok(response);
+        try {
+            managementService.logoutDevice(userId, deviceId, tenantId);
+            return ResponseEntity.ok(ApiResponse.success(null, "登出设备成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "登出设备失败: " + e.getMessage()));
+        }
     }
     
     // ========== 认证用户管理 ==========
@@ -99,14 +98,14 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:user:create')")
     @PostMapping("/users")
-    public ResponseEntity<Map<String, Object>> createUser(
+    public ResponseEntity<ApiResponse<UserResponse>> createUser(
             @Valid @RequestBody UserCreateRequest request) {
-        UserResponse user = managementService.createUser(request);
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", user);
-        return ResponseEntity.ok(response);
+        try {
+            UserResponse user = managementService.createUser(request);
+            return ResponseEntity.ok(ApiResponse.success(user, "创建用户成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "创建用户失败: " + e.getMessage()));
+        }
     }
     
     /**
@@ -114,14 +113,16 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:user:read')")
     @GetMapping("/users/{userId}")
-    public ResponseEntity<Map<String, Object>> getUser(@PathVariable UUID userId) {
-        UserResponse user = managementService.getUserById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", user);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<UserResponse>> getUser(@PathVariable UUID userId) {
+        try {
+            UserResponse user = managementService.getUserById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+            return ResponseEntity.ok(ApiResponse.success(user, "获取用户成功"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.notFound(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "获取用户失败: " + e.getMessage()));
+        }
     }
     
     /**
@@ -129,15 +130,15 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:user:read')")
     @GetMapping("/users")
-    public ResponseEntity<Map<String, Object>> getUsers(
+    public ResponseEntity<ApiResponse<Page<UserResponse>>> getUsers(
             @RequestParam String tenantId,
             Pageable pageable) {
-        Page<UserResponse> users = managementService.getUsers(tenantId, pageable);
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", users);
-        return ResponseEntity.ok(response);
+        try {
+            Page<UserResponse> users = managementService.getUsers(tenantId, pageable);
+            return ResponseEntity.ok(ApiResponse.success(users, "获取用户列表成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "获取用户列表失败: " + e.getMessage()));
+        }
     }
     
     /**
@@ -145,15 +146,15 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:user:update')")
     @PutMapping("/users/{userId}")
-    public ResponseEntity<Map<String, Object>> updateUser(
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable UUID userId,
             @Valid @RequestBody UserUpdateRequest request) {
-        UserResponse user = managementService.updateUser(userId, request);
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", user);
-        return ResponseEntity.ok(response);
+        try {
+            UserResponse user = managementService.updateUser(userId, request);
+            return ResponseEntity.ok(ApiResponse.success(user, "更新用户成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "更新用户失败: " + e.getMessage()));
+        }
     }
     
     /**
@@ -161,19 +162,19 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:user:update')")
     @PutMapping("/users/{userId}/password")
-    public ResponseEntity<Map<String, Object>> updateUserPassword(
+    public ResponseEntity<ApiResponse<Void>> updateUserPassword(
             @PathVariable UUID userId,
-            @RequestBody Map<String, String> request) {
-        String newPassword = request.get("newPassword");
-        if (newPassword == null || newPassword.isEmpty()) {
-            throw new IllegalArgumentException("新密码不能为空");
+            @RequestBody java.util.Map<String, String> request) {
+        try {
+            String newPassword = request.get("newPassword");
+            if (newPassword == null || newPassword.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.badRequest("新密码不能为空"));
+            }
+            managementService.updateUserPassword(userId, newPassword);
+            return ResponseEntity.ok(ApiResponse.success(null, "更新密码成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "更新密码失败: " + e.getMessage()));
         }
-        managementService.updateUserPassword(userId, newPassword);
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", Map.of());
-        return ResponseEntity.ok(response);
     }
     
     /**
@@ -181,13 +182,13 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:user:password:reset')")
     @PostMapping("/users/{userId}/password/reset")
-    public ResponseEntity<Map<String, Object>> resetUserPassword(@PathVariable UUID userId) {
-        managementService.resetUserPassword(userId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", Map.of());
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<Void>> resetUserPassword(@PathVariable UUID userId) {
+        try {
+            managementService.resetUserPassword(userId);
+            return ResponseEntity.ok(ApiResponse.success(null, "重置密码成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "重置密码失败: " + e.getMessage()));
+        }
     }
     
     /**
@@ -195,13 +196,13 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:user:delete')")
     @DeleteMapping("/users/{userId}")
-    public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable UUID userId) {
-        managementService.deleteUser(userId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", Map.of());
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable UUID userId) {
+        try {
+            managementService.deleteUser(userId);
+            return ResponseEntity.ok(ApiResponse.success(null, "删除用户成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "删除用户失败: " + e.getMessage()));
+        }
     }
     
     // ========== Token管理 ==========
@@ -211,13 +212,13 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:token:read')")
     @GetMapping("/tokens")
-    public ResponseEntity<Map<String, Object>> getTokens(@RequestParam String tenantId) {
-        List<TokenInfoResponse> tokens = managementService.getTokens(tenantId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", tokens);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<List<TokenInfoResponse>>> getTokens(@RequestParam String tenantId) {
+        try {
+            List<TokenInfoResponse> tokens = managementService.getTokens(tenantId);
+            return ResponseEntity.ok(ApiResponse.success(tokens, "获取Token列表成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "获取Token列表失败: " + e.getMessage()));
+        }
     }
     
     /**
@@ -225,15 +226,15 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:token:revoke')")
     @PostMapping("/tokens/{token}/revoke")
-    public ResponseEntity<Map<String, Object>> revokeToken(
+    public ResponseEntity<ApiResponse<Void>> revokeToken(
             @PathVariable String token,
             @RequestParam String tenantId) {
-        managementService.revokeToken(token, tenantId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", Map.of());
-        return ResponseEntity.ok(response);
+        try {
+            managementService.revokeToken(token, tenantId);
+            return ResponseEntity.ok(ApiResponse.success(null, "撤销Token成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "撤销Token失败: " + e.getMessage()));
+        }
     }
     
     /**
@@ -241,15 +242,15 @@ public class ManagementController {
      */
     @PreAuthorize("hasAuthority('auth:token:revoke')")
     @PostMapping("/users/{userId}/tokens/revoke-all")
-    public ResponseEntity<Map<String, Object>> revokeUserTokens(
+    public ResponseEntity<ApiResponse<Void>> revokeUserTokens(
             @PathVariable String userId,
             @RequestParam String tenantId) {
-        managementService.revokeUserTokens(userId, tenantId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "success");
-        response.put("data", Map.of());
-        return ResponseEntity.ok(response);
+        try {
+            managementService.revokeUserTokens(userId, tenantId);
+            return ResponseEntity.ok(ApiResponse.success(null, "撤销用户所有Token成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "撤销用户所有Token失败: " + e.getMessage()));
+        }
     }
 }
 

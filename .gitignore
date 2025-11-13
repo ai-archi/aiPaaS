@@ -378,3 +378,4 @@ buildNumber.properties
 
 # Go debug binaries
 __debug_bin*
+buildadmin

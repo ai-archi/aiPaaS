@@ -47,6 +47,13 @@ public interface UserRepository {
     boolean existsByEmail(String email);
 
     /**
+     * Finds all users by their tenant ID.
+     * @param tenantId The tenant ID.
+     * @return A list of users for the given tenant.
+     */
+    java.util.List<User> findByTenantId(String tenantId);
+
+    /**
      * Deletes a user by their ID.
      * @param id The UUID of the user to delete.
      */

@@ -1,8 +1,5 @@
 package com.aixone.tech.auth.authentication.interfaces.rest;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.aixone.audit.application.AuditService;
+import com.aixone.common.api.ApiResponse;
 import com.aixone.tech.auth.authentication.application.command.LoginCommand;
 import com.aixone.tech.auth.authentication.application.command.RefreshTokenCommand;
 import com.aixone.tech.auth.authentication.application.dto.auth.LoginRequest;
@@ -45,7 +43,7 @@ public class AuthenticationController {
      * 用户名密码登录
      */
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest request,
+    public ResponseEntity<ApiResponse<TokenResponse>> login(@Valid @RequestBody LoginRequest request,
                                                       HttpServletRequest httpRequest) {
         LoginCommand command = new LoginCommand(
             request.getTenantId(),
@@ -63,33 +61,23 @@ public class AuthenticationController {
             // 记录登录成功审计日志
             auditService.logLoginSuccess(
                 request.getUsername(),
+                request.getTenantId(),
                 getClientIp(httpRequest),
                 httpRequest.getHeader("User-Agent")
             );
             
-            // 包装响应为前端期望的格式
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 1);
-            response.put("msg", "登录成功");
-            response.put("data", tokenResponse);
-            
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.success(tokenResponse, "登录成功"));
         } catch (Exception e) {
             // 记录登录失败审计日志
             auditService.logLoginFailure(
                 request.getUsername(),
                 e.getMessage(),
+                request.getTenantId(),
                 getClientIp(httpRequest),
                 httpRequest.getHeader("User-Agent")
             );
             
-            // 包装错误响应
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 0);
-            response.put("msg", "登录失败: " + e.getMessage());
-            response.put("data", Map.of());
-            
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.error(401, "登录失败: " + e.getMessage()));
         }
     }
 
@@ -97,109 +85,134 @@ public class AuthenticationController {
      * 短信验证码登录
      */
     @PostMapping("/sms/login")
-    public ResponseEntity<TokenResponse> smsLogin(@Valid @RequestBody LoginRequest request,
-                                                HttpServletRequest httpRequest) {
-        // 验证短信验证码
-        boolean isValidCode = verificationCodeService.verifySmsCode(
-            request.getUsername(), // 这里username是手机号
-            request.getTenantId(),
-            request.getVerificationCode()
-        );
-        
-        if (!isValidCode) {
-            throw new IllegalArgumentException("验证码无效或已过期");
-        }
-        
-        // 实现短信验证码登录逻辑
-        LoginCommand command = new LoginCommand(
-            request.getTenantId(),
-            request.getUsername(),
-            request.getVerificationCode(),
-            request.getClientId()
-        );
-        command.setClientSecret(request.getClientSecret());
-        command.setClientIp(getClientIp(httpRequest));
-        command.setUserAgent(httpRequest.getHeader("User-Agent"));
+    public ResponseEntity<ApiResponse<TokenResponse>> smsLogin(@Valid @RequestBody LoginRequest request,
+                                                                HttpServletRequest httpRequest) {
+        try {
+            // 验证短信验证码
+            boolean isValidCode = verificationCodeService.verifySmsCode(
+                request.getUsername(), // 这里username是手机号
+                request.getTenantId(),
+                request.getVerificationCode()
+            );
+            
+            if (!isValidCode) {
+                return ResponseEntity.ok(ApiResponse.badRequest("验证码无效或已过期"));
+            }
+            
+            // 实现短信验证码登录逻辑
+            LoginCommand command = new LoginCommand(
+                request.getTenantId(),
+                request.getUsername(),
+                request.getVerificationCode(),
+                request.getClientId()
+            );
+            command.setClientSecret(request.getClientSecret());
+            command.setClientIp(getClientIp(httpRequest));
+            command.setUserAgent(httpRequest.getHeader("User-Agent"));
 
-        TokenResponse response = authenticationService.login(command);
-        return ResponseEntity.ok(response);
+            TokenResponse tokenResponse = authenticationService.login(command);
+            return ResponseEntity.ok(ApiResponse.success(tokenResponse, "登录成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(401, "登录失败: " + e.getMessage()));
+        }
     }
 
     /**
      * 邮箱验证码登录
      */
     @PostMapping("/email/login")
-    public ResponseEntity<TokenResponse> emailLogin(@Valid @RequestBody LoginRequest request,
-                                                   HttpServletRequest httpRequest) {
-        // 验证邮箱验证码
-        boolean isValidCode = verificationCodeService.verifyEmailCode(
-            request.getUsername(), // 这里username是邮箱
-            request.getTenantId(),
-            request.getVerificationCode()
-        );
-        
-        if (!isValidCode) {
-            throw new IllegalArgumentException("验证码无效或已过期");
-        }
-        
-        // 实现邮箱验证码登录逻辑
-        LoginCommand command = new LoginCommand(
-            request.getTenantId(),
-            request.getUsername(),
-            request.getVerificationCode(),
-            request.getClientId()
-        );
-        command.setClientSecret(request.getClientSecret());
-        command.setClientIp(getClientIp(httpRequest));
-        command.setUserAgent(httpRequest.getHeader("User-Agent"));
+    public ResponseEntity<ApiResponse<TokenResponse>> emailLogin(@Valid @RequestBody LoginRequest request,
+                                                                  HttpServletRequest httpRequest) {
+        try {
+            // 验证邮箱验证码
+            boolean isValidCode = verificationCodeService.verifyEmailCode(
+                request.getUsername(), // 这里username是邮箱
+                request.getTenantId(),
+                request.getVerificationCode()
+            );
+            
+            if (!isValidCode) {
+                return ResponseEntity.ok(ApiResponse.badRequest("验证码无效或已过期"));
+            }
+            
+            // 实现邮箱验证码登录逻辑
+            LoginCommand command = new LoginCommand(
+                request.getTenantId(),
+                request.getUsername(),
+                request.getVerificationCode(),
+                request.getClientId()
+            );
+            command.setClientSecret(request.getClientSecret());
+            command.setClientIp(getClientIp(httpRequest));
+            command.setUserAgent(httpRequest.getHeader("User-Agent"));
 
-        TokenResponse response = authenticationService.login(command);
-        return ResponseEntity.ok(response);
+            TokenResponse tokenResponse = authenticationService.login(command);
+            return ResponseEntity.ok(ApiResponse.success(tokenResponse, "登录成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(401, "登录失败: " + e.getMessage()));
+        }
     }
 
     /**
      * 刷新令牌
      */
     @PostMapping("/refresh")
-    public ResponseEntity<TokenResponse> refreshToken(@Valid @RequestBody RefreshTokenCommand command,
-                                                      HttpServletRequest httpRequest) {
-        command.setClientIp(getClientIp(httpRequest));
-        command.setUserAgent(httpRequest.getHeader("User-Agent"));
+    public ResponseEntity<ApiResponse<TokenResponse>> refreshToken(@Valid @RequestBody RefreshTokenCommand command,
+                                                                  HttpServletRequest httpRequest) {
+        try {
+            command.setClientIp(getClientIp(httpRequest));
+            command.setUserAgent(httpRequest.getHeader("User-Agent"));
 
-        TokenResponse response = authenticationService.refreshToken(command);
-        return ResponseEntity.ok(response);
+            TokenResponse tokenResponse = authenticationService.refreshToken(command);
+            return ResponseEntity.ok(ApiResponse.success(tokenResponse, "令牌刷新成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(401, "令牌刷新失败: " + e.getMessage()));
+        }
     }
 
     /**
      * 用户登出
      */
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authorization,
-                                      @RequestParam String tenantId,
-                                      HttpServletRequest httpRequest) {
-        String token = extractTokenFromAuthorization(authorization);
-        authenticationService.logout(token, tenantId);
-        
-        // 记录登出审计日志
-        // 注意：这里需要从token中提取用户ID，实际实现中可能需要解析JWT token
-        auditService.logLogout(
-            "unknown", // 实际实现中应该从token中提取用户ID
-            getClientIp(httpRequest),
-            httpRequest.getHeader("User-Agent")
-        );
-        
-        return ResponseEntity.ok().build();
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String authorization,
+                                                     @RequestParam String tenantId,
+                                                     HttpServletRequest httpRequest) {
+        try {
+            String token = extractTokenFromAuthorization(authorization);
+            
+            // 从 token 中提取用户ID（在删除 token 之前）
+            String userId = authenticationService.getUserIdFromToken(token, tenantId);
+            
+            // 执行登出操作
+            authenticationService.logout(token, tenantId);
+            
+            // 记录登出审计日志
+            auditService.logLogout(
+                userId != null ? userId : "unknown",
+                tenantId,
+                getClientIp(httpRequest),
+                httpRequest.getHeader("User-Agent")
+            );
+            
+            return ResponseEntity.ok(ApiResponse.success(null, "登出成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(401, "登出失败: " + e.getMessage()));
+        }
     }
 
     /**
      * 验证令牌
      */
     @PostMapping("/validate")
-    public ResponseEntity<Boolean> validateToken(@RequestHeader("Authorization") String authorization,
-                                                @RequestParam String tenantId) {
-        String token = extractTokenFromAuthorization(authorization);
-        boolean isValid = authenticationService.validateToken(token, tenantId);
-        return ResponseEntity.ok(isValid);
+    public ResponseEntity<ApiResponse<Boolean>> validateToken(@RequestHeader("Authorization") String authorization,
+                                                               @RequestParam String tenantId) {
+        try {
+            String token = extractTokenFromAuthorization(authorization);
+            boolean isValid = authenticationService.validateToken(token, tenantId);
+            return ResponseEntity.ok(ApiResponse.success(isValid, isValid ? "令牌有效" : "令牌无效"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(401, "令牌验证失败: " + e.getMessage()));
+        }
     }
 
     /**

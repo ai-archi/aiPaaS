@@ -47,4 +47,12 @@ export default {
     'Expand generic search': 'Expand Universal Search',
     'Link address': 'Link address',
     'No route found to jump~': 'Failed to find a jump route.',
+    'Yes': 'Yes',
+    'No': 'No',
+    'JSON format, optional': 'JSON format, optional',
+    'Please input JSON format': 'Please input JSON format',
+    'Please select at least one HTTP method': 'Please select at least one HTTP method',
+    'Support Ant path matching, e.g., /api/v1/users/**': 'Support Ant path matching, e.g., /api/v1/users/**',
+    'Format: resource:action or admin:resource:action': 'Format: resource:action or admin:resource:action',
+    'Higher number means higher priority': 'Higher number means higher priority',
 }

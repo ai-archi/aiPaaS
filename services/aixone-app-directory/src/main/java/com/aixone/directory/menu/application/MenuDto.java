@@ -1,5 +1,6 @@
 package com.aixone.directory.menu.application;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -44,6 +45,7 @@ public final class MenuDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UpdateMenuCommand {
+        private String parentId;
         private String name;
         private String title;
         private String path;
@@ -82,6 +84,7 @@ public final class MenuDto {
         private String extend;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+        @JsonInclude(JsonInclude.Include.ALWAYS) // children 字段始终序列化，即使为空列表或null
         private List<MenuView> children;
     }
 }

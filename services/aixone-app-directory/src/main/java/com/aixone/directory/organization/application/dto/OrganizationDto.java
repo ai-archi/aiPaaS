@@ -9,6 +9,7 @@ import lombok.Data;
 @Data
 public class OrganizationDto {
     private String id;
+    private String tenantId;
     private String name;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

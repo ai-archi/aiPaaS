@@ -17,9 +17,11 @@ public interface DepartmentMapper {
     DepartmentDto toDto(Department department);
 
     @Mapping(target = "users", ignore = true)
+    @Mapping(target = "orgId", expression = "java(dbo.getOrganization() != null ? dbo.getOrganization().getId() : null)")
     Department toDomain(DepartmentDbo dbo);
 
     @Mapping(target = "users", ignore = true)
+    @Mapping(target = "organization", ignore = true)
     DepartmentDbo toDbo(Department domain);
 
     default Set<String> userDboSetToUuidSet(Set<UserDbo> users) {

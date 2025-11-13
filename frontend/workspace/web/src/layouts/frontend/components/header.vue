@@ -38,16 +38,20 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeRouteUpdate, useRouter } from 'vue-router'
+import { onBeforeRouteUpdate, useRouter, useRoute } from 'vue-router'
 import { initialize } from '/@/api/frontend/index'
 import Menu from '/@/layouts/frontend/components/menu.vue'
 import { useMemberCenter } from '/@/stores/memberCenter'
 import { layoutMenuScrollbarRef } from '/@/stores/refs'
 import { useSiteConfig } from '/@/stores/siteConfig'
+import { useUserInfo } from '/@/stores/userInfo'
+import { onMounted } from 'vue'
 
 const router = useRouter()
+const route = useRoute()
 const siteConfig = useSiteConfig()
 const memberCenter = useMemberCenter()
+const userInfo = useUserInfo()
 
 onBeforeRouteUpdate(() => {
     memberCenter.toggleMenuExpand(false)
@@ -55,8 +59,19 @@ onBeforeRouteUpdate(() => {
 
 /**
  * 前端初始化请求，获取站点配置信息，动态路由信息等
+ * 注意：登录之前不应该调用此接口，只在用户已登录时调用
  */
-initialize()
+onMounted(() => {
+    // 如果是登录页面，不调用初始化接口
+    if (route.name === 'userLogin' || route.name === 'userRegister') {
+        return
+    }
+    
+    // 只有用户已登录时才调用初始化接口
+    if (userInfo.isLogin()) {
+        initialize()
+    }
+})
 </script>
 
 <style scoped lang="scss">

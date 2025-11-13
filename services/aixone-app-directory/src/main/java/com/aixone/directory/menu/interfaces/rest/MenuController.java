@@ -4,12 +4,14 @@ import com.aixone.common.api.ApiResponse;
 import com.aixone.common.api.PageRequest;
 import com.aixone.common.api.PageResult;
 import com.aixone.common.api.RowData;
+import com.aixone.common.session.SessionContext;
 import com.aixone.directory.menu.application.MenuApplicationService;
 import com.aixone.directory.menu.application.MenuDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,113 +32,159 @@ public class MenuController {
     private final MenuApplicationService menuApplicationService;
 
     /**
-     * 获取菜单列表（分页，支持过滤和排序）
-     * 支持两种分页参数名：pageNum/pageSize 和 page/limit（兼容前端baTable）
+     * 获取菜单列表
+     * 如果 isTree=true，返回树形结构数据（不分页）
+     * 否则返回分页数据
+     * 租户ID从token自动获取
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResult<MenuDto.MenuView>>> getMenus(
+    public ResponseEntity<?> getMenus(
+            @RequestParam(required = false, defaultValue = "true") Boolean isTree,
             @RequestParam(required = false) Integer pageNum,
             @RequestParam(required = false) Integer pageSize,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer limit,
-            @RequestParam(required = false) String tenantId,
+            @RequestParam(required = false) String parentId,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String type,
-            @RequestParam(required = false) String order) {
-        // 兼容两种参数名：优先使用 pageNum/pageSize，如果未提供则使用 page/limit
-        int actualPageNum = (pageNum != null) ? pageNum : ((page != null) ? page : 1);
-        int actualPageSize = (pageSize != null) ? pageSize : ((limit != null) ? limit : 20);
+            @RequestParam(required = false) String order,
+            @RequestParam(required = false) String quickSearch) {
+        // 从token获取租户ID
+        String tenantId = SessionContext.getTenantId();
+        if (!StringUtils.hasText(tenantId)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error(401, "未提供有效的租户信息"));
+        }
         
-        log.info("查询菜单列表: pageNum={}, pageSize={}, page={}, limit={}, tenantId={}, name={}, title={}, type={}, order={}", 
-                pageNum, pageSize, page, limit, tenantId, name, title, type, order);
-        
-        // 解析排序参数（格式：field,direction，例如：updatedAt,desc）
-        String sortBy = null;
-        String sortDirection = "asc";
-        if (order != null && !order.isEmpty()) {
-            String[] orderParts = order.split(",");
-            if (orderParts.length >= 1) {
-                sortBy = orderParts[0].trim();
-            }
-            if (orderParts.length >= 2) {
-                sortDirection = orderParts[1].trim().toLowerCase();
-                // 标准化排序方向：ascending/descending -> asc/desc
-                if ("ascending".equals(sortDirection)) {
-                    sortDirection = "asc";
-                } else if ("descending".equals(sortDirection)) {
-                    sortDirection = "desc";
+        try {
+            // 如果 isTree=true，返回树形结构数据（参考 buildadmin 格式）
+            if (Boolean.TRUE.equals(isTree)) {
+                log.info("查询菜单列表（树形结构）: tenantId={}, name={}, title={}, type={}, quickSearch={}", 
+                        tenantId, name, title, type, quickSearch);
+                
+                List<MenuDto.MenuView> treeMenus = menuApplicationService.findMenusTree(
+                        tenantId, name, title, type, quickSearch);
+                
+                // 调试：打印树形数据结构
+                log.debug("返回的树形菜单数据数量: {}", treeMenus.size());
+                if (!treeMenus.isEmpty()) {
+                    log.debug("第一个根菜单: id={}, title={}, children数量={}", 
+                            treeMenus.get(0).getId(), 
+                            treeMenus.get(0).getTitle(),
+                            treeMenus.get(0).getChildren() != null ? treeMenus.get(0).getChildren().size() : 0);
                 }
+                
+                // 返回格式：{ code: 200, data: { list: [...], remark: '...' } }
+                java.util.Map<String, Object> data = new java.util.HashMap<>();
+                data.put("list", treeMenus);
+                data.put("remark", "");
+                
+                return ResponseEntity.ok(ApiResponse.success(data));
+            } else {
+                // 分页查询
+                int actualPageNum = (pageNum != null) ? pageNum : ((page != null) ? page : 1);
+                int actualPageSize = (pageSize != null) ? pageSize : ((limit != null) ? limit : 20);
+                
+                log.info("查询菜单列表（分页）: pageNum={}, pageSize={}, tenantId={}, parentId={}, name={}, title={}, type={}, order={}", 
+                        actualPageNum, actualPageSize, tenantId, parentId, name, title, type, order);
+                
+                // 解析排序参数（格式：field,direction，例如：updatedAt,desc）
+                String sortBy = null;
+                String sortDirection = "asc";
+                if (order != null && !order.isEmpty()) {
+                    String[] orderParts = order.split(",");
+                    if (orderParts.length >= 1) {
+                        sortBy = orderParts[0].trim();
+                    }
+                    if (orderParts.length >= 2) {
+                        sortDirection = orderParts[1].trim().toLowerCase();
+                        // 标准化排序方向：ascending/descending -> asc/desc
+                        if ("ascending".equals(sortDirection)) {
+                            sortDirection = "asc";
+                        } else if ("descending".equals(sortDirection)) {
+                            sortDirection = "desc";
+                        }
+                    }
+                }
+                
+                PageRequest pageRequest = new PageRequest(actualPageNum, actualPageSize, sortBy, sortDirection);
+                PageResult<MenuDto.MenuView> result = menuApplicationService.findMenus(
+                        pageRequest, tenantId, parentId, name, title, type);
+                
+                return ResponseEntity.ok(ApiResponse.success(result));
             }
+        } catch (Exception e) {
+            log.error("查询菜单列表失败", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(500, "查询菜单列表失败: " + e.getMessage()));
         }
-        
-        PageRequest pageRequest = new PageRequest(actualPageNum, actualPageSize, sortBy, sortDirection);
-        PageResult<MenuDto.MenuView> result = menuApplicationService.findMenus(
-                pageRequest, tenantId, name, title, type);
-        
-        return ResponseEntity.ok(ApiResponse.success(result));
-    }
-
-    /**
-     * 获取租户下的所有菜单（树形结构）
-     */
-    @GetMapping("/tenant/{tenantId}")
-    public ResponseEntity<ApiResponse<List<MenuDto.MenuView>>> getMenusByTenantId(@PathVariable String tenantId) {
-        log.info("获取租户菜单: tenantId={}", tenantId);
-
-        // 处理特殊 tenantId 值
-        String actualTenantId = convertTenantId(tenantId);
-        List<MenuDto.MenuView> menus = menuApplicationService.findMenusByTenantId(actualTenantId);
-        return ResponseEntity.ok(ApiResponse.success(menus));
-    }
-
-    /**
-     * 转换租户ID：将 "default" 转换为默认 UUID
-     */
-    private String convertTenantId(String tenantId) {
-        if (tenantId == null || "default".equals(tenantId)) {
-            return "00000000-0000-0000-0000-000000000000";
-        }
-        return tenantId;
-    }
-
-    /**
-     * 获取租户下的根菜单
-     */
-    @GetMapping("/tenant/{tenantId}/roots")
-    public ResponseEntity<ApiResponse<List<MenuDto.MenuView>>> getRootMenusByTenantId(@PathVariable String tenantId) {
-        log.info("获取租户根菜单: tenantId={}", tenantId);
-
-        // 处理特殊 tenantId 值
-        String actualTenantId = convertTenantId(tenantId);
-        List<MenuDto.MenuView> menus = menuApplicationService.findRootMenusByTenantId(actualTenantId);
-        return ResponseEntity.ok(ApiResponse.success(menus));
     }
 
     /**
      * 根据ID获取菜单详情
+     * 租户ID从token自动获取，自动验证菜单是否属于当前租户
      */
     @GetMapping("/{menuId}")
     public ResponseEntity<ApiResponse<RowData<MenuDto.MenuView>>> getMenuById(@PathVariable String menuId) {
         log.info("获取菜单详情: id={}", menuId);
 
-        Optional<MenuDto.MenuView> menu = menuApplicationService.findMenuById(menuId);
+        // 从token获取租户ID
+        String tenantId = SessionContext.getTenantId();
+        if (!StringUtils.hasText(tenantId)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error(401, "未提供有效的租户信息"));
+        }
+
+        Optional<MenuDto.MenuView> menu = menuApplicationService.findMenuById(menuId, tenantId);
         if (menu.isPresent()) {
             // baTable期望的格式：{code: 200, data: {row: {...}}}
-            RowData<MenuDto.MenuView> rowData = new RowData<>(menu.get());
+            RowData<MenuDto.MenuView> rowData = new RowData<>();
+            rowData.setRow(menu.get());
             return ResponseEntity.ok(ApiResponse.success(rowData));
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.notFound("菜单不存在"));
+                    .body(ApiResponse.notFound("菜单不存在或不属于当前租户"));
         }
     }
 
     /**
+     * 获取菜单的子菜单
+     * 租户ID从token自动获取
+     */
+    @GetMapping("/{menuId}/children")
+    public ResponseEntity<ApiResponse<List<MenuDto.MenuView>>> getMenuChildren(@PathVariable String menuId) {
+        log.info("获取菜单子菜单: menuId={}", menuId);
+
+        // 从token获取租户ID
+        String tenantId = SessionContext.getTenantId();
+        if (!StringUtils.hasText(tenantId)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error(401, "未提供有效的租户信息"));
+        }
+
+        List<MenuDto.MenuView> children = menuApplicationService.findMenuChildren(menuId, tenantId);
+        return ResponseEntity.ok(ApiResponse.success(children));
+    }
+
+
+    /**
      * 创建菜单
+     * 租户ID从token自动获取并设置
      */
     @PostMapping
     public ResponseEntity<ApiResponse<MenuDto.MenuView>> createMenu(@RequestBody MenuDto.CreateMenuCommand command) {
-        log.info("创建菜单: name={}, tenantId={}", command.getName(), command.getTenantId());
+        // 从token获取租户ID
+        String tenantId = SessionContext.getTenantId();
+        if (!StringUtils.hasText(tenantId)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error(401, "未提供有效的租户信息"));
+        }
+        
+        // 设置租户ID（覆盖请求体中的tenantId，确保安全）
+        command.setTenantId(tenantId);
+        
+        log.info("创建菜单: name={}, tenantId={}", command.getName(), tenantId);
 
         try {
             MenuDto.MenuView menu = menuApplicationService.createMenu(command);
@@ -151,15 +199,23 @@ public class MenuController {
 
     /**
      * 更新菜单
+     * 租户ID从token自动获取，自动验证菜单是否属于当前租户
      */
     @PutMapping("/{menuId}")
     public ResponseEntity<ApiResponse<MenuDto.MenuView>> updateMenu(
             @PathVariable String menuId,
             @RequestBody MenuDto.UpdateMenuCommand command) {
-        log.info("更新菜单: id={}, name={}", menuId, command.getName());
+        // 从token获取租户ID
+        String tenantId = SessionContext.getTenantId();
+        if (!StringUtils.hasText(tenantId)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error(401, "未提供有效的租户信息"));
+        }
+        
+        log.info("更新菜单: id={}, tenantId={}, name={}", menuId, tenantId, command.getName());
 
         try {
-            MenuDto.MenuView menu = menuApplicationService.updateMenu(menuId, command);
+            MenuDto.MenuView menu = menuApplicationService.updateMenu(menuId, tenantId, command);
             return ResponseEntity.ok(ApiResponse.success(menu, "菜单更新成功"));
         } catch (Exception e) {
             log.error("更新菜单失败", e);
@@ -170,13 +226,21 @@ public class MenuController {
 
     /**
      * 删除菜单
+     * 租户ID从token自动获取，自动验证菜单是否属于当前租户
      */
     @DeleteMapping("/{menuId}")
     public ResponseEntity<ApiResponse<Void>> deleteMenu(@PathVariable String menuId) {
-        log.info("删除菜单: id={}", menuId);
+        // 从token获取租户ID
+        String tenantId = SessionContext.getTenantId();
+        if (!StringUtils.hasText(tenantId)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error(401, "未提供有效的租户信息"));
+        }
+        
+        log.info("删除菜单: id={}, tenantId={}", menuId, tenantId);
 
         try {
-            menuApplicationService.deleteMenu(menuId);
+            menuApplicationService.deleteMenu(menuId, tenantId);
             return ResponseEntity.ok(ApiResponse.success(null, "菜单删除成功"));
         } catch (Exception e) {
             log.error("删除菜单失败", e);
@@ -184,4 +248,5 @@ public class MenuController {
                     .body(ApiResponse.badRequest(e.getMessage()));
         }
     }
+
 }

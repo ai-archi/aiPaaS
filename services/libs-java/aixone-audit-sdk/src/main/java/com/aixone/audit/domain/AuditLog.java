@@ -53,6 +53,13 @@ public class AuditLog extends Entity<Long> {
     private String sessionId;
     
     /**
+     * 设置租户ID（公开方法，用于在外部设置）
+     */
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+    
+    /**
      * No-argument constructor for JPA/frameworks
      */
     public AuditLog() {

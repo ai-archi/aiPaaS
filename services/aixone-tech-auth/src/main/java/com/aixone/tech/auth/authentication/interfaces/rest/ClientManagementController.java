@@ -1,8 +1,8 @@
 package com.aixone.tech.auth.authentication.interfaces.rest;
 
+import com.aixone.common.api.ApiResponse;
 import com.aixone.tech.auth.authentication.domain.model.Client;
 import com.aixone.tech.auth.authentication.domain.service.ClientDomainService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,16 +28,20 @@ public class ClientManagementController {
      * 注意：此接口仅用于内部调用，对外管理功能由Workbench服务提供
      */
     @PostMapping
-    public ResponseEntity<Client> createClient(@RequestBody CreateClientRequest request) {
-        Client client = clientDomainService.createClient(
-            request.getTenantId(),
-            request.getClientId(),
-            request.getClientSecret(),
-            request.getRedirectUri(),
-            request.getScopes(),
-            request.getGrantTypes()
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(client);
+    public ResponseEntity<ApiResponse<Client>> createClient(@RequestBody CreateClientRequest request) {
+        try {
+            Client client = clientDomainService.createClient(
+                request.getTenantId(),
+                request.getClientId(),
+                request.getClientSecret(),
+                request.getRedirectUri(),
+                request.getScopes(),
+                request.getGrantTypes()
+            );
+            return ResponseEntity.ok(ApiResponse.success(client, "创建客户端成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "创建客户端失败: " + e.getMessage()));
+        }
     }
 
     /**
@@ -45,9 +49,13 @@ public class ClientManagementController {
      * 注意：此接口仅用于内部调用，对外管理功能由Workbench服务提供
      */
     @GetMapping
-    public ResponseEntity<List<Client>> getClients(@RequestParam String tenantId) {
-        List<Client> clients = clientDomainService.getClientsByTenant(tenantId);
-        return ResponseEntity.ok(clients);
+    public ResponseEntity<ApiResponse<List<Client>>> getClients(@RequestParam String tenantId) {
+        try {
+            List<Client> clients = clientDomainService.getClientsByTenant(tenantId);
+            return ResponseEntity.ok(ApiResponse.success(clients, "获取客户端列表成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "获取客户端列表失败: " + e.getMessage()));
+        }
     }
 
     /**

@@ -14,6 +14,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 
 /**
@@ -36,15 +37,13 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(authz -> authz
-                // 公开接口：登录、注册、验证码等（支持context-path）
-                .requestMatchers("/auth/login", "/auth/refresh", "/auth/logout", 
+                // 公开接口：登录、注册、验证码等
+                // 注意：由于 context-path 是 /api/v1，这里的路径是相对于 context-path 的
+                .requestMatchers("/auth/login", "/auth/refresh", "/auth/logout",
                                 "/auth/validate", "/auth/sms/**", "/auth/email/**",
-                                "/auth/{provider}/**",
-                                "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout",
-                                "/api/v1/auth/validate", "/api/v1/auth/sms/**", "/api/v1/auth/email/**",
-                                "/api/v1/auth/{provider}/**").permitAll()
+                                "/verification-codes/**").permitAll()
                 // 管理接口需要权限验证
-                .requestMatchers("/auth/internal/**", "/api/v1/auth/internal/**").authenticated()
+                .requestMatchers("/auth/internal/**").authenticated()
                 // 其他接口默认允许（可以根据需要调整）
                 .anyRequest().permitAll()
             )

@@ -12,4 +12,5 @@ export default {
     [adminBaseRoutePath + '/user/scoreLog']: ['./backend/${lang}/user/moneyLog.ts'],
     [adminBaseRoutePath + '/crud/crud']: ['./backend/${lang}/crud/log.ts', './backend/${lang}/crud/state.ts'],
     [adminBaseRoutePath + '/dashboard/index']: ['./backend/${lang}/dashboard.ts'],
+    [adminBaseRoutePath + '/menu']: ['./backend/${lang}/menu.ts'],
 }

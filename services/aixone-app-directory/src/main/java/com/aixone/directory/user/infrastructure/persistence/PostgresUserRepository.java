@@ -48,6 +48,13 @@ public class PostgresUserRepository implements UserRepository {
     }
 
     @Override
+    public java.util.List<User> findByTenantId(String tenantId) {
+        return jpaRepository.findByTenantId(tenantId).stream()
+                .map(mapper::toDomain)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
     public void deleteById(String id) {
         jpaRepository.deleteById(id);
     }

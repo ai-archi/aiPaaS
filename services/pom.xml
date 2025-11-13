@@ -12,7 +12,7 @@
     <modules>
         <module>aixone-api-gateway</module>
         <module>aixone-tech-auth</module>
-        <module>aixone-event-center</module>
+        <module>aixone-tech-event-center</module>
         <module>aixone-app-workbench</module>
         <module>llm_serve</module>
         <module>meta-center</module>

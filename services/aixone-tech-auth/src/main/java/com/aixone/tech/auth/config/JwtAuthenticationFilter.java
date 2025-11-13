@@ -32,6 +32,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, 
                                     HttpServletResponse response, 
                                     FilterChain filterChain) throws ServletException, IOException {
+        // 跳过公开接口，不需要JWT认证
+        String requestPath = request.getRequestURI();
+        if (isPublicPath(requestPath)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
         // 从请求头中提取Token
         String token = extractTokenFromRequest(request);
         
@@ -60,6 +67,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         
         filterChain.doFilter(request, response);
+    }
+    
+    /**
+     * 判断是否为公开路径（不需要JWT认证）
+     */
+    private boolean isPublicPath(String path) {
+        // request.getRequestURI() 返回完整路径（包含 context-path /api/v1）
+        // 所以需要检查完整路径
+        return path.equals("/api/v1/auth/login") || path.equals("/api/v1/auth/refresh") ||
+               path.equals("/api/v1/auth/logout") || path.equals("/api/v1/auth/validate") ||
+               path.startsWith("/api/v1/auth/sms/") || path.startsWith("/api/v1/auth/email/") ||
+               path.startsWith("/api/v1/verification-codes/");
     }
     
     /**

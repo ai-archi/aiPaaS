@@ -1,0 +1,72 @@
+# event-center 基础配置
+server:
+  port: 8081 # 服务端口
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ai_xone
+    username: ai_xone
+    password: ai_xone
+    dbname: ai_xone
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate # 使用validate，由Flyway管理表结构
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_schema: ai_xone
+  # Flyway Configuration for Database Migration
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://localhost:5432/ai_xone
+    user: ai_xone
+    password: ai_xone
+    schemas: ai_xone
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: false
+    ignore-missing-migrations: true
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      batch-size: 16384
+      linger-ms: 5
+      buffer-memory: 33554432
+    consumer:
+      group-id: event-center-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+      auto-commit-interval-ms: 1000
+      properties:
+        spring.json.trusted.packages: "com.aixone.eventcenter.*"
+
+logging:
+  level:
+    root: INFO
+    com.aixone.eventcenter: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*' # 开放所有监控端点
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true

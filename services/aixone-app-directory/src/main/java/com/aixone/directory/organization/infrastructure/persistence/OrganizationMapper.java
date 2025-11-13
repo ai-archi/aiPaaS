@@ -18,6 +18,8 @@ public class OrganizationMapper {
                 .name(dbo.getName())
                 .createdAt(dbo.getCreatedAt())
                 .updatedAt(dbo.getUpdatedAt())
+                .departments(new java.util.HashSet<>())
+                .positions(new java.util.HashSet<>())
                 .build();
     }
 

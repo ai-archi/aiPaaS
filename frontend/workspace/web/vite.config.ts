@@ -31,6 +31,18 @@ const viteConfig = ({ mode }: ConfigEnv): UserConfig => {
             port: parseInt(VITE_PORT),
             open: VITE_OPEN != 'false',
             proxy: {
+                // 认证相关API代理到Auth服务 (8080)
+                // 参考租户API的配置方式，统一使用 /api/v1 前缀
+                '/api/v1/auth': {
+                    target: 'http://localhost:8080',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '/api/v1/verification-codes': {
+                    target: 'http://localhost:8080',
+                    changeOrigin: true,
+                    secure: false,
+                },
                 // 租户相关API代理到目录服务 (8081)
                 '^/tenants': {
                     target: 'http://localhost:8081/api/v1',
@@ -42,17 +54,67 @@ const viteConfig = ({ mode }: ConfigEnv): UserConfig => {
                     changeOrigin: true,
                     secure: false,
                 },
+                // 菜单相关API代理到Directory服务 (8081)
+                '/api/v1/menus': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                // 兼容旧的 /menus 路径（已废弃，建议使用 /api/v1/menus）
                 '^/menus': {
                     target: 'http://localhost:8081/api/v1',
                     changeOrigin: true,
                     secure: false,
                 },
+                // 租户相关API代理到Directory服务 (8081)
                 '/api/v1/tenants': {
                     target: 'http://localhost:8081',
                     changeOrigin: true,
                     secure: false,
                 },
                 '/api/v1/tenant-groups': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                // Directory服务其他模块API代理 (8081)
+                '/api/v1/users': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '/api/v1/roles': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '/api/v1/organizations': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '/api/v1/departments': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '/api/v1/positions': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '/api/v1/groups': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                // 权限相关API代理到Directory服务 (8081)
+                '/api/v1/permissions': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '/api/v1/permissions/data': {
                     target: 'http://localhost:8081',
                     changeOrigin: true,
                     secure: false,

@@ -94,7 +94,16 @@ public class MenuApplicationService {
     }
 
     /**
-     * 根据ID查找菜单
+     * 根据ID查找菜单（带租户验证）
+     */
+    public Optional<MenuDto.MenuView> findMenuById(String menuId, String tenantId) {
+        return menuRepository.findById(menuId)
+                .filter(menu -> menu.getTenantId().equals(tenantId))
+                .map(this::convertToView);
+    }
+
+    /**
+     * 根据ID查找菜单（不带租户验证，用于管理接口）
      */
     public Optional<MenuDto.MenuView> findMenuById(String menuId) {
         return menuRepository.findById(menuId)
@@ -102,21 +111,58 @@ public class MenuApplicationService {
     }
 
     /**
+     * 查找菜单的子菜单
+     */
+    public List<MenuDto.MenuView> findMenuChildren(String menuId, String tenantId) {
+        // 先验证菜单是否存在且属于当前租户
+        Menu menu = menuRepository.findById(menuId)
+                .orElseThrow(() -> new IllegalArgumentException("菜单不存在"));
+        
+        if (!menu.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("菜单不属于当前租户");
+        }
+        
+        // 查询子菜单
+        List<Menu> children = menuRepository.findByTenantIdAndParentId(tenantId, menuId);
+        return children.stream()
+                .map(this::convertToView)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 分页查询菜单列表（平铺结构，支持过滤）
      */
-    public PageResult<MenuDto.MenuView> findMenus(PageRequest pageRequest, String tenantId, String name, String title, String type) {
-        log.info("分页查询菜单: pageNum={}, pageSize={}, tenantId={}, name={}, title={}, type={}", 
-                pageRequest.getPageNum(), pageRequest.getPageSize(), tenantId, name, title, type);
+    public PageResult<MenuDto.MenuView> findMenus(PageRequest pageRequest, String tenantId, String parentId, String name, String title, String type) {
+        log.info("分页查询菜单: pageNum={}, pageSize={}, tenantId={}, parentId={}, name={}, title={}, type={}", 
+                pageRequest.getPageNum(), pageRequest.getPageSize(), tenantId, parentId, name, title, type);
         
-        // 处理特殊 tenantId 值
-        String actualTenantId = convertTenantId(tenantId);
+        // 验证 tenantId 不能为空
+        if (!StringUtils.hasText(tenantId)) {
+            throw new IllegalArgumentException("租户ID不能为空");
+        }
         
         // 构建查询规格
         Specification<MenuDbo> spec = (root, query, cb) -> {
             List<Predicate> predicates = new java.util.ArrayList<>();
             
             // 必须按租户ID过滤
-            predicates.add(cb.equal(root.get("tenantId"), actualTenantId));
+            predicates.add(cb.equal(root.get("tenantId"), tenantId));
+            
+            // 支持parentId过滤
+            // 注意：
+            //   - 如果parentId参数为"null"字符串，查询根菜单（parentId为null）
+            //   - 如果parentId参数为具体的菜单ID，查询该菜单的子菜单
+            //   - 如果parentId参数未提供（null或空字符串），返回所有菜单（不限制parentId）
+            if (StringUtils.hasText(parentId)) {
+                if ("null".equalsIgnoreCase(parentId)) {
+                    // 查询根菜单（parentId为null）
+                    predicates.add(cb.isNull(root.get("parentId")));
+                } else {
+                    // 查询指定父菜单的子菜单
+                    predicates.add(cb.equal(root.get("parentId"), parentId));
+                }
+            }
+            // 如果parentId未提供，不添加parentId过滤条件，返回所有菜单
             
             if (StringUtils.hasText(name)) {
                 predicates.add(cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
@@ -166,15 +212,6 @@ public class MenuApplicationService {
         return PageResult.of(page.getTotalElements(), pageRequest, content);
     }
     
-    /**
-     * 转换租户ID：将 "default" 转换为默认 UUID
-     */
-    private String convertTenantId(String tenantId) {
-        if (tenantId == null || "default".equals(tenantId)) {
-            return "00000000-0000-0000-0000-000000000000";
-        }
-        return tenantId;
-    }
 
     /**
      * 根据租户ID查找所有菜单（树形结构）
@@ -182,6 +219,86 @@ public class MenuApplicationService {
     public List<MenuDto.MenuView> findMenusByTenantId(String tenantId) {
         List<Menu> menus = menuRepository.findByTenantId(tenantId);
         return buildMenuTree(menus);
+    }
+
+    /**
+     * 查找菜单树（支持过滤和快速搜索）
+     * 返回树形结构数据，不分页
+     */
+    @Transactional(readOnly = true)
+    public List<MenuDto.MenuView> findMenusTree(String tenantId, String name, String title, String type, String quickSearch) {
+        // 构建查询规格
+        Specification<MenuDbo> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new java.util.ArrayList<>();
+            
+            // 必须按租户ID过滤
+            predicates.add(cb.equal(root.get("tenantId"), tenantId));
+            
+            // 支持name过滤
+            if (StringUtils.hasText(name)) {
+                predicates.add(cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
+            }
+            
+            // 支持title过滤
+            if (StringUtils.hasText(title)) {
+                predicates.add(cb.like(cb.lower(root.get("title")), "%" + title.toLowerCase() + "%"));
+            }
+            
+            // 支持type过滤
+            if (StringUtils.hasText(type)) {
+                predicates.add(cb.equal(root.get("type"), type));
+            }
+            
+            // 支持快速搜索（搜索title和name）
+            if (StringUtils.hasText(quickSearch)) {
+                String searchPattern = "%" + quickSearch.toLowerCase() + "%";
+                Predicate titlePredicate = cb.like(cb.lower(root.get("title")), searchPattern);
+                Predicate namePredicate = cb.like(cb.lower(root.get("name")), searchPattern);
+                predicates.add(cb.or(titlePredicate, namePredicate));
+            }
+            
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        
+        // 构建排序：按displayOrder升序
+        org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by("displayOrder").ascending();
+        
+        // 查询所有符合条件的菜单（不分页）
+        List<MenuDbo> menuDbos = menuJpaRepository.findAll(spec, sort);
+        
+        // 转换为领域对象
+        List<Menu> menus = menuDbos.stream()
+                .map(this::convertDboToDomain)
+                .collect(Collectors.toList());
+        
+        // 构建树形结构
+        return buildMenuTree(menus);
+    }
+
+    /**
+     * 将 MenuDbo 转换为 Menu 领域对象
+     */
+    private Menu convertDboToDomain(MenuDbo dbo) {
+        return Menu.builder()
+                .id(dbo.getId())
+                .tenantId(dbo.getTenantId())
+                .parentId(dbo.getParentId())
+                .name(dbo.getName())
+                .title(dbo.getTitle())
+                .path(dbo.getPath())
+                .icon(dbo.getIcon())
+                .type(dbo.getType())
+                .renderType(dbo.getRenderType())
+                .component(dbo.getComponent())
+                .url(dbo.getUrl())
+                .keepalive(dbo.getKeepalive())
+                .displayOrder(dbo.getDisplayOrder())
+                .visible(dbo.getVisible())
+                .config(dbo.getConfig())
+                .extend(dbo.getExtend())
+                .createdAt(dbo.getCreatedAt())
+                .updatedAt(dbo.getUpdatedAt())
+                .build();
     }
 
     /**
@@ -195,18 +312,30 @@ public class MenuApplicationService {
     }
 
     /**
-     * 更新菜单
+     * 更新菜单（带租户验证）
      */
     @Transactional
-    public MenuDto.MenuView updateMenu(String menuId, MenuDto.UpdateMenuCommand command) {
-        log.info("更新菜单: id={}, name={}", menuId, command.getName());
+    public MenuDto.MenuView updateMenu(String menuId, String tenantId, MenuDto.UpdateMenuCommand command) {
+        log.info("更新菜单: id={}, tenantId={}, name={}", menuId, tenantId, command.getName());
 
         Menu menu = menuRepository.findById(menuId)
                 .orElseThrow(() -> new IllegalArgumentException("菜单不存在"));
+        
+        // 验证菜单是否属于当前租户
+        if (!menu.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("菜单不属于当前租户");
+        }
 
         menu.update(command.getName(), command.getTitle(), command.getPath());
         
         // 更新其他属性
+        // parentId 需要特殊处理：如果为 null 表示设置为根菜单，如果为空字符串也表示设置为根菜单
+        if (command.getParentId() != null) {
+            menu.setParent(command.getParentId());
+        } else {
+            // 如果 parentId 为 null，设置为根菜单（parentId = null）
+            menu.setParent(null);
+        }
         if (command.getIcon() != null) {
             menu.setIcon(command.getIcon());
         }
@@ -243,14 +372,100 @@ public class MenuApplicationService {
     }
 
     /**
-     * 删除菜单
+     * 更新菜单（不带租户验证，用于管理接口）
+     */
+    @Transactional
+    public MenuDto.MenuView updateMenu(String menuId, MenuDto.UpdateMenuCommand command) {
+        log.info("更新菜单: id={}, name={}", menuId, command.getName());
+
+        Menu menu = menuRepository.findById(menuId)
+                .orElseThrow(() -> new IllegalArgumentException("菜单不存在"));
+
+        menu.update(command.getName(), command.getTitle(), command.getPath());
+        
+        // 更新其他属性
+        // parentId 需要特殊处理：如果为 null 表示设置为根菜单，如果为空字符串也表示设置为根菜单
+        if (command.getParentId() != null) {
+            menu.setParent(command.getParentId());
+        } else {
+            // 如果 parentId 为 null，设置为根菜单（parentId = null）
+            menu.setParent(null);
+        }
+        if (command.getIcon() != null) {
+            menu.setIcon(command.getIcon());
+        }
+        if (command.getType() != null) {
+            menu.setType(command.getType());
+        }
+        if (command.getRenderType() != null) {
+            menu.setRenderType(command.getRenderType());
+        }
+        if (command.getComponent() != null) {
+            menu.setComponent(command.getComponent());
+        }
+        if (command.getUrl() != null) {
+            menu.setUrl(command.getUrl());
+        }
+        if (command.getKeepalive() != null) {
+            menu.setKeepalive(command.getKeepalive());
+        }
+        if (command.getDisplayOrder() != null) {
+            menu.setDisplayOrder(command.getDisplayOrder());
+        }
+        if (command.getVisible() != null) {
+            menu.setVisible(command.getVisible());
+        }
+        if (command.getConfig() != null) {
+            menu.setConfig(command.getConfig());
+        }
+        if (command.getExtend() != null) {
+            menu.setExtend(command.getExtend());
+        }
+
+        Menu savedMenu = menuRepository.save(menu);
+        return convertToView(savedMenu);
+    }
+
+    /**
+     * 删除菜单（带租户验证）
+     */
+    @Transactional
+    public void deleteMenu(String menuId, String tenantId) {
+        log.info("删除菜单: id={}, tenantId={}", menuId, tenantId);
+
+        Menu menu = menuRepository.findById(menuId)
+                .orElseThrow(() -> new IllegalArgumentException("菜单不存在"));
+        
+        // 验证菜单是否属于当前租户
+        if (!menu.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("菜单不属于当前租户");
+        }
+        
+        // 检查是否有子菜单
+        List<Menu> children = menuRepository.findByTenantIdAndParentId(tenantId, menuId);
+        if (!children.isEmpty()) {
+            throw new IllegalArgumentException("菜单存在子菜单，无法删除");
+        }
+
+        menuRepository.delete(menuId);
+    }
+
+    /**
+     * 删除菜单（不带租户验证，用于管理接口）
      */
     @Transactional
     public void deleteMenu(String menuId) {
         log.info("删除菜单: id={}", menuId);
 
-        if (!menuRepository.findById(menuId).isPresent()) {
-            throw new IllegalArgumentException("菜单不存在");
+        Menu menu = menuRepository.findById(menuId)
+                .orElseThrow(() -> new IllegalArgumentException("菜单不存在"));
+        
+        // 检查是否有子菜单（需要知道租户ID）
+        // 注意：管理员接口删除时，需要检查所有租户下的子菜单
+        // 这里简化处理，只检查当前菜单的tenantId下的子菜单
+        List<Menu> children = menuRepository.findByTenantIdAndParentId(menu.getTenantId(), menuId);
+        if (!children.isEmpty()) {
+            throw new IllegalArgumentException("菜单存在子菜单，无法删除");
         }
 
         menuRepository.delete(menuId);
@@ -280,10 +495,34 @@ public class MenuApplicationService {
             }
         }
 
-        // 返回根菜单
+        // 对每个节点的children按displayOrder排序
+        sortMenuTree(menuViews);
+
+        // 返回根菜单（按displayOrder排序）
         return menuViews.stream()
                 .filter(menu -> menu.getParentId() == null)
+                .sorted((a, b) -> {
+                    int orderA = a.getDisplayOrder() != null ? a.getDisplayOrder() : 0;
+                    int orderB = b.getDisplayOrder() != null ? b.getDisplayOrder() : 0;
+                    return Integer.compare(orderA, orderB);
+                })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 递归排序菜单树
+     */
+    private void sortMenuTree(List<MenuDto.MenuView> menus) {
+        for (MenuDto.MenuView menu : menus) {
+            if (menu.getChildren() != null && !menu.getChildren().isEmpty()) {
+                menu.getChildren().sort((a, b) -> {
+                    int orderA = a.getDisplayOrder() != null ? a.getDisplayOrder() : 0;
+                    int orderB = b.getDisplayOrder() != null ? b.getDisplayOrder() : 0;
+                    return Integer.compare(orderA, orderB);
+                });
+                sortMenuTree(menu.getChildren());
+            }
+        }
     }
 
     /**
@@ -309,6 +548,7 @@ public class MenuApplicationService {
                 .extend(menu.getExtend())
                 .createdAt(menu.getCreatedAt())
                 .updatedAt(menu.getUpdatedAt())
+                .children(new java.util.ArrayList<>()) // 初始化 children 列表，避免 JSON 序列化问题
                 .build();
     }
     

@@ -34,5 +34,10 @@ public class PostgresGroupRepository implements GroupRepository {
     public List<Group> findByTenantId(String tenantId) {
         return Collections.emptyList();
     }
+
+    @Override
+    public void deleteById(String id) {
+        jpaRepository.deleteById(id);
+    }
 }
 
